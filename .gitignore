@@ -1,0 +1,10 @@
+# build artifacts
+/todoist
+/bin/
+/dist/
+
+# local caches
+/.gocache/
+
+# editor
+.DS_Store
