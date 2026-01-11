@@ -252,6 +252,18 @@ todoist agent status
 - `agent apply` executes a plan from `--plan` or re-runs the planner; requires the `--confirm` token from the plan.
 - `agent status` shows planner command and last run status.
 
+## Shell Completions
+
+Generate a completion script for your shell:
+
+```bash
+todoist completion bash > /usr/local/etc/bash_completion.d/todoist
+todoist completion zsh  > "${fpath[1]}/_todoist"
+todoist completion fish > ~/.config/fish/completions/todoist.fish
+```
+
+Restart your shell or `source` the generated file to enable completions.
+
 ## Finding IDs
 
 Some operations require IDs (e.g., task update/complete/delete; project archive/delete). Use list commands in `--plain` or `--json` mode to locate IDs:
