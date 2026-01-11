@@ -6,6 +6,10 @@ The format is based on *Keep a Changelog*, and this project adheres to *Semantic
 
 ## [Unreleased]
 
+## [v0.1.1] - 2026-01-11
+
+- feat: add shell completions (31bc73c)
+
 ## [v0.1.0] - 2026-01-11
 
 ### Added
