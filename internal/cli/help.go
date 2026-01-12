@@ -18,6 +18,7 @@ Commands:
   comment     Manage comments
   agent       Plan and apply agentic actions
   completion  Shell completion
+  schema      Show JSON schemas for outputs
   help        Show help for a command
 
 Global flags:
@@ -68,6 +69,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printAgentHelp(ctx.Stdout)
 	case "completion":
 		printCompletionHelp(ctx.Stdout)
+	case "schema":
+		printSchemaHelp(ctx.Stdout)
 	default:
 		printRootHelp(ctx.Stdout)
 	}
@@ -173,6 +176,7 @@ func printAgentHelp(out interface{ Write([]byte) (int, error) }) {
   todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
   todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
   todoist agent apply --plan <file> --confirm <token>
+  todoist agent apply --plan <file> --confirm <token> --dry-run
   todoist agent status
 
 Examples:

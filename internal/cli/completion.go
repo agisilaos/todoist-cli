@@ -145,7 +145,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "inbox auth task project section label comment agent completion help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "inbox auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -230,6 +230,11 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${agent_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
+    schema)
+      local schema_flags="--name"
+      COMPREPLY=( $(compgen -W "${schema_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
   esac
 }
 complete -F _todoist todoist
@@ -237,7 +242,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(inbox auth task project section label comment agent completion help)' \
+  '1:command:(inbox auth task project section label comment agent completion schema help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -264,6 +269,9 @@ case $words[1] in
     ;;
   agent)
     _arguments '2:subcommand:(plan apply status)' '*:flags:(--out --planner --plan --confirm)'
+    ;;
+  schema)
+    _arguments '*:flags:(--name)'
     ;;
   completion)
     _arguments '2:shell:(bash zsh fish)'
@@ -325,6 +333,9 @@ complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l descrip
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply status'
 complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l plan -l confirm
+
+# schema
+complete -c todoist -n '__fish_seen_subcommand_from schema' -l name
 
 # completion helper
 complete -c todoist -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'

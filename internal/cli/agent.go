@@ -169,6 +169,9 @@ func agentApply(ctx *Context, args []string) error {
 		}
 		plan = p
 	}
+	if err := validatePlan(plan); err != nil {
+		return err
+	}
 	if !ctx.Global.Force {
 		if confirm == "" {
 			printAgentHelp(ctx.Stderr)
@@ -180,7 +183,7 @@ func agentApply(ctx *Context, args []string) error {
 		}
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "agent apply", plan)
+		return writePlanPreview(ctx, plan, true)
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -251,20 +254,8 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string) (Plan, erro
 	if err := json.Unmarshal(stdout.Bytes(), &plan); err != nil {
 		return Plan{}, fmt.Errorf("parse planner output: %w", err)
 	}
-	if plan.Version == 0 {
-		plan.Version = 1
-	}
-	if plan.Instruction == "" {
-		plan.Instruction = instruction
-	}
-	if plan.CreatedAt == "" {
-		plan.CreatedAt = ctx.Now().UTC().Format(time.RFC3339)
-	}
-	if plan.ConfirmToken == "" {
-		plan.ConfirmToken = newConfirmToken()
-	}
-	if plan.Summary == (PlanSummary{}) {
-		plan.Summary = summarizeActions(plan.Actions)
+	if err := normalizeAndValidatePlan(&plan, instruction, ctx.Now); err != nil {
+		return Plan{}, err
 	}
 	return plan, nil
 }
@@ -612,16 +603,7 @@ func summarizeActions(actions []Action) PlanSummary {
 }
 
 func writePlanOutput(ctx *Context, plan Plan) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, plan, output.Meta{})
-	}
-	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
-	fmt.Fprintf(ctx.Stdout, "Confirm: %s\n", plan.ConfirmToken)
-	fmt.Fprintf(ctx.Stdout, "Actions: %d\n", len(plan.Actions))
-	for i, action := range plan.Actions {
-		fmt.Fprintf(ctx.Stdout, "%d. %s\n", i+1, action.Type)
-	}
-	return nil
+	return writePlanPreview(ctx, plan, false)
 }
 
 func writePlanFile(path string, plan Plan) error {
@@ -657,6 +639,78 @@ func readPlanFile(path string, stdin io.Reader) (Plan, error) {
 		return Plan{}, err
 	}
 	return plan, nil
+}
+
+func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, map[string]any{
+			"plan":    plan,
+			"dry_run": dryRun,
+		}, output.Meta{})
+	}
+	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
+	if dryRun {
+		fmt.Fprintln(ctx.Stdout, "DRY RUN: no actions applied")
+	}
+	fmt.Fprintf(ctx.Stdout, "Confirm: %s\n", plan.ConfirmToken)
+	fmt.Fprintf(ctx.Stdout, "Actions: %d\n", len(plan.Actions))
+	for i, action := range plan.Actions {
+		fmt.Fprintf(ctx.Stdout, "%d. %s\n", i+1, action.Type)
+	}
+	return nil
+}
+
+func normalizeAndValidatePlan(plan *Plan, instruction string, now func() time.Time) error {
+	if plan.Version == 0 {
+		plan.Version = 1
+	}
+	if plan.Instruction == "" {
+		plan.Instruction = instruction
+	}
+	if plan.CreatedAt == "" {
+		plan.CreatedAt = now().UTC().Format(time.RFC3339)
+	}
+	if plan.Summary == (PlanSummary{}) {
+		plan.Summary = summarizeActions(plan.Actions)
+	}
+	return validatePlan(*plan)
+}
+
+func validatePlan(plan Plan) error {
+	if plan.ConfirmToken == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("plan missing confirm_token")}
+	}
+	if len(plan.Actions) == 0 {
+		return &CodeError{Code: exitUsage, Err: errors.New("plan has no actions")}
+	}
+	allowed := map[string]struct{}{
+		"task_add":          {},
+		"task_update":       {},
+		"task_move":         {},
+		"task_complete":     {},
+		"task_reopen":       {},
+		"task_delete":       {},
+		"project_add":       {},
+		"project_update":    {},
+		"project_archive":   {},
+		"project_unarchive": {},
+		"project_delete":    {},
+		"section_add":       {},
+		"section_update":    {},
+		"section_delete":    {},
+		"label_add":         {},
+		"label_update":      {},
+		"label_delete":      {},
+		"comment_add":       {},
+		"comment_update":    {},
+		"comment_delete":    {},
+	}
+	for _, a := range plan.Actions {
+		if _, ok := allowed[a.Type]; !ok {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported action type: %s", a.Type)}
+		}
+	}
+	return nil
 }
 
 func lastPlanPath(ctx *Context) string {

@@ -270,12 +270,22 @@ Integrate with an external planner to generate and apply bulk plans.
 todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
 todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
 todoist agent apply --plan <file> --confirm <token>
+todoist agent apply --plan <file> --confirm <token> --dry-run
 todoist agent status
 ```
 
 - `agent plan` sends context + instruction to an external planner command. Use `--out` to save the plan JSON.
 - `agent apply` executes a plan from `--plan` or re-runs the planner; requires the `--confirm` token from the plan.
 - `agent status` shows planner command and last run status.
+- `--dry-run` with `agent apply` prints the plan without applying actions.
+
+### Schema
+
+Output JSON schemas (use `--json`):
+
+```
+todoist schema [--name task_list|error] [--json]
+```
 
 ## Shell Completions
 

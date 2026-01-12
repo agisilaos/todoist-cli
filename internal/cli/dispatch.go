@@ -25,6 +25,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = completionCommand(ctx, rest)
 	case "inbox":
 		err = inboxCommand(ctx, rest)
+	case "schema":
+		err = schemaCommand(ctx, rest)
 	case "help":
 		err = helpCommand(ctx, rest)
 	default:
