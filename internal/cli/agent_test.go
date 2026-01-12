@@ -12,7 +12,7 @@ func TestValidatePlanMissingConfirm(t *testing.T) {
 	plan := Plan{
 		Actions: []Action{{Type: "task_add", Content: "x"}},
 	}
-	if err := validatePlan(plan); err == nil {
+	if err := validatePlan(plan, 1); err == nil {
 		t.Fatalf("expected error for missing confirm_token")
 	}
 }

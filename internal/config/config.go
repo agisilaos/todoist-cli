@@ -21,6 +21,7 @@ type Config struct {
 	DefaultInboxLabels []string `json:"default_inbox_labels"`
 	DefaultInboxDue    string   `json:"default_inbox_due"`
 	TableWidth         int      `json:"table_width"`
+	PlannerCmd         string   `json:"planner_cmd"`
 }
 
 type Credentials struct {
@@ -106,6 +107,17 @@ func EnsureDir(path string) error {
 	return os.MkdirAll(path, 0o700)
 }
 
+func SaveConfig(path string, cfg Config) error {
+	if err := EnsureDir(filepath.Dir(path)); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode config: %w", err)
+	}
+	return os.WriteFile(path, data, 0o600)
+}
+
 func MergeConfig(base Config, override Config) Config {
 	result := base
 	if override.BaseURL != "" {
@@ -125,6 +137,9 @@ func MergeConfig(base Config, override Config) Config {
 	}
 	if override.TableWidth > 0 {
 		result.TableWidth = override.TableWidth
+	}
+	if override.PlannerCmd != "" {
+		result.PlannerCmd = override.PlannerCmd
 	}
 	return result
 }

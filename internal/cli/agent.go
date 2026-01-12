@@ -56,6 +56,7 @@ type Action struct {
 	SectionID    string   `json:"section_id,omitempty"`
 	LabelID      string   `json:"label_id,omitempty"`
 	CommentID    string   `json:"comment_id,omitempty"`
+	Idempotent   bool     `json:"idempotent,omitempty"`
 	Content      string   `json:"content,omitempty"`
 	Description  string   `json:"description,omitempty"`
 	Name         string   `json:"name,omitempty"`
@@ -89,6 +90,8 @@ func agentCommand(ctx *Context, args []string) error {
 		return agentApply(ctx, args[1:])
 	case "status":
 		return agentStatus(ctx)
+	case "planner":
+		return agentPlanner(ctx, args[1:])
 	default:
 		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown agent subcommand: %s", args[0])}
 	}
@@ -99,9 +102,11 @@ func agentPlan(ctx *Context, args []string) error {
 	fs.SetOutput(io.Discard)
 	var outPath string
 	var planner string
+	var expectedVersion int
 	var help bool
 	fs.StringVar(&outPath, "out", "", "Output plan file")
 	fs.StringVar(&planner, "planner", "", "Planner command")
+	fs.IntVar(&expectedVersion, "plan-version", 1, "Expected plan version")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
@@ -116,7 +121,7 @@ func agentPlan(ctx *Context, args []string) error {
 		printAgentHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("instruction is required")}
 	}
-	plan, err := runPlanner(ctx, planner, instruction)
+	plan, err := runPlanner(ctx, planner, instruction, expectedVersion)
 	if err != nil {
 		return err
 	}
@@ -137,10 +142,14 @@ func agentApply(ctx *Context, args []string) error {
 	var planPath string
 	var confirm string
 	var planner string
+	var onError string
+	var expectedVersion int
 	var help bool
 	fs.StringVar(&planPath, "plan", "", "Plan file (or - for stdin)")
 	fs.StringVar(&confirm, "confirm", "", "Confirmation token")
 	fs.StringVar(&planner, "planner", "", "Planner command")
+	fs.StringVar(&onError, "on-error", "fail", "On error: fail|continue")
+	fs.IntVar(&expectedVersion, "plan-version", 1, "Expected plan version")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
@@ -163,13 +172,13 @@ func agentApply(ctx *Context, args []string) error {
 			printAgentHelp(ctx.Stderr)
 			return &CodeError{Code: exitUsage, Err: errors.New("instruction is required when --plan is not provided")}
 		}
-		p, err := runPlanner(ctx, planner, instruction)
+		p, err := runPlanner(ctx, planner, instruction, expectedVersion)
 		if err != nil {
 			return err
 		}
 		plan = p
 	}
-	if err := validatePlan(plan); err != nil {
+	if err := validatePlan(plan, expectedVersion); err != nil {
 		return err
 	}
 	if !ctx.Global.Force {
@@ -188,16 +197,15 @@ func agentApply(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	for _, action := range plan.Actions {
-		if err := applyAction(ctx, action); err != nil {
-			return err
-		}
+	results, err := applyActionsWithMode(ctx, plan.Actions, onError)
+	if err != nil && onError == "fail" {
+		return err
 	}
 	plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
 	if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
 		return err
 	}
-	return writePlanOutput(ctx, plan)
+	return writePlanApplyResult(ctx, plan, results, err)
 }
 
 func agentStatus(ctx *Context) error {
@@ -208,9 +216,9 @@ func agentStatus(ctx *Context) error {
 	return writePlanOutput(ctx, plan)
 }
 
-func runPlanner(ctx *Context, plannerCmd string, instruction string) (Plan, error) {
+func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVersion int) (Plan, error) {
 	if plannerCmd == "" {
-		plannerCmd = os.Getenv("TODOIST_PLANNER_CMD")
+		plannerCmd, _ = resolvePlannerCmd(ctx, plannerCmd, true)
 	}
 	if plannerCmd == "" {
 		return Plan{}, &CodeError{Code: exitUsage, Err: errors.New("no planner configured; set TODOIST_PLANNER_CMD or --planner")}
@@ -254,7 +262,7 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string) (Plan, erro
 	if err := json.Unmarshal(stdout.Bytes(), &plan); err != nil {
 		return Plan{}, fmt.Errorf("parse planner output: %w", err)
 	}
-	if err := normalizeAndValidatePlan(&plan, instruction, ctx.Now); err != nil {
+	if err := normalizeAndValidatePlan(&plan, instruction, ctx.Now, expectedVersion); err != nil {
 		return Plan{}, err
 	}
 	return plan, nil
@@ -644,8 +652,10 @@ func readPlanFile(path string, stdin io.Reader) (Plan, error) {
 func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"plan":    plan,
-			"dry_run": dryRun,
+			"plan":         plan,
+			"dry_run":      dryRun,
+			"action_count": len(plan.Actions),
+			"summary":      plan.Summary,
 		}, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
@@ -653,16 +663,20 @@ func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 		fmt.Fprintln(ctx.Stdout, "DRY RUN: no actions applied")
 	}
 	fmt.Fprintf(ctx.Stdout, "Confirm: %s\n", plan.ConfirmToken)
-	fmt.Fprintf(ctx.Stdout, "Actions: %d\n", len(plan.Actions))
+	fmt.Fprintf(ctx.Stdout, "Actions: %d (tasks=%d projects=%d sections=%d labels=%d comments=%d)\n",
+		len(plan.Actions), plan.Summary.Tasks, plan.Summary.Projects, plan.Summary.Sections, plan.Summary.Labels, plan.Summary.Comments)
 	for i, action := range plan.Actions {
 		fmt.Fprintf(ctx.Stdout, "%d. %s\n", i+1, action.Type)
 	}
 	return nil
 }
 
-func normalizeAndValidatePlan(plan *Plan, instruction string, now func() time.Time) error {
+func normalizeAndValidatePlan(plan *Plan, instruction string, now func() time.Time, expectedVersion int) error {
 	if plan.Version == 0 {
 		plan.Version = 1
+	}
+	if expectedVersion > 0 && plan.Version != expectedVersion {
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported plan version %d (expected %d)", plan.Version, expectedVersion)}
 	}
 	if plan.Instruction == "" {
 		plan.Instruction = instruction
@@ -673,15 +687,18 @@ func normalizeAndValidatePlan(plan *Plan, instruction string, now func() time.Ti
 	if plan.Summary == (PlanSummary{}) {
 		plan.Summary = summarizeActions(plan.Actions)
 	}
-	return validatePlan(*plan)
+	return validatePlan(*plan, expectedVersion)
 }
 
-func validatePlan(plan Plan) error {
+func validatePlan(plan Plan, expectedVersion int) error {
 	if plan.ConfirmToken == "" {
 		return &CodeError{Code: exitUsage, Err: errors.New("plan missing confirm_token")}
 	}
 	if len(plan.Actions) == 0 {
 		return &CodeError{Code: exitUsage, Err: errors.New("plan has no actions")}
+	}
+	if expectedVersion > 0 && plan.Version != 0 && plan.Version != expectedVersion {
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported plan version %d (expected %d)", plan.Version, expectedVersion)}
 	}
 	allowed := map[string]struct{}{
 		"task_add":          {},
@@ -709,6 +726,61 @@ func validatePlan(plan Plan) error {
 		if _, ok := allowed[a.Type]; !ok {
 			return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported action type: %s", a.Type)}
 		}
+		if err := validateActionFields(a); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateActionFields(a Action) error {
+	switch a.Type {
+	case "task_add":
+		if a.Content == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("task_add requires content")}
+		}
+	case "task_update", "task_move", "task_complete", "task_reopen", "task_delete":
+		if a.TaskID == "" {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires task_id", a.Type)}
+		}
+		if a.Type == "task_move" && a.Project == "" && a.Section == "" && a.Parent == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("task_move requires project, section, or parent")}
+		}
+	case "project_add":
+		if a.Name == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("project_add requires name")}
+		}
+	case "project_update", "project_archive", "project_unarchive", "project_delete":
+		if a.ProjectID == "" {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires project_id", a.Type)}
+		}
+	case "section_add":
+		if a.Name == "" || a.Project == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("section_add requires name and project")}
+		}
+	case "section_update", "section_delete":
+		if a.SectionID == "" {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires section_id", a.Type)}
+		}
+	case "label_add":
+		if a.Name == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("label_add requires name")}
+		}
+	case "label_update", "label_delete":
+		if a.LabelID == "" {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires label_id", a.Type)}
+		}
+	case "comment_add":
+		if a.Content == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("comment_add requires content")}
+		}
+		if a.TaskID == "" && a.ProjectID == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("comment_add requires task_id or project_id")}
+		}
+	case "comment_update", "comment_delete":
+		if a.CommentID == "" {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires comment_id", a.Type)}
+		}
 	}
 	return nil
 }
@@ -734,4 +806,55 @@ func toAnySlice[T any](items []T) []any {
 		out = append(out, item)
 	}
 	return out
+}
+func applyActionsWithMode(ctx *Context, actions []Action, onError string) ([]applyResult, error) {
+	if onError == "" {
+		onError = "fail"
+	}
+	results := make([]applyResult, 0, len(actions))
+	for _, action := range actions {
+		err := applyAction(ctx, action)
+		results = append(results, applyResult{Action: action, Error: err})
+		if err != nil && onError == "fail" {
+			return results, err
+		}
+	}
+	return results, nil
+}
+
+type applyResult struct {
+	Action Action `json:"action"`
+	Error  error  `json:"-"`
+}
+
+func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyErr error) error {
+	if ctx.Mode == output.ModeJSON {
+		type resultJSON struct {
+			Action Action `json:"action"`
+			Error  string `json:"error,omitempty"`
+		}
+		out := struct {
+			Plan    Plan         `json:"plan"`
+			Results []resultJSON `json:"results"`
+		}{
+			Plan: plan,
+		}
+		for _, r := range results {
+			entry := resultJSON{Action: r.Action}
+			if r.Error != nil {
+				entry.Error = r.Error.Error()
+			}
+			out.Results = append(out.Results, entry)
+		}
+		return output.WriteJSON(ctx.Stdout, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+	}
+	fmt.Fprintf(ctx.Stdout, "Applied plan: %s\n", plan.Instruction)
+	for i, r := range results {
+		status := "ok"
+		if r.Error != nil {
+			status = "error: " + r.Error.Error()
+		}
+		fmt.Fprintf(ctx.Stdout, "%d. %s [%s]\n", i+1, r.Action.Type, status)
+	}
+	return applyErr
 }

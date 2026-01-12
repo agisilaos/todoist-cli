@@ -271,13 +271,19 @@ todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
 todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
 todoist agent apply --plan <file> --confirm <token>
 todoist agent apply --plan <file> --confirm <token> --dry-run
+todoist agent apply --plan <file> --confirm <token> --on-error fail|continue
 todoist agent status
+todoist agent planner show|--set --cmd "<planner>"
+todoist agent planner --json
 ```
 
 - `agent plan` sends context + instruction to an external planner command. Use `--out` to save the plan JSON.
 - `agent apply` executes a plan from `--plan` or re-runs the planner; requires the `--confirm` token from the plan.
 - `agent status` shows planner command and last run status.
 - `--dry-run` with `agent apply` prints the plan without applying actions.
+- `--on-error=continue` keeps applying actions after a failure and reports statuses.
+- `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
+- `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).
 
 ### Schema
 

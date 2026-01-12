@@ -19,6 +19,7 @@ Commands:
   agent       Plan and apply agentic actions
   completion  Shell completion
   schema      Show JSON schemas for outputs
+  planner     Show or set planner command
   help        Show help for a command
 
 Global flags:
@@ -71,6 +72,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printCompletionHelp(ctx.Stdout)
 	case "schema":
 		printSchemaHelp(ctx.Stdout)
+	case "planner":
+		printAgentPlannerHelp(ctx.Stdout)
 	default:
 		printRootHelp(ctx.Stdout)
 	}
@@ -197,6 +200,15 @@ Notes:
 `)
 }
 
+func printAgentPlannerHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist agent planner                 # show planner command
+  todoist agent planner --set --cmd "<command>"  # set planner command
+
+Notes:
+  Sources (priority): --planner flag > TODOIST_PLANNER_CMD env > config.planner_cmd > none.
+`)
+}
 func printInboxHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist inbox add --content <text> [flags]
