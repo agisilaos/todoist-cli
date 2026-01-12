@@ -260,6 +260,9 @@ Generate a completion script for your shell:
 todoist completion bash > /usr/local/etc/bash_completion.d/todoist
 todoist completion zsh  > "${fpath[1]}/_todoist"
 todoist completion fish > ~/.config/fish/completions/todoist.fish
+
+# Or install to a sensible default location:
+todoist completion install bash
 ```
 
 Restart your shell or `source` the generated file to enable completions.

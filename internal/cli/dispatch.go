@@ -31,7 +31,7 @@ func dispatch(ctx *Context, args []string) int {
 		return exitUsage
 	}
 	if err != nil {
-		fmt.Fprintln(ctx.Stderr, err)
+		writeError(ctx, err)
 	}
 	return toExitCode(err)
 }

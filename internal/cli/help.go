@@ -116,6 +116,8 @@ Notes:
   By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
   Human output resolves project/section names; --plain uses IDs.
+  Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.
+  Use --content - to read task content from stdin.
 
 Examples:
   todoist task list --filter "today"
@@ -178,5 +180,11 @@ Examples:
 func printCompletionHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist completion bash|zsh|fish
+  todoist completion install [bash|zsh|fish] [--path <file>]
+
+Notes:
+  - "install" writes the script to a user-writable path (override with --path).
+  - Without a shell argument, "install" tries to detect SHELL.
+  - For zsh, ensure the install path directory is in $fpath.
 `)
 }

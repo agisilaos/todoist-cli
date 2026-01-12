@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -71,6 +72,27 @@ func setRequestID(ctx *Context, requestID string) {
 
 func ctxRequestIDValue(ctx *Context) string {
 	return ctx.RequestID
+}
+
+func writeError(ctx *Context, err error) {
+	if err == nil {
+		return
+	}
+	meta := output.Meta{RequestID: ctxRequestIDValue(ctx)}
+	if ctx.Mode == output.ModeJSON {
+		enc := json.NewEncoder(ctx.Stderr)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(map[string]any{
+			"error": err.Error(),
+			"meta":  meta,
+		})
+		return
+	}
+	if meta.RequestID != "" {
+		fmt.Fprintf(ctx.Stderr, "error: %s (request_id=%s)\n", err, meta.RequestID)
+		return
+	}
+	fmt.Fprintf(ctx.Stderr, "error: %s\n", err)
 }
 
 func requireNonEmpty(value, field string) error {
