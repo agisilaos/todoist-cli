@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/output"
@@ -56,6 +58,9 @@ func taskList(ctx *Context, args []string) error {
 	var since string
 	var until string
 	var wide bool
+	var preset string
+	var sortBy string
+	var truncateWidth int
 	var help bool
 	fs.StringVar(&filter, "filter", "", "Filter query")
 	fs.StringVar(&project, "project", "", "Project")
@@ -72,6 +77,9 @@ func taskList(ctx *Context, args []string) error {
 	fs.StringVar(&since, "since", "", "Start date (RFC3339 or YYYY-MM-DD)")
 	fs.StringVar(&until, "until", "", "End date (RFC3339 or YYYY-MM-DD)")
 	fs.BoolVar(&wide, "wide", false, "Wider table output")
+	fs.StringVar(&preset, "preset", "", "Shortcut filter: today, overdue, next7")
+	fs.StringVar(&sortBy, "sort", "", "Sort by: due, priority")
+	fs.IntVar(&truncateWidth, "truncate-width", 0, "Override table width (human output)")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
@@ -87,13 +95,28 @@ func taskList(ctx *Context, args []string) error {
 	if completed {
 		return taskListCompleted(ctx, completedBy, filter, project, section, parent, since, until, cursor, limit, all, wide)
 	}
+	if filter == "" && preset != "" {
+		switch preset {
+		case "today":
+			filter = "today"
+		case "overdue":
+			filter = "overdue"
+		case "next7":
+			filter = "next 7 days"
+		default:
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("invalid preset: %s", preset)}
+		}
+	}
+	if truncateWidth > 0 {
+		ctx.Config.TableWidth = truncateWidth
+	}
 	if filter != "" {
 		return taskListFiltered(ctx, filter, cursor, limit, all, wide)
 	}
-	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide)
+	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, sortBy)
 }
 
-func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool) error {
+func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sortBy string) error {
 	query := url.Values{}
 	if project == "" && section == "" && parent == "" && label == "" && ids == "" && !allProjects {
 		id, err := inboxProjectID(ctx)
@@ -150,6 +173,7 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 		}
 		query.Set("cursor", next)
 	}
+	sortTasks(allTasks, sortBy)
 	return writeTaskList(ctx, allTasks, next, wide)
 }
 
@@ -178,6 +202,7 @@ func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, 
 		}
 		query.Set("cursor", next)
 	}
+	// Keep original ordering from API for filter; no client sort to preserve meaning.
 	return writeTaskList(ctx, allTasks, next, wide)
 }
 
@@ -609,7 +634,7 @@ type taskTableConfig struct {
 	Status   int
 }
 
-func taskTableConfigFor(wide bool) taskTableConfig {
+func taskTableConfigFor(ctx *Context, wide bool) taskTableConfig {
 	cfg := taskTableConfig{
 		ID:       8,
 		Content:  50,
@@ -628,7 +653,7 @@ func taskTableConfigFor(wide bool) taskTableConfig {
 		cfg.Labels = 18
 		cfg.Due = 16
 	}
-	columns := terminalWidth()
+	columns := tableWidth(ctx)
 	fixed := cfg.ID + cfg.Project + cfg.Section + cfg.Labels + cfg.Due + cfg.Priority + cfg.Status + 7
 	available := columns - fixed
 	if available < 20 {
@@ -652,7 +677,7 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, tasks, output.Meta{RequestID: ctxRequestIDValue(ctx), Count: len(tasks), Cursor: cursor})
 	}
-	cfg := taskTableConfigFor(wide)
+	cfg := taskTableConfigFor(ctx, wide)
 	projectNames := map[string]string(nil)
 	sectionNames := map[string]string(nil)
 	if ctx.Mode == output.ModeHuman {
@@ -719,4 +744,38 @@ func formatCompleted(checked bool, completedAt string) string {
 		return "yes"
 	}
 	return "no"
+}
+
+func sortTasks(tasks []api.Task, sortBy string) {
+	switch sortBy {
+	case "":
+		return
+	case "priority":
+		sort.SliceStable(tasks, func(i, j int) bool {
+			return tasks[i].Priority > tasks[j].Priority
+		})
+	case "due":
+		sort.SliceStable(tasks, func(i, j int) bool {
+			return parseDue(tasks[i].Due).Before(parseDue(tasks[j].Due))
+		})
+	default:
+		// ignore unknown sort
+	}
+}
+
+func parseDue(due map[string]interface{}) time.Time {
+	if due == nil {
+		return time.Time{}
+	}
+	if val, ok := due["datetime"].(string); ok && val != "" {
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			return t
+		}
+	}
+	if val, ok := due["date"].(string); ok && val != "" {
+		if t, err := time.Parse("2006-01-02", val); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -22,6 +23,13 @@ func resolveProjectID(ctx *Context, value string) (string, error) {
 			return p.ID, nil
 		}
 	}
+	if useFuzzy(ctx) {
+		if id, err := resolveFuzzy(value, projects, func(p api.Project) string { return p.Name }, func(p api.Project) string { return p.ID }); err == nil {
+			return id, nil
+		} else if err != nil {
+			return "", err
+		}
+	}
 	return value, nil
 }
 
@@ -37,6 +45,13 @@ func resolveSectionID(ctx *Context, value string, project string) (string, error
 	for _, s := range sections {
 		if strings.EqualFold(s.Name, value) {
 			return s.ID, nil
+		}
+	}
+	if useFuzzy(ctx) {
+		if id, err := resolveFuzzy(value, sections, func(s api.Section) string { return s.Name }, func(s api.Section) string { return s.ID }); err == nil {
+			return id, nil
+		} else if err != nil {
+			return "", err
 		}
 	}
 	return value, nil
@@ -56,7 +71,36 @@ func resolveLabelName(ctx *Context, value string) (string, error) {
 			return l.Name, nil
 		}
 	}
+	if useFuzzy(ctx) {
+		if name, err := resolveFuzzy(value, labels, func(l api.Label) string { return l.Name }, func(l api.Label) string { return l.Name }); err == nil {
+			return name, nil
+		} else if err != nil {
+			return "", err
+		}
+	}
 	return value, nil
+}
+
+func resolveFuzzy[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) (string, error) {
+	var matches []T
+	lower := strings.ToLower(value)
+	for _, item := range items {
+		name := strings.ToLower(nameFn(item))
+		if strings.Contains(name, lower) {
+			matches = append(matches, item)
+		}
+	}
+	if len(matches) == 1 {
+		return idFn(matches[0]), nil
+	}
+	if len(matches) > 1 {
+		names := make([]string, 0, len(matches))
+		for _, m := range matches {
+			names = append(names, nameFn(m))
+		}
+		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("ambiguous match for %q; matches: %s", value, strings.Join(names, ", "))}
+	}
+	return "", nil
 }
 
 func listAllProjects(ctx *Context) ([]api.Project, error) {

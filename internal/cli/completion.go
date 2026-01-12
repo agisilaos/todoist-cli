@@ -145,11 +145,20 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "auth task project section label comment agent completion help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "inbox auth task project section label comment agent completion help ${global_flags}" -- "$cur") )
     return 0
   fi
 
   case "$cmd" in
+    inbox)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "add" -- "$cur") )
+        return 0
+      fi
+      local inbox_flags="--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee"
+      COMPREPLY=( $(compgen -W "${inbox_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
     auth)
       local subs="login status logout"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
@@ -228,10 +237,13 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(auth task project section label comment agent completion help)' \
+  '1:command:(inbox auth task project section label comment agent completion help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
+  inbox)
+    _arguments '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    ;;
   auth)
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
     ;;
@@ -263,7 +275,7 @@ esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'auth task project section label comment agent completion help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'inbox auth task project section label comment agent completion help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -305,6 +317,10 @@ complete -c todoist -n '__fish_seen_subcommand_from label' -l id -l name -l colo
 # comment
 complete -c todoist -n '__fish_seen_subcommand_from comment; and __fish_use_subcommand' -a 'list add update delete'
 complete -c todoist -n '__fish_seen_subcommand_from comment' -l task -l project -l content -l id
+
+# inbox
+complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'
+complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
 
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply status'

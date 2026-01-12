@@ -9,6 +9,7 @@ Usage:
   todoist [global flags] <command> [args]
 
 Commands:
+  inbox       Quick-add to Inbox
   auth        Authenticate and manage tokens
   task        Manage tasks
   project     Manage projects
@@ -41,6 +42,7 @@ Examples:
   todoist task list --all-projects
   todoist task add --content "Pay rent" --project Home --due "1st of month"
   todoist help task
+  todoist inbox add --content "Capture idea"
 `)
 }
 
@@ -123,6 +125,8 @@ Examples:
   todoist task list --filter "today"
   todoist task list --all-projects
   todoist task add --content "Pay rent" --project Home --due "1st of month"
+  todoist task list --preset today --sort priority
+  echo "From stdin" | todoist task add --content -
 `)
 }
 
@@ -186,5 +190,31 @@ Notes:
   - "install" writes the script to a user-writable path (override with --path).
   - Without a shell argument, "install" tries to detect SHELL.
   - For zsh, ensure the install path directory is in $fpath.
+`)
+}
+
+func printInboxHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist inbox add --content <text> [flags]
+
+Flags:
+  --content <text>        Task content ("-" reads stdin)
+  --description <text>    Task description
+  --section <id|name>     Section within Inbox
+  --label <name>          Label (repeatable)
+  --priority <1-4>        Priority
+  --due <string>          Natural language due
+  --due-date <YYYY-MM-DD> Due date
+  --due-datetime <RFC3339> Due date/time
+  --due-lang <code>       Due language
+  --duration <minutes>    Duration
+  --duration-unit <unit>  Duration unit (minute/day)
+  --deadline <YYYY-MM-DD> Deadline date
+  --assignee <id>         Assignee ID
+
+Notes:
+  - Uses Inbox project automatically.
+  - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
+  - Use --content - to read task content from stdin.
 `)
 }

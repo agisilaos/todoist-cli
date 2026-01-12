@@ -59,7 +59,10 @@ Example `config.json`:
 {
   "base_url": "https://api.todoist.com/api/v1",
   "timeout_seconds": 10,
-  "default_profile": "default"
+  "default_profile": "default",
+  "default_inbox_labels": ["inbox"],
+  "default_inbox_due": "today",
+  "table_width": 120
 }
 ```
 
@@ -77,6 +80,8 @@ Environment variables:
 - `TODOIST_CONFIG`
 - `TODOIST_TIMEOUT`
 - `TODOIST_BASE_URL`
+- `TODOIST_FUZZY` (1 to enable fuzzy name resolution)
+- `TODOIST_TABLE_WIDTH` (override table width for human output)
 
 ## Usage
 
@@ -125,7 +130,7 @@ todoist auth logout
 List and modify tasks (IDs or names accepted where noted).
 
 ```
-todoist task list [--filter <query>] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--wide] [--all-projects]
+todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort due|priority] [--truncate-width <cols>] [--wide] [--all-projects]
 todoist task add --content <text> [flags]
 todoist task update --id <task_id> [flags]
 todoist task move --id <task_id> [--project <id|name>] [--section <id|name>] [--parent <id>]
@@ -167,14 +172,34 @@ Table options:
 ```
 --wide    Wider columns for table output
 --all-projects    List tasks from all projects (default is Inbox)
+--preset today|overdue|next7    Shortcut filters (ignored if --filter set)
+--sort due|priority             Client-side sort for active tasks
+--truncate-width <cols>         Override table width (human output)
 ```
 
 Examples:
 
 - `todoist task list --filter "@work & today"` (human table)
+- `todoist task list --preset today --sort priority`
 - `todoist task list --completed --since "2 weeks ago" --json`
 - `echo "Write launch blog" | todoist task add --content - --project "Marketing" --label writing --due "friday"`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
+
+### Inbox
+
+Quick add to Inbox with optional defaults.
+
+```
+todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-date <date>|--due-datetime <datetime>] [--priority <1-4>] [--description <text>] [--section <id|name>]
+```
+
+Notes:
+- Reads content from stdin with `--content -`.
+- Applies defaults from config: `default_inbox_labels`, `default_inbox_due`.
+
+Examples:
+- `echo "Capture idea" | todoist inbox add --content -`
+- `todoist inbox add --content "Pay rent" --label finance --due "1st"`
 
 ### Projects
 
@@ -293,6 +318,8 @@ Where supported, name resolution is built-in (e.g., `--project <name>` and `--se
 - `--json` outputs a structured envelope: `{ "data": ..., "meta": {"request_id": "...", "count": N, "next_cursor": "..."} }`
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
+- `--truncate-width` or `TODOIST_TABLE_WIDTH` lets you set table width; `--wide` expands columns.
+- Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
 
 Plain output columns:
 

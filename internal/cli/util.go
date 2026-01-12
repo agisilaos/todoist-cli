@@ -111,6 +111,13 @@ func terminalWidth() int {
 	return 120
 }
 
+func tableWidth(ctx *Context) int {
+	if ctx != nil && ctx.Config.TableWidth > 0 {
+		return ctx.Config.TableWidth
+	}
+	return terminalWidth()
+}
+
 func cleanCell(value string) string {
 	replacer := strings.NewReplacer("\n", " ", "\r", " ", "\t", " ")
 	return strings.TrimSpace(replacer.Replace(value))
@@ -135,4 +142,8 @@ func shortID(value string, max int, wide bool) string {
 		return value
 	}
 	return truncateString(value, max)
+}
+
+func useFuzzy(ctx *Context) bool {
+	return ctx != nil && ctx.Fuzzy
 }

@@ -46,6 +46,8 @@ type GlobalOptions struct {
 	DryRun     bool
 	Force      bool
 	BaseURL    string
+	Fuzzy      bool
+	NoFuzzy    bool
 }
 
 type Context struct {
@@ -58,6 +60,7 @@ type Context struct {
 	Config     config.Config
 	Profile    string
 	ConfigPath string
+	Fuzzy      bool
 
 	Token       string
 	TokenSource string
@@ -127,6 +130,8 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 	fs.BoolVar(&opts.DryRun, "n", false, "Preview changes without applying")
 	fs.BoolVar(&opts.Force, "force", false, "Skip confirmation prompts")
 	fs.BoolVar(&opts.Force, "f", false, "Skip confirmation prompts")
+	fs.BoolVar(&opts.Fuzzy, "fuzzy", false, "Enable fuzzy name resolution")
+	fs.BoolVar(&opts.NoFuzzy, "no-fuzzy", false, "Disable fuzzy name resolution")
 	fs.StringVar(&opts.BaseURL, "base-url", "", "Override API base URL")
 
 	if err := fs.Parse(args); err != nil {
@@ -183,6 +188,11 @@ func loadConfig(ctx *Context) error {
 	if ctx.Global.TimeoutSec > 0 {
 		cfg.TimeoutSeconds = ctx.Global.TimeoutSec
 	}
+	if env := os.Getenv("TODOIST_TABLE_WIDTH"); env != "" {
+		if v, err := strconv.Atoi(env); err == nil && v > 0 {
+			cfg.TableWidth = v
+		}
+	}
 	if cfg.TimeoutSeconds == 0 {
 		cfg.TimeoutSeconds = 10
 	}
@@ -199,6 +209,18 @@ func loadConfig(ctx *Context) error {
 		profile = "default"
 	}
 	ctx.Profile = profile
+
+	// Fuzzy resolution flag/env
+	fuzzy := ctx.Global.Fuzzy
+	if env := os.Getenv("TODOIST_FUZZY"); env != "" {
+		if v, err := strconv.Atoi(env); err == nil && v > 0 {
+			fuzzy = true
+		}
+	}
+	if ctx.Global.NoFuzzy {
+		fuzzy = false
+	}
+	ctx.Fuzzy = fuzzy
 
 	token := os.Getenv("TODOIST_TOKEN")
 	if token != "" {

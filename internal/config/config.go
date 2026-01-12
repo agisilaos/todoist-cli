@@ -15,9 +15,12 @@ const (
 )
 
 type Config struct {
-	BaseURL        string `json:"base_url"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
-	DefaultProfile string `json:"default_profile"`
+	BaseURL            string   `json:"base_url"`
+	TimeoutSeconds     int      `json:"timeout_seconds"`
+	DefaultProfile     string   `json:"default_profile"`
+	DefaultInboxLabels []string `json:"default_inbox_labels"`
+	DefaultInboxDue    string   `json:"default_inbox_due"`
+	TableWidth         int      `json:"table_width"`
 }
 
 type Credentials struct {
@@ -113,6 +116,15 @@ func MergeConfig(base Config, override Config) Config {
 	}
 	if override.DefaultProfile != "" {
 		result.DefaultProfile = override.DefaultProfile
+	}
+	if len(override.DefaultInboxLabels) > 0 {
+		result.DefaultInboxLabels = override.DefaultInboxLabels
+	}
+	if override.DefaultInboxDue != "" {
+		result.DefaultInboxDue = override.DefaultInboxDue
+	}
+	if override.TableWidth > 0 {
+		result.TableWidth = override.TableWidth
 	}
 	return result
 }
