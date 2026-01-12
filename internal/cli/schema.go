@@ -73,6 +73,83 @@ var schemas = []schemaDef{
 			"required": []string{"error", "meta"},
 		},
 	},
+	{
+		Name:        "plan",
+		Description: "Agent plan produced by planner and persisted on disk",
+		Schema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"version":       map[string]string{"type": "integer"},
+				"instruction":   map[string]string{"type": "string"},
+				"created_at":    map[string]string{"type": "string"},
+				"confirm_token": map[string]string{"type": "string"},
+				"applied_at":    map[string]string{"type": "string"},
+				"summary": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"tasks":    map[string]string{"type": "integer"},
+						"projects": map[string]string{"type": "integer"},
+						"sections": map[string]string{"type": "integer"},
+						"labels":   map[string]string{"type": "integer"},
+						"comments": map[string]string{"type": "integer"},
+					},
+					"required": []string{"tasks", "projects", "sections", "labels", "comments"},
+				},
+				"actions": map[string]any{
+					"type": "array",
+					"items": map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							"type":         map[string]string{"type": "string"},
+							"task_id":      map[string]string{"type": "string"},
+							"project_id":   map[string]string{"type": "string"},
+							"section_id":   map[string]string{"type": "string"},
+							"label_id":     map[string]string{"type": "string"},
+							"comment_id":   map[string]string{"type": "string"},
+							"content":      map[string]string{"type": "string"},
+							"description":  map[string]string{"type": "string"},
+							"name":         map[string]string{"type": "string"},
+							"labels":       map[string]any{"type": "array", "items": map[string]string{"type": "string"}},
+							"project":      map[string]string{"type": "string"},
+							"section":      map[string]string{"type": "string"},
+							"parent":       map[string]string{"type": "string"},
+							"priority":     map[string]string{"type": "integer"},
+							"due":          map[string]string{"type": "string"},
+							"due_date":     map[string]string{"type": "string"},
+							"due_datetime": map[string]string{"type": "string"},
+							"due_lang":     map[string]string{"type": "string"},
+							"duration":     map[string]string{"type": "integer"},
+							"duration_unit": map[string]string{"type": "string"},
+							"deadline_date": map[string]string{"type": "string"},
+							"assignee_id":   map[string]string{"type": "string"},
+							"color":         map[string]string{"type": "string"},
+							"order":         map[string]string{"type": "integer"},
+							"is_favorite":   map[string]string{"type": "boolean"},
+							"idempotent":    map[string]string{"type": "boolean"},
+						},
+						"required": []string{"type"},
+					},
+				},
+			},
+			"required": []string{"version", "instruction", "confirm_token", "actions", "summary"},
+		},
+	},
+	{
+		Name:        "plan_preview",
+		Description: "Agent plan dry-run output shape",
+		Schema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"plan": map[string]any{"$ref": "#/plan"},
+				"dry_run": map[string]string{"type": "boolean"},
+				"action_count": map[string]string{"type": "integer"},
+				"summary": map[string]any{
+					"type": "object",
+				},
+			},
+			"required": []string{"plan", "dry_run"},
+		},
+	},
 }
 
 func schemaCommand(ctx *Context, args []string) error {
