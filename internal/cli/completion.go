@@ -145,11 +145,16 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "inbox auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "inbox add auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
     return 0
   fi
 
   case "$cmd" in
+    add)
+      local task_flags="--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick"
+      COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
     inbox)
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "add" -- "$cur") )
@@ -176,7 +181,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee"
+      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --preset --sort --truncate-width"
       COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -242,12 +247,15 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(inbox auth task project section label comment agent completion schema help)' \
+  '1:command:(inbox add auth task project section label comment agent completion schema help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
   inbox)
     _arguments '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    ;;
+  add)
+    _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick)'
     ;;
   auth)
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
@@ -283,7 +291,7 @@ esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'inbox auth task project section label comment agent completion help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'inbox add auth task project section label comment agent completion schema help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -329,6 +337,9 @@ complete -c todoist -n '__fish_seen_subcommand_from comment' -l task -l project 
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'
 complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
+
+# add alias
+complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l quick
 
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply status'

@@ -281,6 +281,7 @@ func taskAdd(ctx *Context, args []string) error {
 	var durationUnit string
 	var deadline string
 	var assignee string
+	var quick bool
 	var help bool
 	fs.StringVar(&content, "content", "", "Task content")
 	fs.StringVar(&description, "description", "", "Task description")
@@ -297,6 +298,7 @@ func taskAdd(ctx *Context, args []string) error {
 	fs.StringVar(&durationUnit, "duration-unit", "", "Duration unit")
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
 	fs.StringVar(&assignee, "assignee", "", "Assignee ID")
+	fs.BoolVar(&quick, "quick", false, "Quick add using inbox defaults")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
@@ -305,6 +307,9 @@ func taskAdd(ctx *Context, args []string) error {
 	if help {
 		printTaskHelp(ctx.Stdout)
 		return nil
+	}
+	if content == "" && len(fs.Args()) > 0 {
+		content = strings.Join(fs.Args(), " ")
 	}
 	if content == "-" {
 		val, err := readAllTrim(ctx.Stdin)
@@ -315,10 +320,23 @@ func taskAdd(ctx *Context, args []string) error {
 	}
 	if content == "" {
 		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--content is required")}
+		return &CodeError{Code: exitUsage, Err: errors.New("--content is required (or pass as positional text)")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
+	}
+	if quick {
+		if project == "" && section == "" {
+			if inboxID, err := inboxProjectID(ctx); err == nil && inboxID != "" {
+				project = inboxID
+			}
+		}
+		if len(labels) == 0 && len(ctx.Config.DefaultInboxLabels) > 0 {
+			labels = append(labels, ctx.Config.DefaultInboxLabels...)
+		}
+		if dueString == "" && dueDate == "" && dueDatetime == "" && ctx.Config.DefaultInboxDue != "" {
+			dueString = ctx.Config.DefaultInboxDue
+		}
 	}
 	body := map[string]any{"content": content}
 	if description != "" {

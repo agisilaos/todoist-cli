@@ -2,13 +2,19 @@
 
 Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports task, project, section, label, and comment management, plus an agent plan/apply workflow that can be wired to an external planner.
 
+## Why this CLI
+
+- Fast capture and triage without leaving the terminal.
+- Scriptable output (`--json`/`--plain`) for automation and integrations.
+- Agent workflows for bulk plans with safe previews and confirmations.
+
 ## Quickstart
 
 ```bash
 brew install agisilaos/tap/todoist-cli
 todoist --version
 todoist auth login                 # prompts for token (or use --token-stdin)
-todoist task add --content "Review PR 42"
+todoist add "Review PR 42"
 todoist task list                  # lists Inbox tasks in a table
 ```
 
@@ -182,7 +188,7 @@ Examples:
 - `todoist task list --filter "@work & today"` (human table)
 - `todoist task list --preset today --sort priority`
 - `todoist task list --completed --since "2 weeks ago" --json`
-- `echo "Write launch blog" | todoist task add --content - --project "Marketing" --label writing --due "friday"`
+- `echo "Write launch blog" | todoist add --quick --project "Marketing" --label writing --due "friday"`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
 
 ### Inbox
@@ -196,10 +202,12 @@ todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-da
 Notes:
 - Reads content from stdin with `--content -`.
 - Applies defaults from config: `default_inbox_labels`, `default_inbox_due`.
+- `todoist add <text>` is a shorter alias for `task add`.
 
 Examples:
 - `echo "Capture idea" | todoist inbox add --content -`
 - `todoist inbox add --content "Pay rent" --label finance --due "1st"`
+- `todoist add "Pay rent" --quick`
 
 ### Projects
 

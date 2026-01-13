@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 )
@@ -63,6 +64,9 @@ func inboxAdd(ctx *Context, args []string) error {
 		printInboxHelp(ctx.Stdout)
 		return nil
 	}
+	if content == "" && len(fs.Args()) > 0 {
+		content = strings.Join(fs.Args(), " ")
+	}
 	if content == "-" {
 		val, err := readAllTrim(ctx.Stdin)
 		if err != nil {
@@ -72,7 +76,7 @@ func inboxAdd(ctx *Context, args []string) error {
 	}
 	if content == "" {
 		printInboxHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--content is required")}
+		return &CodeError{Code: exitUsage, Err: errors.New("--content is required (or pass as positional text)")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err

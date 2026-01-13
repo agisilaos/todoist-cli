@@ -10,6 +10,7 @@ Usage:
 
 Commands:
   inbox       Quick-add to Inbox
+  add         Quick add (alias of task add)
   auth        Authenticate and manage tokens
   task        Manage tasks
   project     Manage projects
@@ -56,6 +57,8 @@ func helpCommand(ctx *Context, args []string) error {
 	switch args[0] {
 	case "auth":
 		printAuthHelp(ctx.Stdout)
+	case "add":
+		printAddHelp(ctx.Stdout)
 	case "task":
 		printTaskHelp(ctx.Stdout)
 	case "project":
@@ -105,6 +108,7 @@ func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
 
 Task flags:
   --content <text>           Task content ("-" reads stdin)
+  --quick                    Quick add using inbox defaults
   --description <text>       Task description
   --project <id|name>        Project reference
   --section <id|name>        Section reference
@@ -131,6 +135,7 @@ Examples:
   todoist task list --filter "today"
   todoist task list --all-projects
   todoist task add --content "Pay rent" --project Home --due "1st of month"
+  todoist add "Pay rent" --quick
   todoist task list --preset today --sort priority
   echo "From stdin" | todoist task add --content -
 `)
@@ -232,5 +237,22 @@ Notes:
   - Uses Inbox project automatically.
   - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
   - Use --content - to read task content from stdin.
+  - Positional text is accepted when --content is omitted.
+`)
+}
+
+func printAddHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist add <text> [flags]
+
+Notes:
+  - Alias for "todoist task add".
+  - If --content is omitted, remaining args are treated as task content.
+  - Use --quick to apply inbox defaults (labels/due).
+
+Examples:
+  todoist add "Pay rent"
+  todoist add "Pay rent" --quick
+  echo "From stdin" | todoist add --content -
 `)
 }
