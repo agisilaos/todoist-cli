@@ -226,12 +226,12 @@ _todoist() {
       return 0
       ;;
     agent)
-      local subs="plan apply status"
+      local subs="plan apply run schedule examples planner status"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local agent_flags="--out --planner --plan --confirm"
+      local agent_flags="--out --planner --plan --confirm --instruction --on-error --plan-version"
       COMPREPLY=( $(compgen -W "${agent_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -276,7 +276,7 @@ case $words[1] in
     _arguments '2:subcommand:(list add update delete)' '*:flags:(--task --project --content --id)'
     ;;
   agent)
-    _arguments '2:subcommand:(plan apply status)' '*:flags:(--out --planner --plan --confirm)'
+    _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --plan --confirm --instruction --on-error --plan-version)'
     ;;
   schema)
     _arguments '*:flags:(--name)'
@@ -342,8 +342,8 @@ complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l descrip
 complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l quick
 
 # agent
-complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply status'
-complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l plan -l confirm
+complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply run schedule examples planner status'
+complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l plan -l confirm -l instruction -l on-error -l plan-version
 
 # schema
 complete -c todoist -n '__fish_seen_subcommand_from schema' -l name

@@ -77,6 +77,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printSchemaHelp(ctx.Stdout)
 	case "planner":
 		printAgentPlannerHelp(ctx.Stdout)
+	case "examples":
+		_ = agentExamples(ctx)
 	default:
 		printRootHelp(ctx.Stdout)
 	}
@@ -185,11 +187,17 @@ func printAgentHelp(out interface{ Write([]byte) (int, error) }) {
   todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
   todoist agent apply --plan <file> --confirm <token>
   todoist agent apply --plan <file> --confirm <token> --dry-run
+  todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force]
+  todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force]
+  todoist agent examples
+  todoist agent planner
   todoist agent status
 
 Examples:
   todoist agent plan "Move overdue tasks to Catch Up" --out plan.json
   todoist agent apply --plan plan.json --confirm 6f2b
+  todoist agent run --instruction "Triage inbox"
+  todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today"
 `)
 }
 
@@ -212,6 +220,16 @@ func printAgentPlannerHelp(out interface{ Write([]byte) (int, error) }) {
 
 Notes:
   Sources (priority): --planner flag > TODOIST_PLANNER_CMD env > config.planner_cmd > none.
+`)
+}
+
+func printAgentScheduleHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--cron]
+
+Notes:
+  - Default output is a macOS launchd plist. Use --cron for cron syntax.
+  - --bin can override the todoist binary path for scheduling.
 `)
 }
 func printInboxHelp(out interface{ Write([]byte) (int, error) }) {

@@ -90,6 +90,12 @@ func agentCommand(ctx *Context, args []string) error {
 		return agentApply(ctx, args[1:])
 	case "status":
 		return agentStatus(ctx)
+	case "run":
+		return agentRun(ctx, args[1:])
+	case "schedule":
+		return agentSchedule(ctx, args[1:])
+	case "examples":
+		return agentExamples(ctx)
 	case "planner":
 		return agentPlanner(ctx, args[1:])
 	default:
