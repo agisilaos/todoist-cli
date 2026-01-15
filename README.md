@@ -8,6 +8,12 @@ Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports ta
 - Scriptable output (`--json`/`--plain`) for automation and integrations.
 - Agent workflows for bulk plans with safe previews and confirmations.
 
+## Why agents
+
+- Batch changes with human review via plan/apply.
+- Safer automation with `--dry-run`, `--confirm`, and `--on-error`.
+- Easy scheduling without running a daemon.
+
 ## Quickstart
 
 ```bash
@@ -280,9 +286,12 @@ todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
 todoist agent apply --plan <file> --confirm <token>
 todoist agent apply --plan <file> --confirm <token> --dry-run
 todoist agent apply --plan <file> --confirm <token> --on-error fail|continue
-todoist agent status
+todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force]
+todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--cron]
+todoist agent examples
 todoist agent planner show|--set --cmd "<planner>"
 todoist agent planner --json
+todoist agent status
 ```
 
 - `agent plan` sends context + instruction to an external planner command. Use `--out` to save the plan JSON.
@@ -292,13 +301,40 @@ todoist agent planner --json
 - `--on-error=continue` keeps applying actions after a failure and reports statuses.
 - `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
 - `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).
+- `agent run` combines plan + apply for automation (cron/launchd).
+- `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`).
+- Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
+
+Planner contract checklist:
+- Emit valid JSON to stdout matching `todoist schema --name plan`.
+- Include `confirm_token` and `actions` with supported types.
+- Use stable action fields (IDs or names as documented).
+
+Scheduling example (macOS launchd):
+
+```bash
+todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" > ~/Library/LaunchAgents/com.todoist.agent.weekly.plist
+launchctl load ~/Library/LaunchAgents/com.todoist.agent.weekly.plist
+```
+
+Cron example:
+
+```bash
+todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --cron
+```
+
+Context scoping example:
+
+```bash
+todoist agent run --instruction "Pick 3 articles for today" --context-project "Learning" --context-label article --context-completed 7d
+```
 
 ### Schema
 
 Output JSON schemas (use `--json`):
 
 ```
-todoist schema [--name task_list|error] [--json]
+todoist schema [--name task_list|error|plan|plan_preview|planner_request] [--json]
 ```
 
 ## Shell Completions
