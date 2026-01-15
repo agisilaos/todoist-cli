@@ -198,6 +198,11 @@ Examples:
   todoist agent apply --plan plan.json --confirm 6f2b
   todoist agent run --instruction "Triage inbox"
   todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today"
+
+Context flags:
+  --context-project <name>   Limit planner context to project(s) (repeatable)
+  --context-label <name>     Limit planner context to label(s) (repeatable)
+  --context-completed <Nd>   Include completed tasks for last N days (e.g. 7d)
 `)
 }
 

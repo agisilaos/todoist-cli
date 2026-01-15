@@ -26,9 +26,10 @@ type PlannerRequest struct {
 }
 
 type PlannerContext struct {
-	Projects []any `json:"projects"`
-	Sections []any `json:"sections"`
-	Labels   []any `json:"labels"`
+	Projects       []any `json:"projects"`
+	Sections       []any `json:"sections"`
+	Labels         []any `json:"labels"`
+	CompletedTasks []any `json:"completed_tasks,omitempty"`
 }
 
 type Plan struct {
@@ -109,10 +110,16 @@ func agentPlan(ctx *Context, args []string) error {
 	var outPath string
 	var planner string
 	var expectedVersion int
+	var contextProjects multiValue
+	var contextLabels multiValue
+	var contextCompleted string
 	var help bool
 	fs.StringVar(&outPath, "out", "", "Output plan file")
 	fs.StringVar(&planner, "planner", "", "Planner command")
 	fs.IntVar(&expectedVersion, "plan-version", 1, "Expected plan version")
+	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
+	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
+	fs.StringVar(&contextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
@@ -127,7 +134,11 @@ func agentPlan(ctx *Context, args []string) error {
 		printAgentHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("instruction is required")}
 	}
-	plan, err := runPlanner(ctx, planner, instruction, expectedVersion)
+	ctxOpts, err := parseContextOptions(ctx, contextProjects, contextLabels, contextCompleted)
+	if err != nil {
+		return err
+	}
+	plan, err := runPlanner(ctx, planner, instruction, expectedVersion, ctxOpts)
 	if err != nil {
 		return err
 	}
@@ -150,12 +161,18 @@ func agentApply(ctx *Context, args []string) error {
 	var planner string
 	var onError string
 	var expectedVersion int
+	var contextProjects multiValue
+	var contextLabels multiValue
+	var contextCompleted string
 	var help bool
 	fs.StringVar(&planPath, "plan", "", "Plan file (or - for stdin)")
 	fs.StringVar(&confirm, "confirm", "", "Confirmation token")
 	fs.StringVar(&planner, "planner", "", "Planner command")
 	fs.StringVar(&onError, "on-error", "fail", "On error: fail|continue")
 	fs.IntVar(&expectedVersion, "plan-version", 1, "Expected plan version")
+	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
+	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
+	fs.StringVar(&contextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := fs.Parse(args); err != nil {
@@ -178,7 +195,11 @@ func agentApply(ctx *Context, args []string) error {
 			printAgentHelp(ctx.Stderr)
 			return &CodeError{Code: exitUsage, Err: errors.New("instruction is required when --plan is not provided")}
 		}
-		p, err := runPlanner(ctx, planner, instruction, expectedVersion)
+		ctxOpts, err := parseContextOptions(ctx, contextProjects, contextLabels, contextCompleted)
+		if err != nil {
+			return err
+		}
+		p, err := runPlanner(ctx, planner, instruction, expectedVersion, ctxOpts)
 		if err != nil {
 			return err
 		}
@@ -222,7 +243,7 @@ func agentStatus(ctx *Context) error {
 	return writePlanOutput(ctx, plan)
 }
 
-func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVersion int) (Plan, error) {
+func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVersion int, ctxOpts plannerContextOptions) (Plan, error) {
 	if plannerCmd == "" {
 		plannerCmd, _ = resolvePlannerCmd(ctx, plannerCmd, true)
 	}
@@ -232,18 +253,15 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 	if err := ensureClient(ctx); err != nil {
 		return Plan{}, err
 	}
-	projects, _ := listAllProjects(ctx)
-	sections, _ := listAllSections(ctx, "")
-	labels, _ := listAllLabels(ctx)
+	plannerContext, err := buildPlannerContext(ctx, ctxOpts)
+	if err != nil {
+		return Plan{}, err
+	}
 	request := PlannerRequest{
 		Instruction: instruction,
 		Profile:     ctx.Profile,
-		Context: PlannerContext{
-			Projects: toAnySlice(projects),
-			Sections: toAnySlice(sections),
-			Labels:   toAnySlice(labels),
-		},
-		Now: ctx.Now().UTC().Format(time.RFC3339),
+		Context:     plannerContext,
+		Now:         ctx.Now().UTC().Format(time.RFC3339),
 	}
 	payload, err := json.Marshal(request)
 	if err != nil {

@@ -45,6 +45,9 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	var dryRun bool
 	var onError string
 	var expectedVersion int
+	var contextProjects multiValue
+	var contextLabels multiValue
+	var contextCompleted string
 	var cron bool
 	var binPath string
 	var help bool
@@ -57,6 +60,9 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	fs.BoolVar(&dryRun, "dry-run", false, "Preview only")
 	fs.StringVar(&onError, "on-error", "fail", "On error: fail|continue")
 	fs.IntVar(&expectedVersion, "plan-version", 1, "Expected plan version")
+	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
+	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
+	fs.StringVar(&contextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
 	fs.BoolVar(&cron, "cron", false, "Print cron entry")
 	fs.StringVar(&binPath, "bin", "", "Path to todoist binary (defaults to current executable)")
 	fs.BoolVar(&help, "help", false, "Show help")
@@ -88,14 +94,17 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: errors.New("invalid --on-error; must be fail or continue")}
 	}
 	runArgs := buildAgentRunArgs(agentRunOptions{
-		PlanPath:        planPath,
-		Instruction:     instruction,
-		Planner:         planner,
-		Confirm:         confirm,
-		OnError:         onError,
-		ExpectedVersion: expectedVersion,
-		Force:           force,
-		DryRun:          dryRun,
+		PlanPath:         planPath,
+		Instruction:      instruction,
+		Planner:          planner,
+		Confirm:          confirm,
+		OnError:          onError,
+		ExpectedVersion:  expectedVersion,
+		Force:            force,
+		DryRun:           dryRun,
+		ContextProjects:  contextProjects,
+		ContextLabels:    contextLabels,
+		ContextCompleted: contextCompleted,
 	})
 	if cron {
 		line := cronLine(spec, binPath, runArgs)
@@ -119,6 +128,15 @@ func buildAgentRunArgs(opts agentRunOptions) []string {
 	}
 	if opts.Confirm != "" {
 		args = append(args, "--confirm", opts.Confirm)
+	}
+	for _, proj := range opts.ContextProjects {
+		args = append(args, "--context-project", proj)
+	}
+	for _, label := range opts.ContextLabels {
+		args = append(args, "--context-label", label)
+	}
+	if opts.ContextCompleted != "" {
+		args = append(args, "--context-completed", opts.ContextCompleted)
 	}
 	if opts.Force {
 		args = append(args, "--force")

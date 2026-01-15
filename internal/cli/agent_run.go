@@ -9,15 +9,18 @@ import (
 )
 
 type agentRunOptions struct {
-	PlanPath        string
-	Instruction     string
-	Planner         string
-	Confirm         string
-	OnError         string
-	ExpectedVersion int
-	Force           bool
-	DryRun          bool
-	OutPath         string
+	PlanPath         string
+	Instruction      string
+	Planner          string
+	Confirm          string
+	OnError          string
+	ExpectedVersion  int
+	Force            bool
+	DryRun           bool
+	OutPath          string
+	ContextProjects  []string
+	ContextLabels    []string
+	ContextCompleted string
 }
 
 func agentRun(ctx *Context, args []string) error {
@@ -31,6 +34,11 @@ func agentRun(ctx *Context, args []string) error {
 	fs.StringVar(&opts.OnError, "on-error", "fail", "On error: fail|continue")
 	fs.IntVar(&opts.ExpectedVersion, "plan-version", 1, "Expected plan version")
 	fs.StringVar(&opts.OutPath, "out", "", "Write plan output to file")
+	var contextProjects multiValue
+	var contextLabels multiValue
+	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
+	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
+	fs.StringVar(&opts.ContextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
 	var help bool
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
@@ -49,6 +57,8 @@ func agentRun(ctx *Context, args []string) error {
 	}
 	opts.Force = ctx.Global.Force
 	opts.DryRun = ctx.Global.DryRun
+	opts.ContextProjects = contextProjects
+	opts.ContextLabels = contextLabels
 
 	plan, err := loadOrPlan(ctx, opts)
 	if err != nil {
@@ -94,5 +104,9 @@ func loadOrPlan(ctx *Context, opts agentRunOptions) (Plan, error) {
 	if strings.TrimSpace(opts.Instruction) == "" {
 		return Plan{}, &CodeError{Code: exitUsage, Err: errors.New("instruction is required when --plan is not provided")}
 	}
-	return runPlanner(ctx, opts.Planner, opts.Instruction, opts.ExpectedVersion)
+	ctxOpts, err := parseContextOptions(ctx, opts.ContextProjects, opts.ContextLabels, opts.ContextCompleted)
+	if err != nil {
+		return Plan{}, err
+	}
+	return runPlanner(ctx, opts.Planner, opts.Instruction, opts.ExpectedVersion, ctxOpts)
 }

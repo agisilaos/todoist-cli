@@ -231,7 +231,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local agent_flags="--out --planner --plan --confirm --instruction --on-error --plan-version"
+      local agent_flags="--out --planner --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed"
       COMPREPLY=( $(compgen -W "${agent_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -276,7 +276,7 @@ case $words[1] in
     _arguments '2:subcommand:(list add update delete)' '*:flags:(--task --project --content --id)'
     ;;
   agent)
-    _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --plan --confirm --instruction --on-error --plan-version)'
+    _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
     ;;
   schema)
     _arguments '*:flags:(--name)'
@@ -343,7 +343,7 @@ complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l descripti
 
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply run schedule examples planner status'
-complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l plan -l confirm -l instruction -l on-error -l plan-version
+complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l plan -l confirm -l instruction -l on-error -l plan-version -l context-project -l context-label -l context-completed
 
 # schema
 complete -c todoist -n '__fish_seen_subcommand_from schema' -l name

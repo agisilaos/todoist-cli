@@ -150,6 +150,28 @@ var schemas = []schemaDef{
 			"required": []string{"plan", "dry_run"},
 		},
 	},
+	{
+		Name:        "planner_request",
+		Description: "Planner input shape (instruction + context)",
+		Schema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"instruction": map[string]string{"type": "string"},
+				"profile":     map[string]string{"type": "string"},
+				"now":         map[string]string{"type": "string"},
+				"context": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"projects":        map[string]any{"type": "array"},
+						"sections":        map[string]any{"type": "array"},
+						"labels":          map[string]any{"type": "array"},
+						"completed_tasks": map[string]any{"type": "array"},
+					},
+				},
+			},
+			"required": []string{"instruction", "profile", "now", "context"},
+		},
+	},
 }
 
 func schemaCommand(ctx *Context, args []string) error {
