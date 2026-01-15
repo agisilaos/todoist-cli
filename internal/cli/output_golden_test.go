@@ -76,6 +76,24 @@ func TestWriteTaskListJSONSnapshot(t *testing.T) {
 	}
 }
 
+func TestWriteTaskListNDJSONSnapshot(t *testing.T) {
+	ctx := &Context{
+		Stdout: &bytes.Buffer{},
+		Mode:   output.ModeNDJSON,
+	}
+	tasks := []api.Task{
+		{ID: "1", Content: "A", ProjectID: "p", SectionID: "s", Labels: []string{}, Priority: 1},
+		{ID: "2", Content: "B", ProjectID: "p", SectionID: "", Labels: []string{"x"}, Priority: 2},
+	}
+	if err := writeTaskList(ctx, tasks, "", false); err != nil {
+		t.Fatalf("writeTaskList: %v", err)
+	}
+	got := ctx.Stdout.(*bytes.Buffer).String()
+	if !strings.Contains(got, `"id":"1"`) || !strings.Contains(got, `"id":"2"`) {
+		t.Fatalf("unexpected ndjson output: %q", got)
+	}
+}
+
 func TestWriteErrorHuman(t *testing.T) {
 	ctx := &Context{
 		Stderr:    &bytes.Buffer{},

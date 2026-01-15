@@ -38,6 +38,7 @@ type GlobalOptions struct {
 	Verbose    bool
 	JSON       bool
 	Plain      bool
+	NDJSON     bool
 	NoColor    bool
 	NoInput    bool
 	TimeoutSec int
@@ -81,7 +82,7 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "todoist %s (%s) %s\n", Version, Commit, Date)
 		return exitOK
 	}
-	mode, err := output.DetectMode(opts.JSON, opts.Plain, isTTYFile(stdout))
+	mode, err := output.DetectMode(opts.JSON, opts.Plain, opts.NDJSON, isTTYFile(stdout))
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return exitUsage
@@ -121,6 +122,7 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 	fs.BoolVar(&opts.Verbose, "v", false, "Enable verbose output")
 	fs.BoolVar(&opts.JSON, "json", false, "JSON output")
 	fs.BoolVar(&opts.Plain, "plain", false, "Plain output")
+	fs.BoolVar(&opts.NDJSON, "ndjson", false, "NDJSON output")
 	fs.BoolVar(&opts.NoColor, "no-color", false, "Disable color")
 	fs.BoolVar(&opts.NoInput, "no-input", false, "Disable prompts")
 	fs.IntVar(&opts.TimeoutSec, "timeout", 0, "Timeout in seconds (default 10)")

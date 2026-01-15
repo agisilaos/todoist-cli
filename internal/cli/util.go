@@ -155,3 +155,15 @@ func stripIDPrefix(value string) string {
 	}
 	return value
 }
+
+func isNumeric(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}

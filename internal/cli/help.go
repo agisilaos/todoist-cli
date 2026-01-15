@@ -31,6 +31,7 @@ Global flags:
   -v, --verbose         Enable verbose output
   --json                JSON output
   --plain               Plain text output (tab-separated)
+  --ndjson              NDJSON output
   --no-color            Disable color
   --no-input            Disable prompts
   --timeout <seconds>   Request timeout (default 10)
@@ -105,6 +106,7 @@ func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist task list [--filter <query>] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--wide] [--all-projects]
   todoist task add --content <text> [flags]
+  todoist task view <ref> [--full]
   todoist task update --id <task_id> [flags]
   todoist task move --id <task_id> [--project <id|name>] [--section <id|name>] [--parent <id>]
   todoist task complete --id <task_id>
@@ -135,6 +137,7 @@ Notes:
   Human output resolves project/section names; --plain uses IDs.
   Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.
   Use --content - to read task content from stdin.
+  Use id:<id> to explicitly reference a task ID.
 
 Examples:
   todoist task list --filter "today"
@@ -143,6 +146,7 @@ Examples:
   todoist add "Pay rent #Home p2 due:tomorrow"
   todoist task list --preset today --sort priority
   echo "From stdin" | todoist task add --content -
+  todoist task view id:123456 --full
 `)
 }
 

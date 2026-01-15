@@ -29,6 +29,8 @@ func taskCommand(ctx *Context, args []string) error {
 		return taskUpdate(ctx, args[1:])
 	case "move":
 		return taskMove(ctx, args[1:])
+	case "view":
+		return taskView(ctx, args[1:])
 	case "complete":
 		return taskComplete(ctx, args[1:])
 	case "reopen":
@@ -719,6 +721,138 @@ func taskDelete(ctx *Context, args []string) error {
 	return writeSimpleResult(ctx, "deleted", id)
 }
 
+func taskView(ctx *Context, args []string) error {
+	fs := flag.NewFlagSet("task view", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var id string
+	var full bool
+	var help bool
+	fs.StringVar(&id, "id", "", "Task ID")
+	fs.BoolVar(&full, "full", false, "Show full task fields")
+	fs.BoolVar(&help, "help", false, "Show help")
+	fs.BoolVar(&help, "h", false, "Show help")
+	if err := fs.Parse(args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printTaskHelp(ctx.Stdout)
+		return nil
+	}
+	ref := id
+	if ref == "" && len(fs.Args()) > 0 {
+		ref = strings.Join(fs.Args(), " ")
+	}
+	if ref == "" {
+		printTaskHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: errors.New("task view requires id or text reference")}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	task, err := resolveTaskRef(ctx, ref)
+	if err != nil {
+		return err
+	}
+	return writeTaskView(ctx, task, full)
+}
+
+func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
+	ref = strings.TrimSpace(ref)
+	ref = stripIDPrefix(ref)
+	if isNumeric(ref) {
+		var task api.Task
+		reqCtx, cancel := requestContext(ctx)
+		reqID, err := ctx.Client.Get(reqCtx, "/tasks/"+ref, nil, &task)
+		cancel()
+		if err != nil {
+			return api.Task{}, err
+		}
+		setRequestID(ctx, reqID)
+		return task, nil
+	}
+	tasks, err := listAllActiveTasks(ctx)
+	if err != nil {
+		return api.Task{}, err
+	}
+	matches := matchTasksByContent(tasks, ref)
+	if len(matches) == 1 {
+		return matches[0], nil
+	}
+	if len(matches) > 1 {
+		var suggestions []string
+		for _, task := range matches {
+			suggestions = append(suggestions, fmt.Sprintf("%s (id:%s)", task.Content, task.ID))
+		}
+		return api.Task{}, &CodeError{Code: exitUsage, Err: fmt.Errorf("ambiguous task reference %q; matches: %s", ref, strings.Join(suggestions, ", "))}
+	}
+	return api.Task{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("task %q not found", ref)}
+}
+
+func listAllActiveTasks(ctx *Context) ([]api.Task, error) {
+	query := url.Values{}
+	query.Set("limit", "200")
+	var all []api.Task
+	for {
+		var page api.Paginated[api.Task]
+		reqCtx, cancel := requestContext(ctx)
+		reqID, err := ctx.Client.Get(reqCtx, "/tasks", query, &page)
+		cancel()
+		if err != nil {
+			return nil, err
+		}
+		setRequestID(ctx, reqID)
+		all = append(all, page.Results...)
+		if page.NextCursor == "" {
+			break
+		}
+		query.Set("cursor", page.NextCursor)
+	}
+	return all, nil
+}
+
+func matchTasksByContent(tasks []api.Task, ref string) []api.Task {
+	refLower := strings.ToLower(ref)
+	var matches []api.Task
+	for _, task := range tasks {
+		if strings.Contains(strings.ToLower(task.Content), refLower) {
+			matches = append(matches, task)
+		}
+	}
+	return matches
+}
+
+func writeTaskView(ctx *Context, task api.Task, full bool) error {
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, task, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+	}
+	fmt.Fprintf(ctx.Stdout, "ID: %s\n", task.ID)
+	fmt.Fprintf(ctx.Stdout, "Content: %s\n", task.Content)
+	if task.Description != "" {
+		fmt.Fprintf(ctx.Stdout, "Description: %s\n", task.Description)
+	}
+	if task.ProjectID != "" {
+		fmt.Fprintf(ctx.Stdout, "Project: %s\n", task.ProjectID)
+	}
+	if task.SectionID != "" {
+		fmt.Fprintf(ctx.Stdout, "Section: %s\n", task.SectionID)
+	}
+	if len(task.Labels) > 0 {
+		fmt.Fprintf(ctx.Stdout, "Labels: %s\n", strings.Join(task.Labels, ", "))
+	}
+	if task.Due != nil {
+		fmt.Fprintf(ctx.Stdout, "Due: %s\n", formatDue(task.Due))
+	}
+	if full {
+		fmt.Fprintf(ctx.Stdout, "Priority: %d\n", task.Priority)
+		fmt.Fprintf(ctx.Stdout, "Completed: %v\n", task.Checked)
+		fmt.Fprintf(ctx.Stdout, "Added: %s\n", task.AddedAt)
+		fmt.Fprintf(ctx.Stdout, "Updated: %s\n", task.UpdatedAt)
+		fmt.Fprintf(ctx.Stdout, "CompletedAt: %s\n", task.CompletedAt)
+		fmt.Fprintf(ctx.Stdout, "NoteCount: %d\n", task.NoteCount)
+	}
+	return nil
+}
+
 type taskTableConfig struct {
 	ID       int
 	Content  int
@@ -773,6 +907,9 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, tasks, output.Meta{RequestID: ctxRequestIDValue(ctx), Count: len(tasks), Cursor: cursor})
 	}
+	if ctx.Mode == output.ModeNDJSON {
+		return writeTaskNDJSON(ctx, tasks)
+	}
 	cfg := taskTableConfigFor(ctx, wide)
 	projectNames := map[string]string(nil)
 	sectionNames := map[string]string(nil)
@@ -817,6 +954,14 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 		return output.WritePlain(ctx.Stdout, rows)
 	}
 	return output.WriteTable(ctx.Stdout, []string{"ID", "Content", "Project", "Section", "Labels", "Due", "Priority", "Completed"}, rows)
+}
+
+func writeTaskNDJSON(ctx *Context, tasks []api.Task) error {
+	items := make([]any, 0, len(tasks))
+	for _, task := range tasks {
+		items = append(items, task)
+	}
+	return output.WriteNDJSON(ctx.Stdout, items)
 }
 
 func formatDue(due map[string]interface{}) string {

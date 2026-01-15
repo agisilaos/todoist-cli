@@ -142,7 +142,7 @@ _todoist() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]}"
 
-  local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
+  local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
@@ -176,7 +176,7 @@ _todoist() {
       fi
       ;;
     task)
-      local subs="list add update move complete reopen delete"
+      local subs="list add view update move complete reopen delete"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -264,7 +264,7 @@ case $words[1] in
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
     ;;
     task)
-      _arguments '2:subcommand:(list add update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick -n --dry-run -f --force --json --plain --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
+      _arguments '2:subcommand:(list add view update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
     ;;
   project)
     _arguments '2:subcommand:(list add update archive unarchive delete)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
@@ -303,6 +303,7 @@ complete -c todoist -s q -l quiet -d "Suppress non-essential output"
 complete -c todoist -s v -l verbose -d "Enable verbose output"
 complete -c todoist -l json -d "JSON output"
 complete -c todoist -l plain -d "Plain output"
+complete -c todoist -l ndjson -d "NDJSON output"
 complete -c todoist -l no-color -d "Disable color"
 complete -c todoist -l no-input -d "Disable prompts"
 complete -c todoist -l timeout -d "Request timeout"
@@ -318,8 +319,8 @@ complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (co
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l print-env -d "Print TODOIST_TOKEN export"
 
 # task
-complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list add update move complete reopen delete'
-complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
+complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list add view update move complete reopen delete'
+complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full
 
 # project
 complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list add update archive unarchive delete'

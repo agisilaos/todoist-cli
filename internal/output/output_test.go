@@ -4,24 +4,27 @@ import "testing"
 
 func TestDetectMode(t *testing.T) {
 	cases := []struct {
-		name      string
-		jsonFlag  bool
-		plainFlag bool
-		stdoutTTY bool
-		wantMode  Mode
-		wantErr   bool
+		name       string
+		jsonFlag   bool
+		plainFlag  bool
+		ndjsonFlag bool
+		stdoutTTY  bool
+		wantMode   Mode
+		wantErr    bool
 	}{
-		{"json wins", true, false, true, ModeJSON, false},
-		{"plain flag", false, true, true, ModePlain, false},
-		{"json and plain conflict", true, true, true, "", true},
-		{"non-tty defaults to plain", false, false, false, ModePlain, false},
-		{"tty defaults to human", false, false, true, ModeHuman, false},
+		{"json wins", true, false, false, true, ModeJSON, false},
+		{"plain flag", false, true, false, true, ModePlain, false},
+		{"ndjson flag", false, false, true, true, ModeNDJSON, false},
+		{"json and plain conflict", true, true, false, true, "", true},
+		{"json and ndjson conflict", true, false, true, true, "", true},
+		{"non-tty defaults to plain", false, false, false, false, ModePlain, false},
+		{"tty defaults to human", false, false, false, true, ModeHuman, false},
 	}
 
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			mode, err := DetectMode(tc.jsonFlag, tc.plainFlag, tc.stdoutTTY)
+			mode, err := DetectMode(tc.jsonFlag, tc.plainFlag, tc.ndjsonFlag, tc.stdoutTTY)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")

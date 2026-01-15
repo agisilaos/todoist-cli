@@ -110,6 +110,7 @@ Global flags apply to every command:
 -v, --verbose        Enable verbose output
 --json               JSON output
 --plain              Plain text output
+--ndjson             NDJSON output
 --no-color           Disable color
 --no-input           Disable prompts
 --timeout <seconds>  Request timeout (default 10)
@@ -144,6 +145,7 @@ List and modify tasks (IDs or names accepted where noted).
 ```
 todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort due|priority] [--truncate-width <cols>] [--wide] [--all-projects]
 todoist task add --content <text> [flags]
+todoist task view <ref> [--full]
 todoist task update --id <task_id> [flags]
 todoist task move --id <task_id> [--project <id|name>] [--section <id|name>] [--parent <id>]
 todoist task complete --id <task_id>
@@ -196,6 +198,7 @@ Examples:
 - `todoist task list --completed --since "2 weeks ago" --json`
 - `echo "Write launch blog #Marketing @writing p2 due:friday" | todoist add --content -`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
+- `todoist task view id:123456 --full`
 
 ### Inbox
 
@@ -372,7 +375,7 @@ todoist comment list --task <task_id> --plain
 todoist task list --completed --since "yesterday" --json | jq -r '.data[].id'
 ```
 
-Where supported, name resolution is built-in (e.g., `--project <name>` and `--section <name>` on task commands, `--label <name>`), but task IDs are required for update/complete/delete.
+Where supported, name resolution is built-in (e.g., `--project <name>` and `--section <name>` on task commands, `--label <name>`), but task IDs are required for update/complete/delete. Use `id:<id>` to explicitly reference IDs.
 
 ## Prompts & Safety
 
@@ -385,6 +388,7 @@ Where supported, name resolution is built-in (e.g., `--project <name>` and `--se
 - TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs a structured envelope: `{ "data": ..., "meta": {"request_id": "...", "count": N, "next_cursor": "..."} }`
+- `--ndjson` outputs one JSON object per line (streaming friendly).
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
 - `--truncate-width` or `TODOIST_TABLE_WIDTH` lets you set table width; `--wide` expands columns.

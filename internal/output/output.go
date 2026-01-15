@@ -12,9 +12,10 @@ import (
 type Mode string
 
 const (
-	ModeHuman Mode = "human"
-	ModePlain Mode = "plain"
-	ModeJSON  Mode = "json"
+	ModeHuman  Mode = "human"
+	ModePlain  Mode = "plain"
+	ModeJSON   Mode = "json"
+	ModeNDJSON Mode = "ndjson"
 )
 
 type Meta struct {
@@ -28,9 +29,12 @@ type Envelope struct {
 	Meta Meta `json:"meta"`
 }
 
-func DetectMode(jsonFlag, plainFlag bool, stdoutIsTTY bool) (Mode, error) {
-	if jsonFlag && plainFlag {
-		return "", fmt.Errorf("--json and --plain are mutually exclusive")
+func DetectMode(jsonFlag, plainFlag, ndjsonFlag bool, stdoutIsTTY bool) (Mode, error) {
+	if (jsonFlag && plainFlag) || (jsonFlag && ndjsonFlag) || (plainFlag && ndjsonFlag) {
+		return "", fmt.Errorf("--json, --plain, and --ndjson are mutually exclusive")
+	}
+	if ndjsonFlag {
+		return ModeNDJSON, nil
 	}
 	if jsonFlag {
 		return ModeJSON, nil
@@ -58,6 +62,16 @@ func WriteJSON(out io.Writer, data any, meta Meta) error {
 func WritePlain(out io.Writer, rows [][]string) error {
 	for _, row := range rows {
 		if _, err := fmt.Fprintln(out, strings.Join(row, "\t")); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func WriteNDJSON(out io.Writer, items []any) error {
+	enc := json.NewEncoder(out)
+	for _, item := range items {
+		if err := enc.Encode(item); err != nil {
 			return err
 		}
 	}
