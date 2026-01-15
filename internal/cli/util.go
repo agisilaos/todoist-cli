@@ -41,6 +41,31 @@ func requireIDArg(name string, args []string) (string, error) {
 	return stripIDPrefix(id), nil
 }
 
+func requireTaskID(ctx *Context, name string, args []string) (string, error) {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var id string
+	fs.StringVar(&id, "id", "", "Task ID")
+	if err := fs.Parse(args); err != nil {
+		return "", &CodeError{Code: exitUsage, Err: err}
+	}
+	if id != "" {
+		return stripIDPrefix(id), nil
+	}
+	if len(fs.Args()) == 0 {
+		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires --id or a reference", name)}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return "", err
+	}
+	ref := strings.Join(fs.Args(), " ")
+	task, err := resolveTaskRef(ctx, ref)
+	if err != nil {
+		return "", err
+	}
+	return task.ID, nil
+}
+
 func writeDryRun(ctx *Context, action string, payload any) error {
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{

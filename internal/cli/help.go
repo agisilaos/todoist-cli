@@ -107,11 +107,11 @@ func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
   todoist task list [--filter <query>] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--wide] [--all-projects]
   todoist task add --content <text> [flags]
   todoist task view <ref> [--full]
-  todoist task update --id <task_id> [flags]
-  todoist task move --id <task_id> [--project <id|name>] [--section <id|name>] [--parent <id>]
-  todoist task complete --id <task_id>
-  todoist task reopen --id <task_id>
-  todoist task delete --id <task_id>
+  todoist task update <ref> [flags]
+  todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
+  todoist task complete <ref>
+  todoist task reopen <ref>
+  todoist task delete <ref>
 
 Task flags:
   --content <text>           Task content ("-" reads stdin)

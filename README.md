@@ -148,11 +148,11 @@ List and modify tasks (IDs or names accepted where noted).
 todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort due|priority] [--truncate-width <cols>] [--wide] [--all-projects]
 todoist task add --content <text> [flags]
 todoist task view <ref> [--full]
-todoist task update --id <task_id> [flags]
-todoist task move --id <task_id> [--project <id|name>] [--section <id|name>] [--parent <id>]
-todoist task complete --id <task_id>
-todoist task reopen --id <task_id>
-todoist task delete --id <task_id>
+todoist task update <ref> [flags]
+todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
+todoist task complete <ref>
+todoist task reopen <ref>
+todoist task delete <ref>
 ```
 
 Task flags:
@@ -201,6 +201,7 @@ Examples:
 - `echo "Write launch blog #Marketing @writing p2 due:friday" | todoist add --content -`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
 - `todoist task view id:123456 --full`
+ - `todoist task complete "Pay rent"`
 
 ### Inbox
 

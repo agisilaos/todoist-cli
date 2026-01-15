@@ -263,8 +263,8 @@ case $words[1] in
   auth)
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
     ;;
-    task)
-      _arguments '2:subcommand:(list add view update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
+  task)
+    _arguments '2:subcommand:(list add view update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
     ;;
   project)
     _arguments '2:subcommand:(list add update archive unarchive delete)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'

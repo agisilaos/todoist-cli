@@ -522,9 +522,20 @@ func taskUpdate(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
+	if id == "" && len(fs.Args()) > 0 {
+		ref := strings.Join(fs.Args(), " ")
+		if err := ensureClient(ctx); err != nil {
+			return err
+		}
+		task, err := resolveTaskRef(ctx, ref)
+		if err != nil {
+			return err
+		}
+		id = task.ID
+	}
 	if id == "" {
 		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id is required")}
+		return &CodeError{Code: exitUsage, Err: errors.New("--id is required (or pass a text reference)")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -604,9 +615,20 @@ func taskMove(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
+	if id == "" && len(fs.Args()) > 0 {
+		ref := strings.Join(fs.Args(), " ")
+		if err := ensureClient(ctx); err != nil {
+			return err
+		}
+		task, err := resolveTaskRef(ctx, ref)
+		if err != nil {
+			return err
+		}
+		id = task.ID
+	}
 	if id == "" {
 		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id is required")}
+		return &CodeError{Code: exitUsage, Err: errors.New("--id is required (or pass a text reference)")}
 	}
 	if project == "" && section == "" && parent == "" {
 		printTaskHelp(ctx.Stderr)
@@ -647,7 +669,7 @@ func taskMove(ctx *Context, args []string) error {
 }
 
 func taskComplete(ctx *Context, args []string) error {
-	id, err := requireIDArg("task complete", args)
+	id, err := requireTaskID(ctx, "task complete", args)
 	if err != nil {
 		printTaskHelp(ctx.Stderr)
 		return err
@@ -669,7 +691,7 @@ func taskComplete(ctx *Context, args []string) error {
 }
 
 func taskReopen(ctx *Context, args []string) error {
-	id, err := requireIDArg("task reopen", args)
+	id, err := requireTaskID(ctx, "task reopen", args)
 	if err != nil {
 		printTaskHelp(ctx.Stderr)
 		return err
@@ -691,7 +713,7 @@ func taskReopen(ctx *Context, args []string) error {
 }
 
 func taskDelete(ctx *Context, args []string) error {
-	id, err := requireIDArg("task delete", args)
+	id, err := requireTaskID(ctx, "task delete", args)
 	if err != nil {
 		printTaskHelp(ctx.Stderr)
 		return err
