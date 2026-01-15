@@ -145,7 +145,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "inbox add auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -247,12 +247,15 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(inbox add auth task project section label comment agent completion schema help)' \
+  '1:command:(today inbox add auth task project section label comment agent completion schema help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
   inbox)
     _arguments '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    ;;
+  today)
+    _arguments
     ;;
   add)
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick)'
@@ -291,7 +294,7 @@ esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'inbox add auth task project section label comment agent completion schema help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task project section label comment agent completion schema help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -337,6 +340,9 @@ complete -c todoist -n '__fish_seen_subcommand_from comment' -l task -l project 
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'
 complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
+
+# today
+complete -c todoist -n '__fish_seen_subcommand_from today'
 
 # add alias
 complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l quick

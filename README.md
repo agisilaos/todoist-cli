@@ -214,6 +214,15 @@ Examples:
 - `echo "Capture idea" | todoist inbox add --content -`
 - `todoist inbox add --content "Pay rent" --label finance --due "1st"`
 - `todoist add "Pay rent" --quick`
+- `todoist inbox` (list inbox tasks)
+
+### Today
+
+Quick list of tasks due today and overdue.
+
+```
+todoist today
+```
 
 ### Projects
 

@@ -38,7 +38,7 @@ func requireIDArg(name string, args []string) (string, error) {
 	if id == "" {
 		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires --id", name)}
 	}
-	return id, nil
+	return stripIDPrefix(id), nil
 }
 
 func writeDryRun(ctx *Context, action string, payload any) error {
@@ -146,4 +146,12 @@ func shortID(value string, max int, wide bool) string {
 
 func useFuzzy(ctx *Context) bool {
 	return ctx != nil && ctx.Fuzzy
+}
+
+func stripIDPrefix(value string) string {
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(strings.ToLower(value), "id:") {
+		return strings.TrimSpace(value[3:])
+	}
+	return value
 }

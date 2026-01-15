@@ -14,6 +14,7 @@ func resolveProjectID(ctx *Context, value string) (string, error) {
 	if value == "" {
 		return "", nil
 	}
+	value = stripIDPrefix(value)
 	projects, err := listAllProjects(ctx)
 	if err != nil {
 		return value, nil
@@ -38,6 +39,7 @@ func resolveSectionID(ctx *Context, value string, project string) (string, error
 	if value == "" {
 		return "", nil
 	}
+	value = stripIDPrefix(value)
 	sections, err := listAllSections(ctx, project)
 	if err != nil {
 		return value, nil

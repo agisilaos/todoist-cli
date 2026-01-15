@@ -11,11 +11,12 @@ import (
 )
 
 func inboxCommand(ctx *Context, args []string) error {
-	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+	if len(args) == 0 {
+		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, "")
+	}
+	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		printInboxHelp(ctx.Stdout)
-		if len(args) == 0 {
-			return nil
-		}
+		return nil
 	}
 	switch args[0] {
 	case "add":

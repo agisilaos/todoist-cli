@@ -11,6 +11,7 @@ Usage:
 Commands:
   inbox       Quick-add to Inbox
   add         Quick add (alias of task add)
+  today       Tasks due today and overdue
   auth        Authenticate and manage tokens
   task        Manage tasks
   project     Manage projects
@@ -59,6 +60,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printAuthHelp(ctx.Stdout)
 	case "add":
 		printAddHelp(ctx.Stdout)
+	case "today":
+		printTodayHelp(ctx.Stdout)
 	case "task":
 		printTaskHelp(ctx.Stdout)
 	case "project":

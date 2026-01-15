@@ -299,5 +299,5 @@ func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
 }
 
 func parseIDOrName(input string) string {
-	return strings.TrimSpace(input)
+	return stripIDPrefix(strings.TrimSpace(input))
 }
