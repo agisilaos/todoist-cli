@@ -40,6 +40,84 @@ func taskCommand(ctx *Context, args []string) error {
 	}
 }
 
+func quickAddCommand(ctx *Context, args []string) error {
+	fs := flag.NewFlagSet("add", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var content string
+	var project string
+	var section string
+	var labels multiValue
+	var priority int
+	var dueString string
+	var strict bool
+	var help bool
+	fs.StringVar(&content, "content", "", "Task content")
+	fs.StringVar(&project, "project", "", "Project")
+	fs.StringVar(&section, "section", "", "Section")
+	fs.Var(&labels, "label", "Label")
+	fs.IntVar(&priority, "priority", 0, "Priority")
+	fs.StringVar(&dueString, "due", "", "Due string")
+	fs.BoolVar(&strict, "strict", false, "Disable quick-add parsing")
+	fs.BoolVar(&help, "help", false, "Show help")
+	fs.BoolVar(&help, "h", false, "Show help")
+	if err := fs.Parse(args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printAddHelp(ctx.Stdout)
+		return nil
+	}
+	if content == "" && len(fs.Args()) > 0 {
+		content = strings.Join(fs.Args(), " ")
+	}
+	if content == "-" {
+		val, err := readAllTrim(ctx.Stdin)
+		if err != nil {
+			return err
+		}
+		content = val
+	}
+	if content == "" {
+		printAddHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: errors.New("content is required")}
+	}
+	if !strict {
+		parsed := parseQuickAdd(content)
+		if parsed.Content != "" {
+			content = parsed.Content
+		}
+		if project == "" && parsed.Project != "" {
+			project = parsed.Project
+		}
+		if priority == 0 && parsed.Priority > 0 {
+			priority = parsed.Priority
+		}
+		if dueString == "" && parsed.Due != "" {
+			dueString = parsed.Due
+		}
+		if len(labels) == 0 && len(parsed.Labels) > 0 {
+			labels = append(labels, parsed.Labels...)
+		}
+	}
+	taskArgs := []string{"--content", content}
+	if project != "" {
+		taskArgs = append(taskArgs, "--project", project)
+	}
+	if section != "" {
+		taskArgs = append(taskArgs, "--section", section)
+	}
+	for _, label := range labels {
+		taskArgs = append(taskArgs, "--label", label)
+	}
+	if priority > 0 {
+		taskArgs = append(taskArgs, "--priority", strconv.Itoa(priority))
+	}
+	if dueString != "" {
+		taskArgs = append(taskArgs, "--due", dueString)
+	}
+	return taskAdd(ctx, taskArgs)
+}
+
 func taskList(ctx *Context, args []string) error {
 	fs := flag.NewFlagSet("task list", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)

@@ -28,7 +28,7 @@ func dispatch(ctx *Context, args []string) int {
 	case "schema":
 		err = schemaCommand(ctx, rest)
 	case "add":
-		err = taskAdd(ctx, rest)
+		err = quickAddCommand(ctx, rest)
 	case "today":
 		err = todayCommand(ctx, rest)
 	case "help":

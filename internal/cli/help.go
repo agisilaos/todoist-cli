@@ -140,7 +140,7 @@ Examples:
   todoist task list --filter "today"
   todoist task list --all-projects
   todoist task add --content "Pay rent" --project Home --due "1st of month"
-  todoist add "Pay rent" --quick
+  todoist add "Pay rent #Home p2 due:tomorrow"
   todoist task list --preset today --sort priority
   echo "From stdin" | todoist task add --content -
 `)
@@ -272,13 +272,14 @@ func printAddHelp(out interface{ Write([]byte) (int, error) }) {
   todoist add <text> [flags]
 
 Notes:
-  - Alias for "todoist task add".
+  - Quick-add parser: supports #Project, @label, p1..p4, due:<text>.
+  - Use --strict to disable parsing and treat content literally.
   - If --content is omitted, remaining args are treated as task content.
-  - Use --quick to apply inbox defaults (labels/due).
 
 Examples:
   todoist add "Pay rent"
-  todoist add "Pay rent" --quick
+  todoist add "Pay rent #Home p2 due:tomorrow"
+  todoist add --content - --strict
   echo "From stdin" | todoist add --content -
 `)
 }

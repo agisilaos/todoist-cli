@@ -194,7 +194,7 @@ Examples:
 - `todoist task list --filter "@work & today"` (human table)
 - `todoist task list --preset today --sort priority`
 - `todoist task list --completed --since "2 weeks ago" --json`
-- `echo "Write launch blog" | todoist add --quick --project "Marketing" --label writing --due "friday"`
+- `echo "Write launch blog #Marketing @writing p2 due:friday" | todoist add --content -`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
 
 ### Inbox
@@ -208,12 +208,12 @@ todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-da
 Notes:
 - Reads content from stdin with `--content -`.
 - Applies defaults from config: `default_inbox_labels`, `default_inbox_due`.
-- `todoist add <text>` is a shorter alias for `task add`.
+- `todoist add <text>` uses quick-add parsing for `#Project`, `@label`, `p1..p4`, `due:<text>`.
 
 Examples:
 - `echo "Capture idea" | todoist inbox add --content -`
 - `todoist inbox add --content "Pay rent" --label finance --due "1st"`
-- `todoist add "Pay rent" --quick`
+- `todoist add "Pay rent #Home p2 due:tomorrow"`
 - `todoist inbox` (list inbox tasks)
 
 ### Today

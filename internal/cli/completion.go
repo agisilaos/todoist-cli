@@ -151,7 +151,7 @@ _todoist() {
 
   case "$cmd" in
     add)
-      local task_flags="--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick"
+      local task_flags="--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict"
       COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -258,13 +258,13 @@ case $words[1] in
     _arguments
     ;;
   add)
-    _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick)'
+    _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
   auth)
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
     ;;
-  task)
-    _arguments '2:subcommand:(list add update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee -n --dry-run -f --force --json --plain --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
+    task)
+      _arguments '2:subcommand:(list add update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick -n --dry-run -f --force --json --plain --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
     ;;
   project)
     _arguments '2:subcommand:(list add update archive unarchive delete)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
@@ -345,7 +345,7 @@ complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l descrip
 complete -c todoist -n '__fish_seen_subcommand_from today'
 
 # add alias
-complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l quick
+complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l strict
 
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply run schedule examples planner status'
