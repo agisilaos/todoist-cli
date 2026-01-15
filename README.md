@@ -8,6 +8,8 @@ Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports ta
 - Scriptable output (`--json`/`--plain`) for automation and integrations.
 - Agent workflows for bulk plans with safe previews and confirmations.
 
+See `docs/SPEC.md` for the CLI contract and `docs/ROADMAP.md` for planned features.
+
 ## Why agents
 
 - Batch changes with human review via plan/apply.
