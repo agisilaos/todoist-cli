@@ -142,7 +142,7 @@ _todoist() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]}"
 
-  local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
+  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
@@ -176,7 +176,7 @@ _todoist() {
       fi
       ;;
     task)
-      local subs="list add view update move complete reopen delete"
+      local subs="list ls add view show update move complete reopen delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -186,7 +186,7 @@ _todoist() {
       return 0
       ;;
     project)
-      local subs="list add update archive unarchive delete"
+      local subs="list ls add update archive unarchive delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -196,7 +196,7 @@ _todoist() {
       return 0
       ;;
     section)
-      local subs="list add update delete"
+      local subs="list ls add update delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -206,7 +206,7 @@ _todoist() {
       return 0
       ;;
     label)
-      local subs="list add update delete"
+      local subs="list ls add update delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -216,7 +216,7 @@ _todoist() {
       return 0
       ;;
     comment)
-      local subs="list add update delete"
+      local subs="list ls add update delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -269,19 +269,19 @@ case $words[1] in
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
     ;;
   task)
-    _arguments '2:subcommand:(list add view update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
+    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --base-url)'
     ;;
   project)
-    _arguments '2:subcommand:(list add update archive unarchive delete)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
+    _arguments '2:subcommand:(list ls add update archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
     ;;
   section)
-    _arguments '2:subcommand:(list add update delete)' '*:flags:(--project --name --id)'
+    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--project --name --id)'
     ;;
   label)
-    _arguments '2:subcommand:(list add update delete)' '*:flags:(--id --name --color --favorite --unfavorite)'
+    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--id --name --color --favorite --unfavorite)'
     ;;
   comment)
-    _arguments '2:subcommand:(list add update delete)' '*:flags:(--task --project --content --id)'
+    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --project --content --id)'
     ;;
   agent)
     _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
@@ -308,6 +308,7 @@ complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task 
 complete -c todoist -s h -l help -d "Show help"
 complete -c todoist -l version -d "Show version"
 complete -c todoist -s q -l quiet -d "Suppress non-essential output"
+complete -c todoist -l quiet-json -d "Compact single-line JSON errors"
 complete -c todoist -s v -l verbose -d "Enable verbose output"
 complete -c todoist -l json -d "JSON output"
 complete -c todoist -l plain -d "Plain output"
@@ -327,23 +328,23 @@ complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (co
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l print-env -d "Print TODOIST_TOKEN export"
 
 # task
-complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list add view update move complete reopen delete'
+complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list ls add view show update move complete reopen delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes
 
 # project
-complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list add update archive unarchive delete'
+complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list ls add update archive unarchive delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from project' -l archived -l id -l name -l description -l parent -l color -l favorite -l view
 
 # section
-complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a 'list add update delete'
+complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a 'list ls add update delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from section' -l project -l name -l id
 
 # label
-complete -c todoist -n '__fish_seen_subcommand_from label; and __fish_use_subcommand' -a 'list add update delete'
+complete -c todoist -n '__fish_seen_subcommand_from label; and __fish_use_subcommand' -a 'list ls add update delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from label' -l id -l name -l color -l favorite -l unfavorite
 
 # comment
-complete -c todoist -n '__fish_seen_subcommand_from comment; and __fish_use_subcommand' -a 'list add update delete'
+complete -c todoist -n '__fish_seen_subcommand_from comment; and __fish_use_subcommand' -a 'list ls add update delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from comment' -l task -l project -l content -l id
 
 # inbox

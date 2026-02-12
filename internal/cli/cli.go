@@ -34,6 +34,7 @@ type GlobalOptions struct {
 	Help       bool
 	Version    bool
 	Quiet      bool
+	QuietJSON  bool
 	Verbose    bool
 	JSON       bool
 	Plain      bool
@@ -125,6 +126,8 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			opts.Version = true
 		case arg == "--quiet" || arg == "-q":
 			opts.Quiet = true
+		case arg == "--quiet-json":
+			opts.QuietJSON = true
 		case arg == "--verbose" || arg == "-v":
 			opts.Verbose = true
 		case arg == "--json":

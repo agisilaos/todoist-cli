@@ -28,6 +28,7 @@ Global flags:
   -h, --help            Show help
   --version             Show version
   -q, --quiet           Suppress non-essential output
+  --quiet-json          Compact single-line JSON errors
   -v, --verbose         Enable verbose output
   --json                JSON output
   --plain               Plain text output (tab-separated)
@@ -134,6 +135,7 @@ Task flags:
 
 Notes:
   By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
+  Aliases: ls=list, show=view, rm/delete=delete.
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
   Human output resolves project/section names; --plain uses IDs.
   Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.

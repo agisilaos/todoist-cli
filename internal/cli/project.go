@@ -17,7 +17,12 @@ func projectCommand(ctx *Context, args []string) error {
 		printProjectHelp(ctx.Stdout)
 		return nil
 	}
-	switch args[0] {
+	sub := canonicalSubcommand(args[0], map[string]string{
+		"ls":  "list",
+		"rm":  "delete",
+		"del": "delete",
+	})
+	switch sub {
 	case "list":
 		return projectList(ctx, args[1:])
 	case "add":

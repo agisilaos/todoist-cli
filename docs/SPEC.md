@@ -51,12 +51,14 @@ todoist agent planner --set --cmd "<cmd>"
 
 - Human default for TTY; `--plain` (tab-separated) for stable text.
 - `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
+- `--quiet-json` emits compact single-line JSON errors (useful for agents and log pipelines).
 - `todoist schema` is the output contract source of truth (for example: `task_list` and `task_item_ndjson`).
 
 ## Parsing Rules
 
 - Global flags may appear before or after commands/subcommands.
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
+- Common aliases: `ls=list`, `rm/delete=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
 
 ## Errors

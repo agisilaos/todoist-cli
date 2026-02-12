@@ -106,7 +106,9 @@ func writeError(ctx *Context, err error) {
 	meta := output.Meta{RequestID: ctxRequestIDValue(ctx)}
 	if ctx.Mode == output.ModeJSON {
 		enc := json.NewEncoder(ctx.Stderr)
-		enc.SetIndent("", "  ")
+		if !ctx.Global.QuietJSON {
+			enc.SetIndent("", "  ")
+		}
 		_ = enc.Encode(map[string]any{
 			"error": err.Error(),
 			"meta":  meta,
@@ -191,6 +193,16 @@ func isNumeric(value string) bool {
 		}
 	}
 	return true
+}
+
+func canonicalSubcommand(input string, aliases map[string]string) string {
+	if aliases == nil {
+		return input
+	}
+	if resolved, ok := aliases[input]; ok {
+		return resolved
+	}
+	return input
 }
 
 type boolFlag interface {

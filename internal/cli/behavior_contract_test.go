@@ -54,6 +54,34 @@ func TestContractTaskDeleteSupportsInterspersedFlags(t *testing.T) {
 	}
 }
 
+func TestContractTaskDeleteAliasRm(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "rm", "--yes", "--id", "123", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"action": "task delete"`) {
+		t.Fatalf("unexpected task rm dry-run output: %q", stdout.String())
+	}
+}
+
+func TestContractProjectDeleteAliasRm(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"project", "rm", "--id", "p1", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"action": "project delete"`) {
+		t.Fatalf("unexpected project rm dry-run output: %q", stdout.String())
+	}
+}
+
 func TestContractSchemaWritesCleanStdout(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -66,6 +94,24 @@ func TestContractSchemaWritesCleanStdout(t *testing.T) {
 	}
 	if !strings.HasPrefix(strings.TrimSpace(stdout.String()), "[") {
 		t.Fatalf("expected JSON array output, got %q", stdout.String())
+	}
+}
+
+func TestContractQuietJSONErrorsAreSingleLine(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "delete", "--id", "123", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	lines := strings.Split(strings.TrimSpace(stderr.String()), "\n")
+	if len(lines) != 1 {
+		t.Fatalf("expected single-line stderr json, got %q", stderr.String())
+	}
+	if !strings.HasPrefix(lines[0], "{") {
+		t.Fatalf("expected json object line, got %q", lines[0])
 	}
 }
 

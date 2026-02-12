@@ -109,6 +109,7 @@ Global flags apply to every command:
 -h, --help           Show help
 --version            Show version
 -q, --quiet          Suppress non-essential output
+--quiet-json         Compact single-line JSON errors (for scripts/agents)
 -v, --verbose        Enable verbose output
 --json               JSON output
 --plain              Plain text output
@@ -127,6 +128,7 @@ Flag parsing notes:
 
 - Global flags can appear before or after commands/subcommands.
 - Subcommand flags can be mixed with positional refs/content (for example `todoist add "Buy milk" --project Home --dry-run`).
+- Common aliases: `ls`=`list`, `rm`/`del`=`delete` (`task`, `project`, `section`, `label`, `comment`), and `show`=`view` (`task`).
 - Prefer `--json` or `--ndjson` for scripts/agents.
 
 ## Commands

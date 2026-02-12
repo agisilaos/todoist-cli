@@ -138,7 +138,13 @@ func taskCommand(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
-	switch args[0] {
+	sub := canonicalSubcommand(args[0], map[string]string{
+		"ls":   "list",
+		"rm":   "delete",
+		"del":  "delete",
+		"show": "view",
+	})
+	switch sub {
 	case "list":
 		return taskList(ctx, args[1:])
 	case "add":

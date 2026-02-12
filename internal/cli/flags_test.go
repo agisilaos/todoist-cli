@@ -37,12 +37,15 @@ func TestParseGlobalFlagsValues(t *testing.T) {
 }
 
 func TestParseGlobalFlagsInterspersed(t *testing.T) {
-	opts, rest, err := parseGlobalFlags([]string{"planner", "--json", "--profile", "work"}, nil)
+	opts, rest, err := parseGlobalFlags([]string{"planner", "--json", "--quiet-json", "--profile", "work"}, nil)
 	if err != nil {
 		t.Fatalf("parse flags: %v", err)
 	}
 	if !opts.JSON {
 		t.Fatalf("expected json true")
+	}
+	if !opts.QuietJSON {
+		t.Fatalf("expected quiet-json true")
 	}
 	if opts.Profile != "work" {
 		t.Fatalf("expected profile work, got %q", opts.Profile)

@@ -17,7 +17,12 @@ func commentCommand(ctx *Context, args []string) error {
 		printCommentHelp(ctx.Stdout)
 		return nil
 	}
-	switch args[0] {
+	sub := canonicalSubcommand(args[0], map[string]string{
+		"ls":  "list",
+		"rm":  "delete",
+		"del": "delete",
+	})
+	switch sub {
 	case "list":
 		return commentList(ctx, args[1:])
 	case "add":
