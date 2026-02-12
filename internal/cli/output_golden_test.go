@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -81,9 +82,26 @@ func TestWriteTaskListNDJSONSnapshot(t *testing.T) {
 	if err := writeTaskList(ctx, tasks, "", false); err != nil {
 		t.Fatalf("writeTaskList: %v", err)
 	}
-	got := ctx.Stdout.(*bytes.Buffer).String()
-	if !strings.Contains(got, `"id":"1"`) || !strings.Contains(got, `"id":"2"`) {
-		t.Fatalf("unexpected ndjson output: %q", got)
+	lines := strings.Split(strings.TrimSpace(ctx.Stdout.(*bytes.Buffer).String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 ndjson lines, got %d", len(lines))
+	}
+	var got1 map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &got1); err != nil {
+		t.Fatalf("invalid ndjson line 1: %v", err)
+	}
+	var got2 map[string]any
+	if err := json.Unmarshal([]byte(lines[1]), &got2); err != nil {
+		t.Fatalf("invalid ndjson line 2: %v", err)
+	}
+	if got1["id"] != "1" || got2["id"] != "2" {
+		t.Fatalf("unexpected ndjson ids: %#v %#v", got1["id"], got2["id"])
+	}
+	if _, ok := got1["priority"]; !ok {
+		t.Fatalf("line 1 missing priority field")
+	}
+	if _, ok := got2["priority"]; !ok {
+		t.Fatalf("line 2 missing priority field")
 	}
 }
 

@@ -27,6 +27,18 @@ func (p *priorityFlag) Set(value string) error {
 	case "":
 		*p = 0
 		return nil
+	case "1":
+		*p = 1
+		return nil
+	case "2":
+		*p = 2
+		return nil
+	case "3":
+		*p = 3
+		return nil
+	case "4":
+		*p = 4
+		return nil
 	case "p1":
 		*p = 4
 		return nil
@@ -40,7 +52,7 @@ func (p *priorityFlag) Set(value string) error {
 		*p = 1
 		return nil
 	}
-	return fmt.Errorf("invalid priority: %s", value)
+	return fmt.Errorf("invalid priority: %s (expected 1-4 or p1-p4)", value)
 }
 
 func quickAddPriorityToken(priority int) (string, error) {
@@ -65,9 +77,12 @@ func buildQuickAddText(content, project string, labels []string, priority int, d
 	extras := make([]string, 0, 4)
 	if project != "" {
 		project = strings.TrimSpace(project)
+		if strings.HasPrefix(strings.ToLower(project), "id:") {
+			return "", errors.New("--project by id is not supported with quick add; use --strict")
+		}
 		projectName := stripIDPrefix(project)
 		if isNumeric(projectName) {
-			return "", errors.New("--project must be a name for quick add")
+			return "", errors.New("--project numeric ID is not supported with quick add; use --strict")
 		}
 		if strings.HasPrefix(projectName, "#") {
 			extras = append(extras, projectName)
@@ -100,6 +115,22 @@ func buildQuickAddText(content, project string, labels []string, priority int, d
 		return text, nil
 	}
 	return text + " " + strings.Join(extras, " "), nil
+}
+
+func validateStrictAddInputs(project string, labels []string, dueString string) error {
+	project = strings.TrimSpace(project)
+	if strings.HasPrefix(project, "#") {
+		return errors.New("--project cannot start with '#' when --strict is set; pass project name or id")
+	}
+	for _, label := range labels {
+		if strings.HasPrefix(strings.TrimSpace(label), "@") {
+			return errors.New("--label cannot start with '@' when --strict is set; pass label name")
+		}
+	}
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(dueString)), "due:") {
+		return errors.New("--due should not include 'due:' when --strict is set")
+	}
+	return nil
 }
 
 func taskCommand(ctx *Context, args []string) error {
@@ -171,6 +202,9 @@ func quickAddCommand(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: errors.New("content is required")}
 	}
 	if strict {
+		if err := validateStrictAddInputs(project, labels, dueString); err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
 		taskArgs := []string{"--content", content}
 		if project != "" {
 			taskArgs = append(taskArgs, "--project", project)
@@ -194,7 +228,7 @@ func quickAddCommand(ctx *Context, args []string) error {
 		return taskAdd(ctx, taskArgs)
 	}
 	if section != "" {
-		return &CodeError{Code: exitUsage, Err: errors.New("--section is not supported for quick add")}
+		return &CodeError{Code: exitUsage, Err: errors.New("--section is only supported with --strict")}
 	}
 	text, err := buildQuickAddText(content, project, labels, priority, dueString)
 	if err != nil {

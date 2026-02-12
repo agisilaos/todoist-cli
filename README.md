@@ -215,7 +215,9 @@ todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-da
 Notes:
 - Reads content from stdin with `--content -`.
 - Applies defaults from config: `default_inbox_labels`, `default_inbox_due`.
-- `todoist add <text>` uses Sync API quick add parsing for `#Project`, `@label`, `p1..p4`, and natural language dates (no `--section` or project IDs).
+- `todoist add <text>` uses Sync API quick add parsing for `#Project`, `@label`, `p1..p4`, and natural language dates.
+- In quick-add mode, `--section` and project IDs are rejected; use `--strict` to fall back to REST add.
+- In `--strict` mode, use REST-style flags (`--project Home`, `--label errands`, `--due tomorrow`) without `#`, `@`, or `due:` prefixes.
 
 Examples:
 - `echo "Capture idea" | todoist inbox add --content -`
@@ -350,7 +352,7 @@ todoist agent run --instruction "Pick 3 articles for today" --context-project "L
 Output JSON schemas (use `--json`):
 
 ```
-todoist schema [--name task_list|error|plan|plan_preview|planner_request] [--json]
+todoist schema [--name task_list|task_item_ndjson|error|plan|plan_preview|planner_request] [--json]
 ```
 
 ## Shell Completions
@@ -392,7 +394,7 @@ Where supported, name resolution is built-in (e.g., `--project <name>` and `--se
 - TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope).
-- `--ndjson` outputs one JSON object per line (streaming friendly).
+- `--ndjson` outputs one JSON object per line (streaming friendly); for task list, each line matches `todoist schema --name task_item_ndjson --json`.
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
 - `--truncate-width` or `TODOIST_TABLE_WIDTH` lets you set table width; `--wide` expands columns.

@@ -16,7 +16,7 @@ Pattern: `todoist <resource> <action> [args]`
 
 ### Top-level shortcuts
 
-- `todoist add "text"` — Sync API quick add (full natural language)
+- `todoist add "text"` — Sync API quick add (full natural language; use `--strict` for REST add semantics)
 - `todoist inbox` — list Inbox tasks
 - `todoist today` — list tasks due today + overdue
 
@@ -50,6 +50,7 @@ todoist agent planner --set --cmd "<cmd>"
 
 - Human default for TTY; `--plain` (tab-separated) for stable text.
 - `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
+- `todoist schema` is the output contract source of truth (for example: `task_list` and `task_item_ndjson`).
 
 ## Errors
 

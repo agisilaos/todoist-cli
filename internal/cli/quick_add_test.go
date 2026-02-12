@@ -1,6 +1,10 @@
 package cli
 
-import "testing"
+import (
+	"bytes"
+	"strings"
+	"testing"
+)
 
 func TestParseQuickAdd(t *testing.T) {
 	got := parseQuickAdd("Buy milk #Home @errands p2 due:tomorrow")
@@ -47,9 +51,55 @@ func TestPriorityFlagAcceptsP1(t *testing.T) {
 	}
 }
 
-func TestPriorityFlagRejectsNumeric(t *testing.T) {
+func TestPriorityFlagAcceptsNumeric(t *testing.T) {
 	var p priorityFlag
-	if err := p.Set("1"); err == nil {
-		t.Fatalf("expected error for numeric priority")
+	if err := p.Set("1"); err != nil {
+		t.Fatalf("set numeric: %v", err)
+	}
+	if int(p) != 1 {
+		t.Fatalf("expected priority 1, got %d", p)
+	}
+}
+
+func TestPriorityFlagRejectsInvalid(t *testing.T) {
+	var p priorityFlag
+	if err := p.Set("p9"); err == nil {
+		t.Fatalf("expected error for invalid priority")
+	}
+}
+
+func TestQuickAddCommandRejectsSectionWithoutStrict(t *testing.T) {
+	ctx := &Context{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Stdin:  strings.NewReader(""),
+	}
+	err := quickAddCommand(ctx, []string{"--content", "Buy milk", "--section", "Errands"})
+	if err == nil || !strings.Contains(err.Error(), "--section is only supported with --strict") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestQuickAddCommandRejectsProjectIDWithoutStrict(t *testing.T) {
+	ctx := &Context{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Stdin:  strings.NewReader(""),
+	}
+	err := quickAddCommand(ctx, []string{"--content", "Buy milk", "--project", "id:123"})
+	if err == nil || !strings.Contains(err.Error(), "project by id is not supported with quick add") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestQuickAddCommandRejectsMixedStrictSyntax(t *testing.T) {
+	ctx := &Context{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Stdin:  strings.NewReader(""),
+	}
+	err := quickAddCommand(ctx, []string{"--content", "Buy milk", "--strict", "--project", "#Home"})
+	if err == nil || !strings.Contains(err.Error(), "cannot start with '#'") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

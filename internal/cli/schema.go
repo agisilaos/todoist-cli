@@ -19,41 +19,46 @@ type schemaDef struct {
 var schemas = []schemaDef{
 	{
 		Name:        "task_list",
-		Description: "Response shape for task list",
+		Description: "JSON response shape for `todoist task list --json` (array of tasks)",
+		Schema: map[string]any{
+			"type": "array",
+			"items": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"id":           map[string]string{"type": "string"},
+					"content":      map[string]string{"type": "string"},
+					"description":  map[string]string{"type": "string"},
+					"project_id":   map[string]string{"type": "string"},
+					"section_id":   map[string]string{"type": "string"},
+					"parent_id":    map[string]string{"type": "string"},
+					"labels":       map[string]any{"type": "array", "items": map[string]string{"type": "string"}},
+					"priority":     map[string]string{"type": "integer"},
+					"due":          map[string]any{"type": []any{"object", "null"}},
+					"checked":      map[string]string{"type": "boolean"},
+					"added_at":     map[string]string{"type": "string"},
+					"completed_at": map[string]string{"type": "string"},
+					"updated_at":   map[string]string{"type": "string"},
+					"note_count":   map[string]string{"type": "integer"},
+				},
+				"required": []string{"id", "content", "project_id", "section_id", "labels", "priority", "checked"},
+			},
+		},
+	},
+	{
+		Name:        "task_item_ndjson",
+		Description: "One line item shape for `todoist task list --ndjson`",
 		Schema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"data": map[string]any{
-					"type": "array",
-					"items": map[string]any{
-						"type": "object",
-						"properties": map[string]any{
-							"id":           map[string]string{"type": "string"},
-							"content":      map[string]string{"type": "string"},
-							"description":  map[string]string{"type": "string"},
-							"project_id":   map[string]string{"type": "string"},
-							"section_id":   map[string]string{"type": "string"},
-							"parent_id":    map[string]string{"type": "string"},
-							"labels":       map[string]any{"type": "array", "items": map[string]string{"type": "string"}},
-							"priority":     map[string]string{"type": "integer"},
-							"due":          map[string]any{"type": "object"},
-							"checked":      map[string]string{"type": "boolean"},
-							"completed_at": map[string]string{"type": "string"},
-						},
-						"required": []string{"id", "content", "project_id", "section_id", "labels", "priority"},
-					},
-				},
-				"meta": map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"request_id":  map[string]string{"type": "string"},
-						"count":       map[string]string{"type": "integer"},
-						"next_cursor": map[string]string{"type": "string"},
-					},
-					"required": []string{"count"},
-				},
+				"id":         map[string]string{"type": "string"},
+				"content":    map[string]string{"type": "string"},
+				"project_id": map[string]string{"type": "string"},
+				"section_id": map[string]string{"type": "string"},
+				"labels":     map[string]any{"type": "array", "items": map[string]string{"type": "string"}},
+				"priority":   map[string]string{"type": "integer"},
+				"checked":    map[string]string{"type": "boolean"},
 			},
-			"required": []string{"data", "meta"},
+			"required": []string{"id", "content", "project_id", "section_id", "labels", "priority", "checked"},
 		},
 	},
 	{

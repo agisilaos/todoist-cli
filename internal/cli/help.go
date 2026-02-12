@@ -277,10 +277,10 @@ func printAddHelp(out interface{ Write([]byte) (int, error) }) {
   todoist add <text> [flags]
 
 Notes:
-  - Quick-add parser: supports #Project, @label, p1..p4, due:<text>.
   - Default uses Sync API quick add (full natural language parsing).
   - Use --strict to disable parsing and use the REST add endpoint.
-  - Quick add does not support --section or project IDs.
+  - Quick add does not support --section or project IDs; use --strict for those.
+  - In --strict mode, pass --project as a name/id (no "#"), --label as names (no "@"), and --due without "due:".
   - If --content is omitted, remaining args are treated as task content.
 
 Examples:
