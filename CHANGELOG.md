@@ -6,6 +6,10 @@ The format is based on *Keep a Changelog*, and this project adheres to *Semantic
 
 ## [Unreleased]
 
+## [v0.3.0] - 2026-02-12
+
+- feat: tighten quick-add validation and formalize output schemas (f88009a)
+
 ## [v0.2.0] - 2026-02-12
 
 - feat: switch add to sync quick add and simplify json output (436389b)
