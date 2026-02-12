@@ -180,7 +180,7 @@ func quickAddCommand(ctx *Context, args []string) error {
 	fs.BoolVar(&strict, "strict", false, "Disable quick-add parsing")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -292,7 +292,7 @@ func taskList(ctx *Context, args []string) error {
 	fs.IntVar(&truncateWidth, "truncate-width", 0, "Override table width (human output)")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -511,7 +511,7 @@ func taskAdd(ctx *Context, args []string) error {
 	fs.BoolVar(&quick, "quick", false, "Quick add using inbox defaults")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -645,7 +645,7 @@ func taskUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&assignee, "assignee", "", "Assignee ID")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -738,7 +738,7 @@ func taskMove(ctx *Context, args []string) error {
 	fs.StringVar(&parent, "parent", "", "Parent")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -852,7 +852,7 @@ func taskDelete(ctx *Context, args []string) error {
 	fs.BoolVar(&yes, "yes", false, "Skip confirmation")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -903,7 +903,7 @@ func taskView(ctx *Context, args []string) error {
 	fs.BoolVar(&full, "full", false, "Show full task fields")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {

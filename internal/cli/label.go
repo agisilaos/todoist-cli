@@ -236,6 +236,13 @@ func writeLabelList(ctx *Context, labels []api.Label, cursor string) error {
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, labels, output.Meta{RequestID: ctx.RequestID, Count: len(labels), Cursor: cursor})
 	}
+	if ctx.Mode == output.ModeNDJSON {
+		items := make([]any, 0, len(labels))
+		for _, label := range labels {
+			items = append(items, label)
+		}
+		return output.WriteNDJSON(ctx.Stdout, items)
+	}
 	rows := make([][]string, 0, len(labels))
 	for _, label := range labels {
 		rows = append(rows, []string{

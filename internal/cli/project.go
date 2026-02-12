@@ -314,6 +314,13 @@ func writeProjectList(ctx *Context, projects []api.Project, cursor string) error
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, projects, output.Meta{RequestID: ctx.RequestID, Count: len(projects), Cursor: cursor})
 	}
+	if ctx.Mode == output.ModeNDJSON {
+		items := make([]any, 0, len(projects))
+		for _, project := range projects {
+			items = append(items, project)
+		}
+		return output.WriteNDJSON(ctx.Stdout, items)
+	}
 	rows := make([][]string, 0, len(projects))
 	for _, project := range projects {
 		rows = append(rows, []string{

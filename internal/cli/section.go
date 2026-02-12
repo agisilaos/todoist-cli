@@ -205,6 +205,13 @@ func writeSectionList(ctx *Context, sections []api.Section, cursor string) error
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, sections, output.Meta{RequestID: ctx.RequestID, Count: len(sections), Cursor: cursor})
 	}
+	if ctx.Mode == output.ModeNDJSON {
+		items := make([]any, 0, len(sections))
+		for _, section := range sections {
+			items = append(items, section)
+		}
+		return output.WriteNDJSON(ctx.Stdout, items)
+	}
 	rows := make([][]string, 0, len(sections))
 	for _, section := range sections {
 		rows = append(rows, []string{

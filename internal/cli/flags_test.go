@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"bytes"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
@@ -30,5 +33,32 @@ func TestParseGlobalFlagsValues(t *testing.T) {
 	}
 	if len(rest) != 2 || rest[0] != "task" {
 		t.Fatalf("unexpected rest args: %#v", rest)
+	}
+}
+
+func TestParseGlobalFlagsInterspersed(t *testing.T) {
+	opts, rest, err := parseGlobalFlags([]string{"planner", "--json", "--profile", "work"}, nil)
+	if err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+	if !opts.JSON {
+		t.Fatalf("expected json true")
+	}
+	if opts.Profile != "work" {
+		t.Fatalf("expected profile work, got %q", opts.Profile)
+	}
+	if len(rest) != 1 || rest[0] != "planner" {
+		t.Fatalf("unexpected rest args: %#v", rest)
+	}
+}
+
+func TestTopLevelPlannerCommandIsDispatched(t *testing.T) {
+	var out bytes.Buffer
+	code := Execute([]string{"planner", "--json"}, &out, io.Discard)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d", exitOK, code)
+	}
+	if !strings.Contains(out.String(), "\"planner_cmd\"") {
+		t.Fatalf("unexpected planner output: %q", out.String())
 	}
 }

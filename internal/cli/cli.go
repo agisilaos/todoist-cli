@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -110,42 +109,91 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 }
 
 func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string, error) {
-	fs := flag.NewFlagSet("todoist", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
 	var opts GlobalOptions
-	fs.BoolVar(&opts.Help, "help", false, "Show help")
-	fs.BoolVar(&opts.Help, "h", false, "Show help")
-	fs.BoolVar(&opts.Version, "version", false, "Show version")
-	fs.BoolVar(&opts.Quiet, "quiet", false, "Suppress non-essential output")
-	fs.BoolVar(&opts.Quiet, "q", false, "Suppress non-essential output")
-	fs.BoolVar(&opts.Verbose, "verbose", false, "Enable verbose output")
-	fs.BoolVar(&opts.Verbose, "v", false, "Enable verbose output")
-	fs.BoolVar(&opts.JSON, "json", false, "JSON output")
-	fs.BoolVar(&opts.Plain, "plain", false, "Plain output")
-	fs.BoolVar(&opts.NDJSON, "ndjson", false, "NDJSON output")
-	fs.BoolVar(&opts.NoColor, "no-color", false, "Disable color")
-	fs.BoolVar(&opts.NoInput, "no-input", false, "Disable prompts")
-	fs.IntVar(&opts.TimeoutSec, "timeout", 0, "Timeout in seconds (default 10)")
-	fs.StringVar(&opts.ConfigPath, "config", "", "Config file path")
-	fs.StringVar(&opts.Profile, "profile", "", "Profile name")
-	fs.BoolVar(&opts.DryRun, "dry-run", false, "Preview changes without applying")
-	fs.BoolVar(&opts.DryRun, "n", false, "Preview changes without applying")
-	fs.BoolVar(&opts.Force, "force", false, "Skip confirmation prompts")
-	fs.BoolVar(&opts.Force, "f", false, "Skip confirmation prompts")
-	fs.BoolVar(&opts.Fuzzy, "fuzzy", false, "Enable fuzzy name resolution")
-	fs.BoolVar(&opts.NoFuzzy, "no-fuzzy", false, "Disable fuzzy name resolution")
-	fs.StringVar(&opts.BaseURL, "base-url", "", "Override API base URL")
-
-	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return opts, fs.Args(), nil
+	_ = stderr
+	rest := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			rest = append(rest, args[i+1:]...)
+			break
 		}
-		return opts, fs.Args(), err
+		switch {
+		case arg == "--help" || arg == "-h":
+			opts.Help = true
+		case arg == "--version":
+			opts.Version = true
+		case arg == "--quiet" || arg == "-q":
+			opts.Quiet = true
+		case arg == "--verbose" || arg == "-v":
+			opts.Verbose = true
+		case arg == "--json":
+			opts.JSON = true
+		case arg == "--plain":
+			opts.Plain = true
+		case arg == "--ndjson":
+			opts.NDJSON = true
+		case arg == "--no-color":
+			opts.NoColor = true
+		case arg == "--no-input":
+			opts.NoInput = true
+		case arg == "--dry-run" || arg == "-n":
+			opts.DryRun = true
+		case arg == "--force" || arg == "-f":
+			opts.Force = true
+		case arg == "--fuzzy":
+			opts.Fuzzy = true
+		case arg == "--no-fuzzy":
+			opts.NoFuzzy = true
+		case strings.HasPrefix(arg, "--timeout="):
+			val := strings.TrimPrefix(arg, "--timeout=")
+			timeout, err := strconv.Atoi(val)
+			if err != nil {
+				return opts, nil, fmt.Errorf("invalid value for --timeout: %s", val)
+			}
+			opts.TimeoutSec = timeout
+		case arg == "--timeout":
+			if i+1 >= len(args) {
+				return opts, nil, errors.New("flag needs an argument: --timeout")
+			}
+			i++
+			timeout, err := strconv.Atoi(args[i])
+			if err != nil {
+				return opts, nil, fmt.Errorf("invalid value for --timeout: %s", args[i])
+			}
+			opts.TimeoutSec = timeout
+		case strings.HasPrefix(arg, "--config="):
+			opts.ConfigPath = strings.TrimPrefix(arg, "--config=")
+		case arg == "--config":
+			if i+1 >= len(args) {
+				return opts, nil, errors.New("flag needs an argument: --config")
+			}
+			i++
+			opts.ConfigPath = args[i]
+		case strings.HasPrefix(arg, "--profile="):
+			opts.Profile = strings.TrimPrefix(arg, "--profile=")
+		case arg == "--profile":
+			if i+1 >= len(args) {
+				return opts, nil, errors.New("flag needs an argument: --profile")
+			}
+			i++
+			opts.Profile = args[i]
+		case strings.HasPrefix(arg, "--base-url="):
+			opts.BaseURL = strings.TrimPrefix(arg, "--base-url=")
+		case arg == "--base-url":
+			if i+1 >= len(args) {
+				return opts, nil, errors.New("flag needs an argument: --base-url")
+			}
+			i++
+			opts.BaseURL = args[i]
+		default:
+			rest = append(rest, arg)
+		}
 	}
 	if opts.Quiet && opts.Verbose {
-		return opts, fs.Args(), fmt.Errorf("--quiet and --verbose are mutually exclusive")
+		return opts, rest, fmt.Errorf("--quiet and --verbose are mutually exclusive")
 	}
-	return opts, fs.Args(), nil
+	return opts, rest, nil
 }
 
 func loadConfig(ctx *Context) error {

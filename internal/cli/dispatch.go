@@ -27,6 +27,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = inboxCommand(ctx, rest)
 	case "schema":
 		err = schemaCommand(ctx, rest)
+	case "planner":
+		err = agentPlanner(ctx, rest)
 	case "add":
 		err = quickAddCommand(ctx, rest)
 	case "today":

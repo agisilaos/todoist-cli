@@ -145,7 +145,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -240,6 +240,11 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${schema_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
+    planner)
+      local planner_flags="--set --cmd"
+      COMPREPLY=( $(compgen -W "${planner_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
   esac
 }
 complete -F _todoist todoist
@@ -247,7 +252,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(today inbox add auth task project section label comment agent completion schema help)' \
+  '1:command:(today inbox add auth task project section label comment agent completion schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -284,17 +289,20 @@ case $words[1] in
   schema)
     _arguments '*:flags:(--name)'
     ;;
+  planner)
+    _arguments '*:flags:(--set --cmd)'
+    ;;
   completion)
     _arguments '2:shell:(bash zsh fish)'
     ;;
   help)
-    _arguments '2:command:(auth task project section label comment agent completion help)'
+    _arguments '2:command:(today inbox add auth task project section label comment agent completion schema planner help)'
     ;;
 esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task project section label comment agent completion schema help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task project section label comment agent completion schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -354,6 +362,10 @@ complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l 
 
 # schema
 complete -c todoist -n '__fish_seen_subcommand_from schema' -l name
+
+# planner
+complete -c todoist -n '__fish_seen_subcommand_from planner' -l set
+complete -c todoist -n '__fish_seen_subcommand_from planner' -l cmd
 
 # completion helper
 complete -c todoist -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'

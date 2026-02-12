@@ -226,6 +226,13 @@ func writeCommentList(ctx *Context, comments []api.Comment, cursor string) error
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, comments, output.Meta{RequestID: ctx.RequestID, Count: len(comments), Cursor: cursor})
 	}
+	if ctx.Mode == output.ModeNDJSON {
+		items := make([]any, 0, len(comments))
+		for _, comment := range comments {
+			items = append(items, comment)
+		}
+		return output.WriteNDJSON(ctx.Stdout, items)
+	}
 	rows := make([][]string, 0, len(comments))
 	for _, comment := range comments {
 		rows = append(rows, []string{

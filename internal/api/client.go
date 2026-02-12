@@ -18,8 +18,6 @@ type Client struct {
 	HTTP    *http.Client
 }
 
-const syncBaseURL = "https://api.todoist.com/sync/v9"
-
 type APIError struct {
 	Status  int
 	Message string
@@ -58,43 +56,12 @@ func (c *Client) Delete(ctx context.Context, path string, query url.Values) (str
 }
 
 func (c *Client) QuickAdd(ctx context.Context, text string) (Task, string, error) {
-	form := url.Values{}
-	form.Set("text", text)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, syncBaseURL+"/quick/add", strings.NewReader(form.Encode()))
+	var task Task
+	reqID, err := c.doJSON(ctx, http.MethodPost, "/tasks/quick", nil, map[string]any{"text": text}, &task, true)
 	if err != nil {
-		return Task{}, "", err
+		return Task{}, reqID, err
 	}
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	requestID := NewRequestID()
-	if requestID != "" {
-		req.Header.Set("X-Request-Id", requestID)
-	}
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return Task{}, requestID, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
-		return Task{}, requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(msg))}
-	}
-	var payload struct {
-		Item Task `json:"item"`
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return Task{}, requestID, err
-	}
-	if len(bytes.TrimSpace(data)) == 0 {
-		return Task{}, requestID, fmt.Errorf("empty response")
-	}
-	if err := json.Unmarshal(data, &payload); err != nil {
-		return Task{}, requestID, fmt.Errorf("decode response: %w", err)
-	}
-	return payload.Item, requestID, nil
+	return task, reqID, nil
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, query url.Values, body any, out any, includeRequestID bool) (string, error) {
