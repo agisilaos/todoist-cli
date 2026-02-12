@@ -16,9 +16,10 @@ Pattern: `todoist <resource> <action> [args]`
 
 ### Top-level shortcuts
 
-- `todoist add "text"` — Sync API quick add (full natural language; use `--strict` for REST add semantics)
+- `todoist add "text"` — Todoist quick add endpoint (full natural language; use `--strict` for REST add semantics)
 - `todoist inbox` — list Inbox tasks
 - `todoist today` — list tasks due today + overdue
+- `todoist planner` — show/set planner command alias (same behavior as `todoist agent planner`)
 
 ### Task commands
 
@@ -51,6 +52,12 @@ todoist agent planner --set --cmd "<cmd>"
 - Human default for TTY; `--plain` (tab-separated) for stable text.
 - `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
 - `todoist schema` is the output contract source of truth (for example: `task_list` and `task_item_ndjson`).
+
+## Parsing Rules
+
+- Global flags may appear before or after commands/subcommands.
+- Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
+- For destructive task deletion, `todoist task delete` requires explicit `--yes`.
 
 ## Errors
 

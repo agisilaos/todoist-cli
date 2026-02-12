@@ -5,7 +5,7 @@ Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports ta
 ## Why this CLI
 
 - Fast capture and triage without leaving the terminal.
-- Scriptable output (`--json`/`--plain`) for automation and integrations.
+- Scriptable output (`--json`/`--plain`/`--ndjson`) for automation and integrations.
 - Agent workflows for bulk plans with safe previews and confirmations.
 
 See `docs/SPEC.md` for the CLI contract and `docs/ROADMAP.md` for planned features.
@@ -123,6 +123,12 @@ Global flags apply to every command:
 --base-url <url>      Override API base URL
 ```
 
+Flag parsing notes:
+
+- Global flags can appear before or after commands/subcommands.
+- Subcommand flags can be mixed with positional refs/content (for example `todoist add "Buy milk" --project Home --dry-run`).
+- Prefer `--json` or `--ndjson` for scripts/agents.
+
 ## Commands
 
 ### Auth
@@ -215,7 +221,7 @@ todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-da
 Notes:
 - Reads content from stdin with `--content -`.
 - Applies defaults from config: `default_inbox_labels`, `default_inbox_due`.
-- `todoist add <text>` uses Sync API quick add parsing for `#Project`, `@label`, `p1..p4`, and natural language dates.
+- `todoist add <text>` uses Todoist quick add parsing for `#Project`, `@label`, `p1..p4`, and natural language dates.
 - In quick-add mode, `--section` and project IDs are rejected; use `--strict` to fall back to REST add.
 - In `--strict` mode, use REST-style flags (`--project Home`, `--label errands`, `--due tomorrow`) without `#`, `@`, or `due:` prefixes.
 
@@ -307,8 +313,10 @@ todoist agent apply --plan <file> --confirm <token> --on-error fail|continue
 todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force]
 todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--cron]
 todoist agent examples
-todoist agent planner show|--set --cmd "<planner>"
+todoist agent planner
+todoist agent planner --set --cmd "<planner>"
 todoist agent planner --json
+todoist planner --json
 todoist agent status
 ```
 
@@ -394,7 +402,7 @@ Where supported, name resolution is built-in (e.g., `--project <name>` and `--se
 - TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope).
-- `--ndjson` outputs one JSON object per line (streaming friendly); for task list, each line matches `todoist schema --name task_item_ndjson --json`.
+- `--ndjson` outputs one JSON object per line (streaming friendly) across task/project/section/label/comment lists.
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
 - `--truncate-width` or `TODOIST_TABLE_WIDTH` lets you set table width; `--wide` expands columns.
