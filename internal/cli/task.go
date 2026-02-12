@@ -937,6 +937,9 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 		reqID, err := ctx.Client.Get(reqCtx, "/tasks/"+ref, nil, &task)
 		cancel()
 		if err != nil {
+			if isLegacyV1IDError(err) {
+				return api.Task{}, &CodeError{Code: exitUsage, Err: errors.New("legacy numeric task IDs are not supported by Todoist API v1; use a current task ID from `todoist task list --json` or use text reference")}
+			}
 			return api.Task{}, err
 		}
 		setRequestID(ctx, reqID)
@@ -958,6 +961,14 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 		return api.Task{}, &CodeError{Code: exitUsage, Err: fmt.Errorf("ambiguous task reference %q; matches: %s", ref, strings.Join(suggestions, ", "))}
 	}
 	return api.Task{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("task %q not found", ref)}
+}
+
+func isLegacyV1IDError(err error) bool {
+	var apiErr *api.APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return strings.Contains(apiErr.Message, "V1_ID_CANNOT_BE_USED")
 }
 
 func listAllActiveTasks(ctx *Context) ([]api.Task, error) {

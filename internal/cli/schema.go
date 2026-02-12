@@ -194,10 +194,6 @@ func schemaCommand(ctx *Context, args []string) error {
 		printSchemaHelp(ctx.Stdout)
 		return nil
 	}
-	if ctx.Mode != output.ModeJSON {
-		// Default to JSON-friendly output even in human mode for clarity.
-		fmt.Fprintln(ctx.Stderr, "tip: use --json for machine-readable schema")
-	}
 	list := schemas
 	if name != "" {
 		filtered := make([]schemaDef, 0, 1)
