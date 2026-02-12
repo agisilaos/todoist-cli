@@ -6,6 +6,11 @@ The format is based on *Keep a Changelog*, and this project adheres to *Semantic
 
 ## [Unreleased]
 
+## [v0.4.0] - 2026-02-12
+
+- fix: improve legacy task id errors and schema output noise (1e4ebfa)
+- feat: harden cli parsing and expand ndjson support (0c5f2a9)
+
 ## [v0.3.0] - 2026-02-12
 
 - feat: tighten quick-add validation and formalize output schemas (f88009a)
