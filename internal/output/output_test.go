@@ -1,6 +1,11 @@
 package output
 
-import "testing"
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+	"testing"
+)
 
 func TestDetectMode(t *testing.T) {
 	cases := []struct {
@@ -38,5 +43,19 @@ func TestDetectMode(t *testing.T) {
 				t.Fatalf("mode=%s, want %s", mode, tc.wantMode)
 			}
 		})
+	}
+}
+
+func TestWriteJSONArray(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteJSONArray(&buf, []string{"a", "b"}); err != nil {
+		t.Fatalf("write json array: %v", err)
+	}
+	var got []string
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatalf("decode json array: %v", err)
+	}
+	if !reflect.DeepEqual(got, []string{"a", "b"}) {
+		t.Fatalf("unexpected array: %#v", got)
 	}
 }

@@ -152,7 +152,7 @@ todoist task update <ref> [flags]
 todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
 todoist task complete <ref>
 todoist task reopen <ref>
-todoist task delete <ref>
+todoist task delete <ref> [--yes]
 ```
 
 Task flags:
@@ -166,7 +166,7 @@ By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or 
 --section <id|name>        Section reference
 --parent <id>              Parent task ID
 --label <name>             Label name (repeatable)
---priority <1-4>           Priority
+--priority <1-4>           Priority (accepts p1..p4)
 --due <string>             Natural language due
 --due-date <YYYY-MM-DD>    Due date
 --due-datetime <RFC3339>   Due date/time
@@ -175,6 +175,7 @@ By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or 
 --duration-unit <unit>     Duration unit (minute/day)
 --deadline <YYYY-MM-DD>    Deadline date
 --assignee <id>            Assignee ID
+--yes                      Skip delete confirmation
 ```
 
 Completed task listing:
@@ -214,7 +215,7 @@ todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-da
 Notes:
 - Reads content from stdin with `--content -`.
 - Applies defaults from config: `default_inbox_labels`, `default_inbox_due`.
-- `todoist add <text>` uses quick-add parsing for `#Project`, `@label`, `p1..p4`, `due:<text>`.
+- `todoist add <text>` uses Sync API quick add parsing for `#Project`, `@label`, `p1..p4`, and natural language dates (no `--section` or project IDs).
 
 Examples:
 - `echo "Capture idea" | todoist inbox add --content -`
@@ -375,14 +376,14 @@ Some operations require IDs (e.g., task update/complete/delete; project archive/
 todoist task list --filter "content:\"Write launch blog\"" --plain
 todoist project list --plain
 todoist comment list --task <task_id> --plain
-todoist task list --completed --since "yesterday" --json | jq -r '.data[].id'
+todoist task list --completed --since "yesterday" --json | jq -r '.[].id'
 ```
 
 Where supported, name resolution is built-in (e.g., `--project <name>` and `--section <name>` on task commands, `--label <name>`), but task IDs are required for update/complete/delete. Use `id:<id>` to explicitly reference IDs.
 
 ## Prompts & Safety
 
-- Destructive commands (delete/archive) prompt when stdin is a TTY. Use `--force` to skip prompts. In non-interactive mode (`--no-input`), destructive commands fail unless `--force` is set.
+- Destructive commands (delete/archive) prompt when stdin is a TTY; `todoist task delete` requires `--yes` (no prompt). Use `--force` to skip prompts. In non-interactive mode (`--no-input`), destructive commands fail unless `--force` is set.
 - `--dry-run` previews the actions that would be sent to Todoist without performing them.
 - `--no-input` disables all prompts (auth included). Provide required flags or env vars to continue.
 
@@ -390,7 +391,7 @@ Where supported, name resolution is built-in (e.g., `--project <name>` and `--se
 
 - TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
-- `--json` outputs a structured envelope: `{ "data": ..., "meta": {"request_id": "...", "count": N, "next_cursor": "..."} }`
+- `--json` outputs raw JSON arrays/objects (no envelope).
 - `--ndjson` outputs one JSON object per line (streaming friendly).
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.

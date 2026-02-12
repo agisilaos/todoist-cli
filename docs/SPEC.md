@@ -16,7 +16,7 @@ Pattern: `todoist <resource> <action> [args]`
 
 ### Top-level shortcuts
 
-- `todoist add "text"` — quick add with parsing (`#Project`, `@label`, `p1..p4`, `due:<text>`)
+- `todoist add "text"` — Sync API quick add (full natural language)
 - `todoist inbox` — list Inbox tasks
 - `todoist today` — list tasks due today + overdue
 
@@ -28,7 +28,7 @@ todoist task add --content "text" [--project X] [--labels L] [--due "text"] [--p
 todoist task view <ref> [--full]
 todoist task update --id <id> [flags]
 todoist task complete --id <id>
-todoist task delete --id <id>
+todoist task delete --id <id> [--yes]
 ```
 
 ### Agent commands
@@ -49,7 +49,7 @@ todoist agent planner --set --cmd "<cmd>"
 ## Output
 
 - Human default for TTY; `--plain` (tab-separated) for stable text.
-- `--json` emits envelope `{data, meta}`; `--ndjson` emits one JSON object per line.
+- `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
 
 ## Errors
 
@@ -61,4 +61,3 @@ todoist agent planner --set --cmd "<cmd>"
 Precedence: flags > env > project config > user config.
 
 Config file: `~/.config/todoist/config.json`
-

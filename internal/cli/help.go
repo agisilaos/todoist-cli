@@ -111,7 +111,7 @@ func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
   todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
   todoist task complete <ref>
   todoist task reopen <ref>
-  todoist task delete <ref>
+  todoist task delete <ref> [--yes]
 
 Task flags:
   --content <text>           Task content ("-" reads stdin)
@@ -121,7 +121,7 @@ Task flags:
   --section <id|name>        Section reference
   --parent <id>              Parent task ID
   --label <name>             Label name (repeatable)
-  --priority <1-4>           Priority
+  --priority <1-4>           Priority (accepts p1..p4)
   --due <string>             Natural language due
   --due-date <YYYY-MM-DD>    Due date
   --due-datetime <RFC3339>   Due date/time
@@ -130,6 +130,7 @@ Task flags:
   --duration-unit <unit>     Duration unit (minute/day)
   --deadline <YYYY-MM-DD>    Deadline date
   --assignee <id>            Assignee ID
+  --yes                      Skip delete confirmation
 
 Notes:
   By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
@@ -277,12 +278,15 @@ func printAddHelp(out interface{ Write([]byte) (int, error) }) {
 
 Notes:
   - Quick-add parser: supports #Project, @label, p1..p4, due:<text>.
-  - Use --strict to disable parsing and treat content literally.
+  - Default uses Sync API quick add (full natural language parsing).
+  - Use --strict to disable parsing and use the REST add endpoint.
+  - Quick add does not support --section or project IDs.
   - If --content is omitted, remaining args are treated as task content.
 
 Examples:
   todoist add "Pay rent"
   todoist add "Pay rent #Home p2 due:tomorrow"
+  todoist add "Buy milk tomorrow p1 #Home @errands"
   todoist add --content - --strict
   echo "From stdin" | todoist add --content -
 `)

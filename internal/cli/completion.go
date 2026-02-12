@@ -181,7 +181,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --preset --sort --truncate-width"
+      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --preset --sort --truncate-width --yes"
       COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -264,7 +264,7 @@ case $words[1] in
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
     ;;
   task)
-    _arguments '2:subcommand:(list add view update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
+    _arguments '2:subcommand:(list add view update move complete reopen delete)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --verbose -v --timeout --config --profile --base-url)'
     ;;
   project)
     _arguments '2:subcommand:(list add update archive unarchive delete)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
@@ -320,7 +320,7 @@ complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (co
 
 # task
 complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list add view update move complete reopen delete'
-complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full
+complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes
 
 # project
 complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list add update archive unarchive delete'

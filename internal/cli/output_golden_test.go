@@ -45,31 +45,24 @@ func TestWriteTaskListJSONSnapshot(t *testing.T) {
 		t.Fatalf("writeTaskList: %v", err)
 	}
 	got := ctx.Stdout.(*bytes.Buffer).String()
-	want := `{
-  "data": [
-    {
-      "id": "1",
-      "content": "A",
-      "description": "",
-      "project_id": "p",
-      "section_id": "s",
-      "parent_id": "",
-      "labels": [],
-      "priority": 1,
-      "checked": false,
-      "due": null,
-      "added_at": "",
-      "completed_at": "",
-      "updated_at": "",
-      "note_count": 0
-    }
-  ],
-  "meta": {
-    "request_id": "req-1",
-    "count": 1,
-    "next_cursor": "next"
+	want := `[
+  {
+    "id": "1",
+    "content": "A",
+    "description": "",
+    "project_id": "p",
+    "section_id": "s",
+    "parent_id": "",
+    "labels": [],
+    "priority": 1,
+    "checked": false,
+    "due": null,
+    "added_at": "",
+    "completed_at": "",
+    "updated_at": "",
+    "note_count": 0
   }
-}
+]
 `
 	if got != want {
 		t.Fatalf("unexpected JSON output:\n%s", got)

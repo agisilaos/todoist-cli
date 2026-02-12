@@ -675,12 +675,13 @@ func readPlanFile(path string, stdin io.Reader) (Plan, error) {
 
 func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+		payload := map[string]any{
 			"plan":         plan,
 			"dry_run":      dryRun,
 			"action_count": len(plan.Actions),
 			"summary":      plan.Summary,
-		}, output.Meta{})
+		}
+		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
 	if dryRun {

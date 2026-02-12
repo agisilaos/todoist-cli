@@ -15,6 +15,93 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
+type priorityFlag int
+
+func (p *priorityFlag) String() string {
+	return strconv.Itoa(int(*p))
+}
+
+func (p *priorityFlag) Set(value string) error {
+	value = strings.TrimSpace(strings.ToLower(value))
+	switch value {
+	case "":
+		*p = 0
+		return nil
+	case "p1":
+		*p = 4
+		return nil
+	case "p2":
+		*p = 3
+		return nil
+	case "p3":
+		*p = 2
+		return nil
+	case "p4":
+		*p = 1
+		return nil
+	}
+	return fmt.Errorf("invalid priority: %s", value)
+}
+
+func quickAddPriorityToken(priority int) (string, error) {
+	switch priority {
+	case 4:
+		return "p1", nil
+	case 3:
+		return "p2", nil
+	case 2:
+		return "p3", nil
+	case 1:
+		return "p4", nil
+	}
+	return "", fmt.Errorf("invalid priority: %d", priority)
+}
+
+func buildQuickAddText(content, project string, labels []string, priority int, due string) (string, error) {
+	text := strings.TrimSpace(content)
+	if text == "" {
+		return "", errors.New("content is required")
+	}
+	extras := make([]string, 0, 4)
+	if project != "" {
+		project = strings.TrimSpace(project)
+		projectName := stripIDPrefix(project)
+		if isNumeric(projectName) {
+			return "", errors.New("--project must be a name for quick add")
+		}
+		if strings.HasPrefix(projectName, "#") {
+			extras = append(extras, projectName)
+		} else {
+			extras = append(extras, "#"+projectName)
+		}
+	}
+	for _, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		if strings.HasPrefix(label, "@") {
+			extras = append(extras, label)
+		} else {
+			extras = append(extras, "@"+label)
+		}
+	}
+	if priority > 0 {
+		token, err := quickAddPriorityToken(priority)
+		if err != nil {
+			return "", err
+		}
+		extras = append(extras, token)
+	}
+	if due != "" {
+		extras = append(extras, due)
+	}
+	if len(extras) == 0 {
+		return text, nil
+	}
+	return text + " " + strings.Join(extras, " "), nil
+}
+
 func taskCommand(ctx *Context, args []string) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		printTaskHelp(ctx.Stdout)
@@ -57,7 +144,7 @@ func quickAddCommand(ctx *Context, args []string) error {
 	fs.StringVar(&project, "project", "", "Project")
 	fs.StringVar(&section, "section", "", "Section")
 	fs.Var(&labels, "label", "Label")
-	fs.IntVar(&priority, "priority", 0, "Priority")
+	fs.Var((*priorityFlag)(&priority), "priority", "Priority (accepts p1..p4)")
 	fs.StringVar(&dueString, "due", "", "Due string")
 	fs.BoolVar(&strict, "strict", false, "Disable quick-add parsing")
 	fs.BoolVar(&help, "help", false, "Show help")
@@ -83,41 +170,50 @@ func quickAddCommand(ctx *Context, args []string) error {
 		printAddHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("content is required")}
 	}
-	if !strict {
-		parsed := parseQuickAdd(content)
-		if parsed.Content != "" {
-			content = parsed.Content
+	if strict {
+		taskArgs := []string{"--content", content}
+		if project != "" {
+			taskArgs = append(taskArgs, "--project", project)
 		}
-		if project == "" && parsed.Project != "" {
-			project = parsed.Project
+		if section != "" {
+			taskArgs = append(taskArgs, "--section", section)
 		}
-		if priority == 0 && parsed.Priority > 0 {
-			priority = parsed.Priority
+		for _, label := range labels {
+			taskArgs = append(taskArgs, "--label", label)
 		}
-		if dueString == "" && parsed.Due != "" {
-			dueString = parsed.Due
+		if priority > 0 {
+			token, err := quickAddPriorityToken(priority)
+			if err != nil {
+				return &CodeError{Code: exitUsage, Err: err}
+			}
+			taskArgs = append(taskArgs, "--priority", token)
 		}
-		if len(labels) == 0 && len(parsed.Labels) > 0 {
-			labels = append(labels, parsed.Labels...)
+		if dueString != "" {
+			taskArgs = append(taskArgs, "--due", dueString)
 		}
-	}
-	taskArgs := []string{"--content", content}
-	if project != "" {
-		taskArgs = append(taskArgs, "--project", project)
+		return taskAdd(ctx, taskArgs)
 	}
 	if section != "" {
-		taskArgs = append(taskArgs, "--section", section)
+		return &CodeError{Code: exitUsage, Err: errors.New("--section is not supported for quick add")}
 	}
-	for _, label := range labels {
-		taskArgs = append(taskArgs, "--label", label)
+	text, err := buildQuickAddText(content, project, labels, priority, dueString)
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
 	}
-	if priority > 0 {
-		taskArgs = append(taskArgs, "--priority", strconv.Itoa(priority))
+	if err := ensureClient(ctx); err != nil {
+		return err
 	}
-	if dueString != "" {
-		taskArgs = append(taskArgs, "--due", dueString)
+	if ctx.Global.DryRun {
+		return writeDryRun(ctx, "task add", map[string]any{"text": text, "sync_quick_add": true})
 	}
-	return taskAdd(ctx, taskArgs)
+	reqCtx, cancel := requestContext(ctx)
+	task, reqID, err := ctx.Client.QuickAdd(reqCtx, text)
+	cancel()
+	if err != nil {
+		return err
+	}
+	setRequestID(ctx, reqID)
+	return writeTaskList(ctx, []api.Task{task}, "", false)
 }
 
 func taskList(ctx *Context, args []string) error {
@@ -369,7 +465,7 @@ func taskAdd(ctx *Context, args []string) error {
 	fs.StringVar(&section, "section", "", "Section")
 	fs.StringVar(&parent, "parent", "", "Parent task")
 	fs.Var(&labels, "label", "Label")
-	fs.IntVar(&priority, "priority", 0, "Priority")
+	fs.Var((*priorityFlag)(&priority), "priority", "Priority (accepts p1..p4)")
 	fs.StringVar(&dueString, "due", "", "Due string")
 	fs.StringVar(&dueDate, "due-date", "", "Due date")
 	fs.StringVar(&dueDatetime, "due-datetime", "", "Due datetime")
@@ -504,7 +600,7 @@ func taskUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&content, "content", "", "Task content")
 	fs.StringVar(&description, "description", "", "Task description")
 	fs.Var(&labels, "label", "Label")
-	fs.IntVar(&priority, "priority", 0, "Priority")
+	fs.Var((*priorityFlag)(&priority), "priority", "Priority (accepts p1..p4)")
 	fs.StringVar(&dueString, "due", "", "Due string")
 	fs.StringVar(&dueDate, "due-date", "", "Due date")
 	fs.StringVar(&dueDatetime, "due-datetime", "", "Due datetime")
@@ -713,22 +809,42 @@ func taskReopen(ctx *Context, args []string) error {
 }
 
 func taskDelete(ctx *Context, args []string) error {
-	id, err := requireTaskID(ctx, "task delete", args)
-	if err != nil {
+	fs := flag.NewFlagSet("task delete", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var id string
+	var yes bool
+	var help bool
+	fs.StringVar(&id, "id", "", "Task ID")
+	fs.BoolVar(&yes, "yes", false, "Skip confirmation")
+	fs.BoolVar(&help, "help", false, "Show help")
+	fs.BoolVar(&help, "h", false, "Show help")
+	if err := fs.Parse(args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printTaskHelp(ctx.Stdout)
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		if err := ensureClient(ctx); err != nil {
+			return err
+		}
+		ref := strings.Join(fs.Args(), " ")
+		task, err := resolveTaskRef(ctx, ref)
+		if err != nil {
+			return err
+		}
+		id = task.ID
+	}
+	if id == "" {
 		printTaskHelp(ctx.Stderr)
-		return err
+		return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --id or a reference")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if !ctx.Global.Force && !ctx.Global.DryRun {
-		ok, err := confirm(ctx, fmt.Sprintf("Delete task %s?", id))
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return nil
-		}
+	if !yes {
+		return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --yes")}
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "task delete", map[string]any{"id": id})

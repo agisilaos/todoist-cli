@@ -56,7 +56,14 @@ func IsTTY(f *os.File) bool {
 func WriteJSON(out io.Writer, data any, meta Meta) error {
 	enc := json.NewEncoder(out)
 	enc.SetIndent("", "  ")
-	return enc.Encode(Envelope{Data: data, Meta: meta})
+	_ = meta
+	return enc.Encode(data)
+}
+
+func WriteJSONArray(out io.Writer, data any) error {
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	return enc.Encode(data)
 }
 
 func WritePlain(out io.Writer, rows [][]string) error {
