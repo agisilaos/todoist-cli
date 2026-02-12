@@ -47,7 +47,7 @@ func commentList(ctx *Context, args []string) error {
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -109,7 +109,7 @@ func commentAdd(ctx *Context, args []string) error {
 	fs.StringVar(&project, "project", "", "Project ID")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -162,7 +162,7 @@ func commentUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&content, "content", "", "Comment content")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -227,11 +227,7 @@ func writeCommentList(ctx *Context, comments []api.Comment, cursor string) error
 		return output.WriteJSON(ctx.Stdout, comments, output.Meta{RequestID: ctx.RequestID, Count: len(comments), Cursor: cursor})
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		items := make([]any, 0, len(comments))
-		for _, comment := range comments {
-			items = append(items, comment)
-		}
-		return output.WriteNDJSON(ctx.Stdout, items)
+		return output.WriteNDJSONSlice(ctx.Stdout, comments)
 	}
 	rows := make([][]string, 0, len(comments))
 	for _, comment := range comments {

@@ -42,7 +42,7 @@ func completionInstall(ctx *Context, args []string) error {
 	fs.StringVar(&path, "path", "", "Install path override")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {

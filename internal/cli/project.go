@@ -49,7 +49,7 @@ func projectList(ctx *Context, args []string) error {
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -109,7 +109,7 @@ func projectAdd(ctx *Context, args []string) error {
 	fs.StringVar(&workspace, "workspace", "", "Workspace ID")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -178,7 +178,7 @@ func projectUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&viewStyle, "view", "", "View style")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -315,11 +315,7 @@ func writeProjectList(ctx *Context, projects []api.Project, cursor string) error
 		return output.WriteJSON(ctx.Stdout, projects, output.Meta{RequestID: ctx.RequestID, Count: len(projects), Cursor: cursor})
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		items := make([]any, 0, len(projects))
-		for _, project := range projects {
-			items = append(items, project)
-		}
-		return output.WriteNDJSON(ctx.Stdout, items)
+		return output.WriteNDJSONSlice(ctx.Stdout, projects)
 	}
 	rows := make([][]string, 0, len(projects))
 	for _, project := range projects {

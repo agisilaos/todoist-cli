@@ -85,6 +85,16 @@ func WriteNDJSON(out io.Writer, items []any) error {
 	return nil
 }
 
+func WriteNDJSONSlice[T any](out io.Writer, items []T) error {
+	enc := json.NewEncoder(out)
+	for _, item := range items {
+		if err := enc.Encode(item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func WriteTable(out io.Writer, headers []string, rows [][]string) error {
 	cols := tableColumns(headers, rows)
 	if cols == 0 {

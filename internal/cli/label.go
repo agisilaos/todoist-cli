@@ -43,7 +43,7 @@ func labelList(ctx *Context, args []string) error {
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -93,7 +93,7 @@ func labelAdd(ctx *Context, args []string) error {
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -149,7 +149,7 @@ func labelUpdate(ctx *Context, args []string) error {
 	fs.BoolVar(&unfavorite, "unfavorite", false, "Unfavorite")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
@@ -237,11 +237,7 @@ func writeLabelList(ctx *Context, labels []api.Label, cursor string) error {
 		return output.WriteJSON(ctx.Stdout, labels, output.Meta{RequestID: ctx.RequestID, Count: len(labels), Cursor: cursor})
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		items := make([]any, 0, len(labels))
-		for _, label := range labels {
-			items = append(items, label)
-		}
-		return output.WriteNDJSON(ctx.Stdout, items)
+		return output.WriteNDJSONSlice(ctx.Stdout, labels)
 	}
 	rows := make([][]string, 0, len(labels))
 	for _, label := range labels {

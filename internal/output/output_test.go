@@ -59,3 +59,21 @@ func TestWriteJSONArray(t *testing.T) {
 		t.Fatalf("unexpected array: %#v", got)
 	}
 }
+
+func TestWriteNDJSONSlice(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteNDJSONSlice(&buf, []string{"a", "b"}); err != nil {
+		t.Fatalf("write ndjson slice: %v", err)
+	}
+	lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d", len(lines))
+	}
+	var first string
+	if err := json.Unmarshal(lines[0], &first); err != nil {
+		t.Fatalf("decode first line: %v", err)
+	}
+	if first != "a" {
+		t.Fatalf("unexpected first value: %q", first)
+	}
+}
