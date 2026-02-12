@@ -1,6 +1,10 @@
 package cli
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/agisilaos/todoist-cli/internal/output"
+)
 
 func dispatch(ctx *Context, args []string) int {
 	cmd := args[0]
@@ -36,6 +40,11 @@ func dispatch(ctx *Context, args []string) int {
 	case "help":
 		err = helpCommand(ctx, rest)
 	default:
+		err = &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown command: %s", cmd)}
+		if ctx.Mode == output.ModeJSON {
+			writeError(ctx, err)
+			return exitUsage
+		}
 		fmt.Fprintf(ctx.Stderr, "unknown command: %s\n", cmd)
 		printRootHelp(ctx.Stderr)
 		return exitUsage

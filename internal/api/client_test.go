@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -121,5 +123,110 @@ func TestClientQuickAdd(t *testing.T) {
 	}
 	if task.ID != "123" || task.Content != "Buy milk" {
 		t.Fatalf("unexpected task: %#v", task)
+	}
+}
+
+func TestClientRetriesGetOnTransientStatus(t *testing.T) {
+	client := NewClient("https://example.com", "token", 2*time.Second)
+	origWait := waitForRetry
+	waitForRetry = func(ctx context.Context, delay time.Duration) error { return nil }
+	t.Cleanup(func() { waitForRetry = origWait })
+
+	var calls int32
+	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		n := atomic.AddInt32(&calls, 1)
+		if n == 1 {
+			return &http.Response{
+				StatusCode: http.StatusServiceUnavailable,
+				Body:       io.NopCloser(bytes.NewReader([]byte("temporarily unavailable"))),
+				Header:     http.Header{},
+			}, nil
+		}
+		payload, _ := json.Marshal(echoResponse{Method: r.Method})
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader(payload)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})}
+
+	var out echoResponse
+	if _, err := client.Get(context.Background(), "/test", nil, &out); err != nil {
+		t.Fatalf("get with retry: %v", err)
+	}
+	if out.Method != http.MethodGet {
+		t.Fatalf("expected GET, got %s", out.Method)
+	}
+	if atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("expected 2 attempts, got %d", calls)
+	}
+}
+
+func TestClientDoesNotRetryUnsafePostWithoutRequestID(t *testing.T) {
+	client := NewClient("https://example.com", "token", 2*time.Second)
+	origWait := waitForRetry
+	waitForRetry = func(ctx context.Context, delay time.Duration) error { return nil }
+	t.Cleanup(func() { waitForRetry = origWait })
+
+	var calls int32
+	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		atomic.AddInt32(&calls, 1)
+		return &http.Response{
+			StatusCode: http.StatusServiceUnavailable,
+			Body:       io.NopCloser(bytes.NewReader([]byte("temporarily unavailable"))),
+			Header:     http.Header{},
+		}, nil
+	})}
+
+	var out echoResponse
+	_, err := client.Post(context.Background(), "/test", nil, map[string]any{"ok": true}, &out, false)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if apiErr.RequestID != "" {
+		t.Fatalf("unexpected request id: %q", apiErr.RequestID)
+	}
+	if atomic.LoadInt32(&calls) != 1 {
+		t.Fatalf("expected 1 attempt, got %d", calls)
+	}
+}
+
+func TestClientRetriesPostWithRequestIDOn429(t *testing.T) {
+	client := NewClient("https://example.com", "token", 2*time.Second)
+	origWait := waitForRetry
+	waitForRetry = func(ctx context.Context, delay time.Duration) error { return nil }
+	t.Cleanup(func() { waitForRetry = origWait })
+
+	var calls int32
+	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		n := atomic.AddInt32(&calls, 1)
+		if n == 1 {
+			return &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Body:       io.NopCloser(bytes.NewReader([]byte("rate limited"))),
+				Header:     http.Header{"Retry-After": []string{"0"}},
+			}, nil
+		}
+		payload, _ := json.Marshal(echoResponse{Method: r.Method})
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader(payload)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})}
+
+	var out echoResponse
+	if _, err := client.Post(context.Background(), "/test", nil, map[string]any{"ok": true}, &out, true); err != nil {
+		t.Fatalf("post with retry: %v", err)
+	}
+	if out.Method != http.MethodPost {
+		t.Fatalf("expected POST, got %s", out.Method)
+	}
+	if atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("expected 2 attempts, got %d", calls)
 	}
 }

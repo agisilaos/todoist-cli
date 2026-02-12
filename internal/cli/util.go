@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -92,6 +93,9 @@ func writeSimpleResult(ctx *Context, status, id string) error {
 func setRequestID(ctx *Context, requestID string) {
 	if requestID != "" {
 		ctx.RequestID = requestID
+		if ctx != nil && ctx.Global.Verbose && ctx.Stderr != nil {
+			fmt.Fprintf(ctx.Stderr, "request_id=%s\n", requestID)
+		}
 	}
 }
 
@@ -104,6 +108,12 @@ func writeError(ctx *Context, err error) {
 		return
 	}
 	meta := output.Meta{RequestID: ctxRequestIDValue(ctx)}
+	if meta.RequestID == "" {
+		var apiErr *api.APIError
+		if errors.As(err, &apiErr) && apiErr.RequestID != "" {
+			meta.RequestID = apiErr.RequestID
+		}
+	}
 	if ctx.Mode == output.ModeJSON {
 		enc := json.NewEncoder(ctx.Stderr)
 		if !ctx.Global.QuietJSON {

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -19,8 +21,22 @@ type Client struct {
 }
 
 type APIError struct {
-	Status  int
-	Message string
+	Status    int
+	Message   string
+	RequestID string
+}
+
+const maxRetries = 2
+
+var waitForRetry = func(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func (e *APIError) Error() string {
@@ -69,54 +85,77 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 	if err != nil {
 		return "", err
 	}
-	var buf io.Reader
+	var payload []byte
 	if body != nil {
-		data, err := json.Marshal(body)
+		payload, err = json.Marshal(body)
 		if err != nil {
 			return "", fmt.Errorf("encode body: %w", err)
 		}
-		buf = bytes.NewReader(data)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, fullURL, buf)
-	if err != nil {
-		return "", err
-	}
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
 	}
 	requestID := ""
 	if includeRequestID {
 		requestID = NewRequestID()
+	}
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		var buf io.Reader
+		if payload != nil {
+			buf = bytes.NewReader(payload)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, fullURL, buf)
+		if err != nil {
+			return requestID, err
+		}
+		if c.Token != "" {
+			req.Header.Set("Authorization", "Bearer "+c.Token)
+		}
+		if payload != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
 		if requestID != "" {
 			req.Header.Set("X-Request-Id", requestID)
 		}
-	}
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return requestID, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
-		return requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(msg))}
-	}
-	if out == nil {
+
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			if shouldRetryTransport(method, includeRequestID, err) && attempt < maxRetries {
+				if err := waitForRetry(ctx, retryDelay(attempt, "")); err != nil {
+					return requestID, err
+				}
+				continue
+			}
+			return requestID, err
+		}
+
+		if resp.StatusCode >= 400 {
+			msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
+			_ = resp.Body.Close()
+			if shouldRetryStatus(method, includeRequestID, resp.StatusCode) && attempt < maxRetries {
+				if err := waitForRetry(ctx, retryDelay(attempt, resp.Header.Get("Retry-After"))); err != nil {
+					return requestID, err
+				}
+				continue
+			}
+			return requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(msg)), RequestID: requestID}
+		}
+
+		if out == nil {
+			_ = resp.Body.Close()
+			return requestID, nil
+		}
+		data, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return requestID, err
+		}
+		if len(bytes.TrimSpace(data)) == 0 {
+			return requestID, nil
+		}
+		if err := json.Unmarshal(data, out); err != nil {
+			return requestID, fmt.Errorf("decode response: %w", err)
+		}
 		return requestID, nil
 	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return requestID, err
-	}
-	if len(bytes.TrimSpace(data)) == 0 {
-		return requestID, nil
-	}
-	if err := json.Unmarshal(data, out); err != nil {
-		return requestID, fmt.Errorf("decode response: %w", err)
-	}
-	return requestID, nil
+	return requestID, errors.New("exhausted retries")
 }
 
 func (c *Client) buildURL(path string, query url.Values) (string, error) {
@@ -128,4 +167,42 @@ func (c *Client) buildURL(path string, query url.Values) (string, error) {
 		u.RawQuery = query.Encode()
 	}
 	return u.String(), nil
+}
+
+func shouldRetryStatus(method string, includeRequestID bool, status int) bool {
+	if !isRetrySafe(method, includeRequestID) {
+		return false
+	}
+	switch status {
+	case http.StatusTooManyRequests, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return true
+	default:
+		return status >= 500
+	}
+}
+
+func shouldRetryTransport(method string, includeRequestID bool, err error) bool {
+	return isRetrySafe(method, includeRequestID) && err != nil
+}
+
+func isRetrySafe(method string, includeRequestID bool) bool {
+	return method == http.MethodGet || includeRequestID
+}
+
+func retryDelay(attempt int, retryAfter string) time.Duration {
+	if secs, err := strconv.Atoi(strings.TrimSpace(retryAfter)); err == nil && secs >= 0 {
+		delay := time.Duration(secs) * time.Second
+		if delay > 3*time.Second {
+			return 3 * time.Second
+		}
+		return delay
+	}
+	delay := 200 * time.Millisecond
+	for i := 0; i < attempt; i++ {
+		delay *= 2
+	}
+	if delay > 1200*time.Millisecond {
+		return 1200 * time.Millisecond
+	}
+	return delay
 }

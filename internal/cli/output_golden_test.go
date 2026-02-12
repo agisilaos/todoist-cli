@@ -138,3 +138,36 @@ func TestWriteErrorJSON(t *testing.T) {
 		t.Fatalf("unexpected json error: %q", got)
 	}
 }
+
+func TestWriteErrorJSONQuietSingleLine(t *testing.T) {
+	ctx := &Context{
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+		Global: GlobalOptions{QuietJSON: true},
+	}
+	writeError(ctx, errors.New("boom"))
+	got := strings.TrimSpace(ctx.Stderr.(*bytes.Buffer).String())
+	want := `{"error":"boom","meta":{}}`
+	if got != want {
+		t.Fatalf("unexpected quiet json error: %q", got)
+	}
+}
+
+func TestWriteErrorJSONUsesAPIRequestID(t *testing.T) {
+	ctx := &Context{
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+	}
+	writeError(ctx, &api.APIError{Status: 500, Message: "boom", RequestID: "req-api-1"})
+	got := ctx.Stderr.(*bytes.Buffer).String()
+	want := `{
+  "error": "api error: status 500: boom",
+  "meta": {
+    "request_id": "req-api-1"
+  }
+}
+`
+	if got != want {
+		t.Fatalf("unexpected json api error: %q", got)
+	}
+}

@@ -115,6 +115,22 @@ func TestContractQuietJSONErrorsAreSingleLine(t *testing.T) {
 	}
 }
 
+func TestContractUnknownCommandJSONError(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"--json", "--quiet-json", "nope-command"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected empty stdout, got %q", stdout.String())
+	}
+	line := strings.TrimSpace(stderr.String())
+	if !strings.HasPrefix(line, "{") || !strings.Contains(line, `"unknown command: nope-command"`) {
+		t.Fatalf("unexpected stderr payload: %q", line)
+	}
+}
+
 func TestContractNDJSONWritersForAllLists(t *testing.T) {
 	ctx := &Context{Stdout: &bytes.Buffer{}, Stderr: io.Discard, Mode: output.ModeNDJSON}
 	if err := writeTaskList(ctx, []api.Task{{ID: "t1", Content: "Task", ProjectID: "p1", Priority: 1}}, "", false); err != nil {

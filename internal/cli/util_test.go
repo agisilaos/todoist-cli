@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"bytes"
 	"flag"
+	"strings"
 	"testing"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
@@ -11,6 +13,21 @@ func TestTableWidthConfig(t *testing.T) {
 	ctx := &Context{Config: config.Config{TableWidth: 99}}
 	if w := tableWidth(ctx); w != 99 {
 		t.Fatalf("expected 99, got %d", w)
+	}
+}
+
+func TestSetRequestIDVerboseWritesStderr(t *testing.T) {
+	var errBuf bytes.Buffer
+	ctx := &Context{
+		Stderr: &errBuf,
+		Global: GlobalOptions{Verbose: true},
+	}
+	setRequestID(ctx, "req-123")
+	if ctx.RequestID != "req-123" {
+		t.Fatalf("expected request id set")
+	}
+	if !strings.Contains(errBuf.String(), "request_id=req-123") {
+		t.Fatalf("expected verbose request id log, got %q", errBuf.String())
 	}
 }
 
