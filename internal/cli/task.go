@@ -1058,16 +1058,25 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 	if err != nil {
 		return api.Task{}, err
 	}
-	matches := matchTasksByContent(tasks, ref)
-	if len(matches) == 1 {
-		return matches[0], nil
-	}
-	if len(matches) > 1 {
-		var suggestions []string
-		for _, task := range matches {
-			suggestions = append(suggestions, fmt.Sprintf("%s (id:%s)", task.Content, task.ID))
+	candidates := fuzzyCandidates(ref, tasks, func(t api.Task) string { return t.Content }, func(t api.Task) string { return t.ID })
+	if len(candidates) == 1 {
+		for _, task := range tasks {
+			if task.ID == candidates[0].ID {
+				return task, nil
+			}
 		}
-		return api.Task{}, &CodeError{Code: exitUsage, Err: fmt.Errorf("ambiguous task reference %q; matches: %s", ref, strings.Join(suggestions, ", "))}
+	}
+	if len(candidates) > 1 {
+		if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+			return api.Task{}, err
+		} else if ok {
+			for _, task := range tasks {
+				if task.ID == chosen {
+					return task, nil
+				}
+			}
+		}
+		return api.Task{}, ambiguousMatchCodeError("task", ref, candidates)
 	}
 	return api.Task{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("task %q not found", ref)}
 }
@@ -1081,23 +1090,18 @@ func isLegacyV1IDError(err error) bool {
 }
 
 func listAllActiveTasks(ctx *Context) ([]api.Task, error) {
+	if cache := ctx.cache(); cache != nil && cache.activeTasksLoaded {
+		return cloneSlice(cache.activeTasks), nil
+	}
 	query := url.Values{}
 	query.Set("limit", "200")
-	var all []api.Task
-	for {
-		var page api.Paginated[api.Task]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/tasks", query, &page)
-		cancel()
-		if err != nil {
-			return nil, err
-		}
-		setRequestID(ctx, reqID)
-		all = append(all, page.Results...)
-		if page.NextCursor == "" {
-			break
-		}
-		query.Set("cursor", page.NextCursor)
+	all, _, err := fetchPaginated[api.Task](ctx, "/tasks", query, true)
+	if err != nil {
+		return nil, err
+	}
+	if cache := ctx.cache(); cache != nil {
+		cache.activeTasks = cloneSlice(all)
+		cache.activeTasksLoaded = true
 	}
 	return all, nil
 }

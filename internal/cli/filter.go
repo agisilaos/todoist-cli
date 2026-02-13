@@ -53,10 +53,7 @@ func filterList(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	reqCtx, cancel := requestContext(ctx)
-	var filters []api.Filter
-	reqID, err := ctx.Client.Get(reqCtx, "/filters", nil, &filters)
-	cancel()
+	filters, reqID, err := listAllFilters(ctx)
 	if err != nil {
 		return err
 	}
@@ -265,10 +262,7 @@ func filterDelete(ctx *Context, args []string) error {
 
 func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
 	ref = strings.TrimSpace(stripIDPrefix(ref))
-	reqCtx, cancel := requestContext(ctx)
-	var filters []api.Filter
-	reqID, err := ctx.Client.Get(reqCtx, "/filters", nil, &filters)
-	cancel()
+	filters, reqID, err := listAllFilters(ctx)
 	if err != nil {
 		return api.Filter{}, err
 	}
@@ -287,9 +281,36 @@ func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
 		}
 	}
 	if len(candidates) > 1 {
+		if chosen, ok, err := promptAmbiguousChoice(ctx, "filter", ref, candidates); err != nil {
+			return api.Filter{}, err
+		} else if ok {
+			for _, f := range filters {
+				if f.ID == chosen {
+					return f, nil
+				}
+			}
+		}
 		return api.Filter{}, ambiguousMatchCodeError("filter", ref, candidates)
 	}
 	return api.Filter{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("filter %q not found", ref)}
+}
+
+func listAllFilters(ctx *Context) ([]api.Filter, string, error) {
+	if cache := ctx.cache(); cache != nil && cache.filtersLoaded {
+		return cloneSlice(cache.filters), ctx.RequestID, nil
+	}
+	reqCtx, cancel := requestContext(ctx)
+	var filters []api.Filter
+	reqID, err := ctx.Client.Get(reqCtx, "/filters", nil, &filters)
+	cancel()
+	if err != nil {
+		return nil, reqID, err
+	}
+	if cache := ctx.cache(); cache != nil {
+		cache.filters = cloneSlice(filters)
+		cache.filtersLoaded = true
+	}
+	return filters, reqID, nil
 }
 
 func writeFilterList(ctx *Context, filters []api.Filter) error {

@@ -396,6 +396,17 @@ Context scoping example:
 todoist agent run --instruction "Pick 3 articles for today" --context-project "Learning" --context-label article --context-completed 7d
 ```
 
+### Doctor
+
+Run environment and auth checks:
+
+```bash
+todoist doctor
+todoist doctor --strict
+```
+
+`doctor` validates config/credentials health, token presence, API reachability, planner setup, policy parsing, and replay journal readability.
+
 ### Schema
 
 Output JSON schemas (use `--json`):

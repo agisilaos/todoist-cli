@@ -23,6 +23,7 @@ Pattern: `todoist <resource> <action> [args]`
 - `todoist inbox` — list Inbox tasks
 - `todoist today` — list tasks due today + overdue
 - `todoist planner` — show/set planner command alias (same behavior as `todoist agent planner`)
+- `todoist doctor` — run local environment/auth/API health checks
 
 ### Task commands
 

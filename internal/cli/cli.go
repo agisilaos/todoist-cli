@@ -67,10 +67,11 @@ type Context struct {
 	Token       string
 	TokenSource string
 
-	Client    *api.Client
-	Now       func() time.Time
-	RequestID string
-	Progress  *progressSink
+	Client      *api.Client
+	Now         func() time.Time
+	RequestID   string
+	Progress    *progressSink
+	lookupCache *lookupCache
 }
 
 func Execute(args []string, stdout, stderr io.Writer) int {

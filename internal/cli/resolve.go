@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -108,6 +109,7 @@ func resolveLabelName(ctx *Context, value string) (string, error) {
 type fuzzyCandidate struct {
 	ID   string
 	Name string
+	Rank int
 }
 
 type AmbiguousMatchError struct {
@@ -122,14 +124,64 @@ func (e *AmbiguousMatchError) Error() string {
 
 func fuzzyCandidates[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) []fuzzyCandidate {
 	var out []fuzzyCandidate
-	lower := strings.ToLower(value)
+	lower := strings.ToLower(strings.TrimSpace(value))
+	if lower == "" {
+		return nil
+	}
 	for _, item := range items {
-		name := strings.ToLower(nameFn(item))
-		if strings.Contains(name, lower) {
-			out = append(out, fuzzyCandidate{ID: idFn(item), Name: nameFn(item)})
+		name := strings.TrimSpace(nameFn(item))
+		rank, ok := candidateRank(lower, strings.ToLower(name))
+		if ok {
+			out = append(out, fuzzyCandidate{ID: idFn(item), Name: name, Rank: rank})
 		}
 	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Rank != out[j].Rank {
+			return out[i].Rank < out[j].Rank
+		}
+		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+	})
+	if len(out) > 8 {
+		out = out[:8]
+	}
 	return out
+}
+
+func candidateRank(query, target string) (int, bool) {
+	if query == "" || target == "" {
+		return 0, false
+	}
+	if target == query {
+		return 0, true
+	}
+	if strings.HasPrefix(target, query) {
+		return 100 + len(target) - len(query), true
+	}
+	if idx := strings.Index(target, query); idx >= 0 {
+		return 200 + (idx * 8) + (len(target) - len(query)), true
+	}
+	gap, ok := subsequenceGap(query, target)
+	if ok {
+		return 400 + gap + (len(target) - len(query)), true
+	}
+	return 0, false
+}
+
+func subsequenceGap(query, target string) (int, bool) {
+	qi := 0
+	prev := -1
+	gap := 0
+	for ti := 0; ti < len(target) && qi < len(query); ti++ {
+		if target[ti] != query[qi] {
+			continue
+		}
+		if prev >= 0 {
+			gap += ti - prev - 1
+		}
+		prev = ti
+		qi++
+	}
+	return gap, qi == len(query)
 }
 
 func ambiguousMatchCodeError(entity, input string, candidates []fuzzyCandidate) error {
@@ -180,16 +232,32 @@ func resolveFuzzy[T any](value string, items []T, nameFn func(T) string, idFn fu
 }
 
 func listAllProjects(ctx *Context) ([]api.Project, error) {
+	if cache := ctx.cache(); cache != nil && cache.projectsLoaded {
+		return cloneSlice(cache.projects), nil
+	}
 	if err := ensureClient(ctx); err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("limit", "200")
 	all, _, err := fetchPaginated[api.Project](ctx, "/projects", query, true)
-	return all, err
+	if err != nil {
+		return nil, err
+	}
+	if cache := ctx.cache(); cache != nil {
+		cache.projects = cloneSlice(all)
+		cache.projectsLoaded = true
+	}
+	return all, nil
 }
 
 func listAllSections(ctx *Context, project string) ([]api.Section, error) {
+	key := strings.TrimSpace(project)
+	if cache := ctx.cache(); cache != nil {
+		if cached, ok := cache.sectionsByProject[key]; ok {
+			return cloneSlice(cached), nil
+		}
+	}
 	if err := ensureClient(ctx); err != nil {
 		return nil, err
 	}
@@ -199,20 +267,40 @@ func listAllSections(ctx *Context, project string) ([]api.Section, error) {
 		id, err := resolveProjectID(ctx, project)
 		if err == nil && id != "" {
 			query.Set("project_id", id)
+			key = id
 		}
 	}
 	all, _, err := fetchPaginated[api.Section](ctx, "/sections", query, true)
-	return all, err
+	if err != nil {
+		return nil, err
+	}
+	if cache := ctx.cache(); cache != nil {
+		cache.sectionsByProject[key] = cloneSlice(all)
+		if trimmed := strings.TrimSpace(project); trimmed != "" && trimmed != key {
+			cache.sectionsByProject[trimmed] = cloneSlice(all)
+		}
+	}
+	return all, nil
 }
 
 func listAllLabels(ctx *Context) ([]api.Label, error) {
+	if cache := ctx.cache(); cache != nil && cache.labelsLoaded {
+		return cloneSlice(cache.labels), nil
+	}
 	if err := ensureClient(ctx); err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("limit", "200")
 	all, _, err := fetchPaginated[api.Label](ctx, "/labels", query, true)
-	return all, err
+	if err != nil {
+		return nil, err
+	}
+	if cache := ctx.cache(); cache != nil {
+		cache.labels = cloneSlice(all)
+		cache.labelsLoaded = true
+	}
+	return all, nil
 }
 
 func parseLimit(limit int) string {

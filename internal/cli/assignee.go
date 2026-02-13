@@ -85,8 +85,19 @@ func resolveAssigneeID(ctx *Context, assigneeRef, projectRef, taskID string) (st
 }
 
 func listProjectCollaborators(ctx *Context, projectID string) ([]api.Collaborator, error) {
+	if cache := ctx.cache(); cache != nil {
+		if collaborators, ok := cache.collaboratorsByProject[projectID]; ok {
+			return cloneSlice(collaborators), nil
+		}
+	}
 	query := url.Values{}
 	query.Set("limit", "200")
 	all, _, err := fetchPaginated[api.Collaborator](ctx, "/projects/"+projectID+"/collaborators", query, true)
-	return all, err
+	if err != nil {
+		return nil, err
+	}
+	if cache := ctx.cache(); cache != nil {
+		cache.collaboratorsByProject[projectID] = cloneSlice(all)
+	}
+	return all, nil
 }

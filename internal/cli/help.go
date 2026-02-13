@@ -22,6 +22,7 @@ Commands:
   comment     Manage comments
   agent       Plan and apply agentic actions
   completion  Shell completion
+  doctor      Run environment and configuration checks
   schema      Show JSON schemas for outputs
   planner     Show or set planner command
   help        Show help for a command
@@ -87,6 +88,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printAgentHelp(ctx.Stdout)
 	case "completion":
 		printCompletionHelp(ctx.Stdout)
+	case "doctor":
+		printDoctorHelp(ctx.Stdout)
 	case "schema":
 		printSchemaHelp(ctx.Stdout)
 	case "planner":

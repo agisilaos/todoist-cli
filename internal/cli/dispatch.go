@@ -31,6 +31,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = agentCommand(ctx, rest)
 	case "completion":
 		err = completionCommand(ctx, rest)
+	case "doctor":
+		err = doctorCommand(ctx, rest)
 	case "inbox":
 		err = inboxCommand(ctx, rest)
 	case "schema":

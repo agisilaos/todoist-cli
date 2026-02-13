@@ -32,3 +32,28 @@ func TestUseFuzzyFlag(t *testing.T) {
 		t.Fatalf("expected fuzzy to be enabled")
 	}
 }
+
+func TestFuzzyCandidatesRanksAndCapsResults(t *testing.T) {
+	items := []dummyItem{
+		{Name: "Homework", ID: "1"},
+		{Name: "Work", ID: "2"},
+		{Name: "Workshop", ID: "3"},
+		{Name: "Network", ID: "4"},
+		{Name: "Worx", ID: "5"},
+		{Name: "World", ID: "6"},
+		{Name: "Word", ID: "7"},
+		{Name: "Worm", ID: "8"},
+		{Name: "Workstream", ID: "9"},
+		{Name: "Working Group", ID: "10"},
+	}
+	got := fuzzyCandidates("work", items, func(d dummyItem) string { return d.Name }, func(d dummyItem) string { return d.ID })
+	if len(got) == 0 {
+		t.Fatalf("expected fuzzy candidates")
+	}
+	if got[0].Name != "Work" {
+		t.Fatalf("expected exact match first, got %q", got[0].Name)
+	}
+	if len(got) > 8 {
+		t.Fatalf("expected at most 8 candidates, got %d", len(got))
+	}
+}
