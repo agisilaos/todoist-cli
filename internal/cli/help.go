@@ -14,6 +14,7 @@ Commands:
   today       Tasks due today and overdue
   auth        Authenticate and manage tokens
   task        Manage tasks
+  filter      Manage filters
   project     Manage projects
   workspace   Manage workspaces
   section     Manage sections
@@ -70,6 +71,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printTodayHelp(ctx.Stdout)
 	case "task":
 		printTaskHelp(ctx.Stdout)
+	case "filter":
+		printFilterHelp(ctx.Stdout)
 	case "project":
 		printProjectHelp(ctx.Stdout)
 	case "workspace":
@@ -174,7 +177,7 @@ Task flags:
   --duration <minutes>       Duration in minutes
   --duration-unit <unit>     Duration unit (minute/day)
   --deadline <YYYY-MM-DD>    Deadline date
-  --assignee <id>            Assignee ID
+  --assignee <ref>           Assignee reference (id, me, name, email)
   --yes                      Skip delete confirmation
 
 Notes:
@@ -206,6 +209,16 @@ func printProjectHelp(out interface{ Write([]byte) (int, error) }) {
   todoist project archive --id <project_id>
   todoist project unarchive --id <project_id>
   todoist project delete --id <project_id>
+`)
+}
+
+func printFilterHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist filter list
+  todoist filter show <id|name>
+  todoist filter add --name <name> --query <query> [--color <color>] [--favorite]
+  todoist filter update <id|name> [--name <name>] [--query <query>] [--color <color>] [--favorite|--unfavorite]
+  todoist filter delete <id|name> --yes
 `)
 }
 

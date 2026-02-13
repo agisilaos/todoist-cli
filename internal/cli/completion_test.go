@@ -119,3 +119,15 @@ func TestCompletionScriptsIncludeAgentPolicyFlag(t *testing.T) {
 		}
 	}
 }
+
+func TestCompletionScriptsIncludeFilterCommand(t *testing.T) {
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		if !strings.Contains(script, "filter") {
+			t.Fatalf("%s completion missing filter command", shell)
+		}
+	}
+}

@@ -28,11 +28,21 @@ Pattern: `todoist <resource> <action> [args]`
 
 ```
 todoist task list [--project X] [--label L] [--filter "query"] [--preset today|overdue|next7] [--json|--ndjson|--plain]
-todoist task add --content "text" [--project X] [--labels L] [--due "text"] [--priority 1-4]
+todoist task add --content "text" [--project X] [--labels L] [--due "text"] [--priority 1-4] [--assignee <id|me|name|email>]
 todoist task view <ref> [--full]
 todoist task update --id <id> [flags]
 todoist task complete --id <id>
 todoist task delete --id <id> [--yes]
+```
+
+### Filter commands
+
+```
+todoist filter list
+todoist filter show <id|name>
+todoist filter add --name <name> --query <query>
+todoist filter update <id|name> [--name <name>] [--query <query>]
+todoist filter delete <id|name> --yes
 ```
 
 ### Agent commands

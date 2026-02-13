@@ -198,7 +198,7 @@ By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or 
 --duration <minutes>       Duration in minutes
 --duration-unit <unit>     Duration unit (minute/day)
 --deadline <YYYY-MM-DD>    Deadline date
---assignee <id>            Assignee ID
+--assignee <ref>           Assignee reference (id, me, name, email)
 --yes                      Skip delete confirmation
 ```
 
@@ -237,6 +237,16 @@ todoist project collaborators <id|name>
 
 - `workspace list` shows workspaces available to the authenticated user.
 - `project collaborators` lists collaborators for a shared project.
+
+### Filters
+
+```
+todoist filter list
+todoist filter show <id|name>
+todoist filter add --name <name> --query <query> [--color <color>] [--favorite]
+todoist filter update <id|name> [--name <name>] [--query <query>] [--color <color>] [--favorite|--unfavorite]
+todoist filter delete <id|name> --yes
+```
 
 ### Inbox
 
@@ -510,9 +520,9 @@ Supported action types:
 
 - This CLI uses Todoist REST API v1 endpoints under `https://api.todoist.com/api/v1`.
 - Keychain integration is not implemented; tokens are stored in a local credentials file.
-- Sync API-only features (filters/reminders/workspaces) are not implemented in this version.
+- Some Todoist surfaces (for example reminders/notifications/stats/activity) are not implemented yet.
 - Todoist is a trademark of Doist; this project is an independent, unofficial CLI.
-- Shell completions: not bundled yet; generate with your shell’s standard tools if desired.
+- Shell completions are bundled via `todoist completion`.
 
 ## Examples
 

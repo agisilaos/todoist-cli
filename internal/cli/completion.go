@@ -145,7 +145,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today inbox add auth task project workspace section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today inbox add auth task filter project workspace section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -183,6 +183,16 @@ _todoist() {
       fi
       local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --preset --sort --truncate-width --yes"
       COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
+    filter)
+      local subs="list ls show add update delete rm del"
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
+        return 0
+      fi
+      local filter_flags="--id --name --query --color --favorite --unfavorite --yes"
+      COMPREPLY=( $(compgen -W "${filter_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
     project)
@@ -261,7 +271,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(today inbox add auth task project workspace section label comment agent completion schema planner help)' \
+  '1:command:(today inbox add auth task filter project workspace section label comment agent completion schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -279,6 +289,9 @@ case $words[1] in
     ;;
   task)
     _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
+    ;;
+  filter)
+    _arguments '2:subcommand:(list ls show add update delete rm del)' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
     ;;
   project)
     _arguments '2:subcommand:(list ls collaborators add update archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all)'
@@ -314,7 +327,7 @@ esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task project workspace section label comment agent completion schema planner help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task filter project workspace section label comment agent completion schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -361,6 +374,10 @@ complete -c todoist -n '__fish_seen_subcommand_from project' -l archived -l id -
 
 # workspace
 complete -c todoist -n '__fish_seen_subcommand_from workspace; and __fish_use_subcommand' -a 'list ls'
+
+# filter
+complete -c todoist -n '__fish_seen_subcommand_from filter; and __fish_use_subcommand' -a 'list ls show add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from filter' -l id -l name -l query -l color -l favorite -l unfavorite -l yes
 
 # section
 complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a 'list ls add update delete rm del'

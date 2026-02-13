@@ -116,6 +116,51 @@ func (c *Client) SyncWorkspaces(ctx context.Context) ([]Workspace, string, error
 	return payload.Workspaces, requestID, nil
 }
 
+func (c *Client) SyncCurrentUserID(ctx context.Context) (string, string, error) {
+	fullURL, err := c.buildURL("/sync", nil)
+	if err != nil {
+		return "", "", err
+	}
+	requestID := NewRequestID()
+	form := url.Values{}
+	form.Set("sync_token", "*")
+	form.Set("resource_types", `["user"]`)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", requestID, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Request-Id", requestID)
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return "", requestID, err
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
+	if resp.StatusCode >= 400 {
+		return "", requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(data)), RequestID: requestID}
+	}
+	var payload struct {
+		User map[string]any `json:"user"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return "", requestID, fmt.Errorf("decode sync user response: %w", err)
+	}
+	if payload.User == nil {
+		return "", requestID, fmt.Errorf("sync user response missing user")
+	}
+	if id, ok := payload.User["id"].(string); ok && strings.TrimSpace(id) != "" {
+		return id, requestID, nil
+	}
+	if idf, ok := payload.User["id"].(float64); ok {
+		return strconv.FormatInt(int64(idf), 10), requestID, nil
+	}
+	return "", requestID, fmt.Errorf("sync user response missing user id")
+}
+
 func (c *Client) doJSON(ctx context.Context, method, path string, query url.Values, body any, out any, includeRequestID bool) (string, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {

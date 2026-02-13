@@ -521,7 +521,7 @@ func taskAdd(ctx *Context, args []string) error {
 	fs.IntVar(&duration, "duration", 0, "Duration")
 	fs.StringVar(&durationUnit, "duration-unit", "", "Duration unit")
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
-	fs.StringVar(&assignee, "assignee", "", "Assignee ID")
+	fs.StringVar(&assignee, "assignee", "", "Assignee reference (id, me, name, email)")
 	fs.BoolVar(&quick, "quick", false, "Quick add using inbox defaults")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
@@ -611,7 +611,11 @@ func taskAdd(ctx *Context, args []string) error {
 		body["deadline_date"] = deadline
 	}
 	if assignee != "" {
-		body["assignee_id"] = assignee
+		assigneeID, err := resolveAssigneeID(ctx, assignee, project, "")
+		if err != nil {
+			return err
+		}
+		body["assignee_id"] = assigneeID
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "task add", body)
@@ -643,6 +647,7 @@ func taskUpdate(ctx *Context, args []string) error {
 	var durationUnit string
 	var deadline string
 	var assignee string
+	var project string
 	var help bool
 	fs.StringVar(&id, "id", "", "Task ID")
 	fs.StringVar(&content, "content", "", "Task content")
@@ -656,7 +661,8 @@ func taskUpdate(ctx *Context, args []string) error {
 	fs.IntVar(&duration, "duration", 0, "Duration")
 	fs.StringVar(&durationUnit, "duration-unit", "", "Duration unit")
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
-	fs.StringVar(&assignee, "assignee", "", "Assignee ID")
+	fs.StringVar(&assignee, "assignee", "", "Assignee reference (id, me, name, email)")
+	fs.StringVar(&project, "project", "", "Project (used for assignee name/email resolution)")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -719,7 +725,11 @@ func taskUpdate(ctx *Context, args []string) error {
 		body["deadline_date"] = deadline
 	}
 	if assignee != "" {
-		body["assignee_id"] = assignee
+		assigneeID, err := resolveAssigneeID(ctx, assignee, project, id)
+		if err != nil {
+			return err
+		}
+		body["assignee_id"] = assigneeID
 	}
 	if len(body) == 0 {
 		return &CodeError{Code: exitUsage, Err: errors.New("no fields to update")}

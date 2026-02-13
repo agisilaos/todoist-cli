@@ -75,5 +75,13 @@ type Workspace struct {
 	CurrentActiveProjects int    `json:"current_active_projects"`
 }
 
+type Filter struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Query      string `json:"query"`
+	Color      string `json:"color"`
+	IsFavorite bool   `json:"is_favorite"`
+}
+
 // Some endpoints return only name arrays (shared labels).
 type SharedLabel string
