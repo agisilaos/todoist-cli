@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func TestAuthLoginOAuthRejectsTokenStdin(t *testing.T) {
@@ -71,6 +72,37 @@ func TestAuthLoginOAuthPrintEnvDoesNotStore(t *testing.T) {
 	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
 	if _, err := os.Stat(credsPath); err == nil || !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected no credentials file, stat err=%v", err)
+	}
+}
+
+func TestAuthLoginOAuthPrintEnvJSONMode(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	ctx.Mode = output.ModeJSON
+	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (string, error) {
+		return "oauth-token-json", nil
+	})
+	defer restore()
+
+	if err := authLogin(ctx, []string{"--oauth", "--client-id", "client-1", "--print-env"}); err != nil {
+		t.Fatalf("authLogin: %v", err)
+	}
+	got := ctx.Stdout.(*bytes.Buffer).String()
+	if !strings.Contains(got, `"env_var": "TODOIST_TOKEN"`) || !strings.Contains(got, `"export": "export TODOIST_TOKEN=oauth-token-json"`) {
+		t.Fatalf("unexpected json stdout: %q", got)
+	}
+}
+
+func TestAuthLoginTokenStdinPrintEnvNDJSONMode(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	ctx.Mode = output.ModeNDJSON
+	ctx.Stdin = strings.NewReader("stdin-token-123\n")
+
+	if err := authLogin(ctx, []string{"--token-stdin", "--print-env"}); err != nil {
+		t.Fatalf("authLogin: %v", err)
+	}
+	got := strings.TrimSpace(ctx.Stdout.(*bytes.Buffer).String())
+	if !strings.Contains(got, `"env_var":"TODOIST_TOKEN"`) || !strings.Contains(got, `"export":"export TODOIST_TOKEN=stdin-token-123"`) {
+		t.Fatalf("unexpected ndjson stdout: %q", got)
 	}
 }
 

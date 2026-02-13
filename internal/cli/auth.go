@@ -80,8 +80,7 @@ func authLogin(ctx *Context, args []string) error {
 			return err
 		}
 		if printEnv {
-			fmt.Fprintf(ctx.Stdout, "export TODOIST_TOKEN=%s\n", token)
-			return nil
+			return writeAuthPrintEnv(ctx, token)
 		}
 		return storeProfileToken(ctx, token)
 	}
@@ -110,8 +109,7 @@ func authLogin(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: errors.New("token is empty")}
 	}
 	if printEnv {
-		fmt.Fprintf(ctx.Stdout, "export TODOIST_TOKEN=%s\n", token)
-		return nil
+		return writeAuthPrintEnv(ctx, token)
 	}
 	return storeProfileToken(ctx, token)
 }
@@ -169,6 +167,28 @@ func storeProfileToken(ctx *Context, token string) error {
 		}, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "stored token for profile %q\n", ctx.Profile)
+	return nil
+}
+
+func writeAuthPrintEnv(ctx *Context, token string) error {
+	exportLine := fmt.Sprintf("export TODOIST_TOKEN=%s", token)
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, map[string]any{
+			"profile": ctx.Profile,
+			"env_var": "TODOIST_TOKEN",
+			"export":  exportLine,
+		}, output.Meta{})
+	}
+	if ctx.Mode == output.ModeNDJSON {
+		return output.WriteNDJSON(ctx.Stdout, []any{
+			map[string]any{
+				"profile": ctx.Profile,
+				"env_var": "TODOIST_TOKEN",
+				"export":  exportLine,
+			},
+		})
+	}
+	fmt.Fprintln(ctx.Stdout, exportLine)
 	return nil
 }
 

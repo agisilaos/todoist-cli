@@ -154,7 +154,7 @@ todoist auth logout
 - `auth login --oauth` runs OAuth PKCE via local callback (`http://127.0.0.1:8765/callback` by default). If browser auto-open fails, the command prints a warning and continues waiting for callback so you can open the URL manually.
 - `auth status` prints active profile and whether a token is present.
 - `auth logout` deletes stored credentials for the active profile.
-- Use `--print-env` to emit `TODOIST_TOKEN=...` for piping into other tools.
+- Use `--print-env` to emit `TODOIST_TOKEN=...` for piping into other tools (`--json`/`--ndjson` return structured output with the export string).
 
 ### Tasks
 
