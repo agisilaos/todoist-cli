@@ -87,21 +87,6 @@ func resolveAssigneeID(ctx *Context, assigneeRef, projectRef, taskID string) (st
 func listProjectCollaborators(ctx *Context, projectID string) ([]api.Collaborator, error) {
 	query := url.Values{}
 	query.Set("limit", "200")
-	var all []api.Collaborator
-	for {
-		var page api.Paginated[api.Collaborator]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/projects/"+projectID+"/collaborators", query, &page)
-		cancel()
-		if err != nil {
-			return nil, err
-		}
-		setRequestID(ctx, reqID)
-		all = append(all, page.Results...)
-		if page.NextCursor == "" {
-			break
-		}
-		query.Set("cursor", page.NextCursor)
-	}
-	return all, nil
+	all, _, err := fetchPaginated[api.Collaborator](ctx, "/projects/"+projectID+"/collaborators", query, true)
+	return all, err
 }

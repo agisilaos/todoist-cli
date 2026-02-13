@@ -81,23 +81,9 @@ func projectCollaborators(ctx *Context, args []string) error {
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allCollaborators []api.Collaborator
-	var next string
-	for {
-		var page api.Paginated[api.Collaborator]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/projects/"+resolvedID+"/collaborators", query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allCollaborators = append(allCollaborators, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allCollaborators, next, err := fetchPaginated[api.Collaborator](ctx, "/projects/"+resolvedID+"/collaborators", query, all)
+	if err != nil {
+		return err
 	}
 	return writeProjectCollaborators(ctx, allCollaborators, next)
 }
@@ -135,23 +121,9 @@ func projectList(ctx *Context, args []string) error {
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allProjects []api.Project
-	var next string
-	for {
-		var page api.Paginated[api.Project]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, path, query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allProjects = append(allProjects, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allProjects, next, err := fetchPaginated[api.Project](ctx, path, query, all)
+	if err != nil {
+		return err
 	}
 	return writeProjectList(ctx, allProjects, next)
 }

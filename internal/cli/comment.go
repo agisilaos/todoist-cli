@@ -81,23 +81,9 @@ func commentList(ctx *Context, args []string) error {
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allComments []api.Comment
-	var next string
-	for {
-		var page api.Paginated[api.Comment]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/comments", query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allComments = append(allComments, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allComments, next, err := fetchPaginated[api.Comment](ctx, "/comments", query, all)
+	if err != nil {
+		return err
 	}
 	return writeCommentList(ctx, allComments, next)
 }

@@ -72,23 +72,9 @@ func sectionList(ctx *Context, args []string) error {
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allSections []api.Section
-	var next string
-	for {
-		var page api.Paginated[api.Section]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/sections", query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allSections = append(allSections, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allSections, next, err := fetchPaginated[api.Section](ctx, "/sections", query, all)
+	if err != nil {
+		return err
 	}
 	return writeSectionList(ctx, allSections, next)
 }

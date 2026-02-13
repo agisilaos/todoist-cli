@@ -63,23 +63,9 @@ func labelList(ctx *Context, args []string) error {
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allLabels []api.Label
-	var next string
-	for {
-		var page api.Paginated[api.Label]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/labels", query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allLabels = append(allLabels, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allLabels, next, err := fetchPaginated[api.Label](ctx, "/labels", query, all)
+	if err != nil {
+		return err
 	}
 	return writeLabelList(ctx, allLabels, next)
 }

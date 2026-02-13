@@ -371,23 +371,9 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allTasks []api.Task
-	var next string
-	for {
-		var page api.Paginated[api.Task]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/tasks", query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allTasks = append(allTasks, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allTasks, next, err := fetchPaginated[api.Task](ctx, "/tasks", query, all)
+	if err != nil {
+		return err
 	}
 	sortTasks(allTasks, sortBy)
 	return writeTaskList(ctx, allTasks, next, wide)
@@ -409,25 +395,7 @@ func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool)
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allTasks []api.Task
-	var next string
-	for {
-		var page api.Paginated[api.Task]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/tasks/filter", query, &page)
-		cancel()
-		if err != nil {
-			return nil, "", err
-		}
-		setRequestID(ctx, reqID)
-		allTasks = append(allTasks, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
-	}
-	return allTasks, next, nil
+	return fetchPaginated[api.Task](ctx, "/tasks/filter", query, all)
 }
 
 func taskListCompleted(ctx *Context, completedBy, filter, project, section, parent, since, until, cursor string, limit int, all bool, wide bool) error {
@@ -466,23 +434,9 @@ func taskListCompleted(ctx *Context, completedBy, filter, project, section, pare
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	var allTasks []api.Task
-	var next string
-	for {
-		var page api.Paginated[api.Task]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, path, query, &page)
-		cancel()
-		if err != nil {
-			return err
-		}
-		setRequestID(ctx, reqID)
-		allTasks = append(allTasks, page.Results...)
-		next = page.NextCursor
-		if !all || next == "" {
-			break
-		}
-		query.Set("cursor", next)
+	allTasks, next, err := fetchPaginated[api.Task](ctx, path, query, all)
+	if err != nil {
+		return err
 	}
 	return writeTaskList(ctx, allTasks, next, wide)
 }

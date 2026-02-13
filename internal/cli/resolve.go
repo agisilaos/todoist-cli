@@ -185,23 +185,8 @@ func listAllProjects(ctx *Context) ([]api.Project, error) {
 	}
 	query := url.Values{}
 	query.Set("limit", "200")
-	var all []api.Project
-	for {
-		var page api.Paginated[api.Project]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/projects", query, &page)
-		cancel()
-		if err != nil {
-			return nil, err
-		}
-		setRequestID(ctx, reqID)
-		all = append(all, page.Results...)
-		if page.NextCursor == "" {
-			break
-		}
-		query.Set("cursor", page.NextCursor)
-	}
-	return all, nil
+	all, _, err := fetchPaginated[api.Project](ctx, "/projects", query, true)
+	return all, err
 }
 
 func listAllSections(ctx *Context, project string) ([]api.Section, error) {
@@ -216,23 +201,8 @@ func listAllSections(ctx *Context, project string) ([]api.Section, error) {
 			query.Set("project_id", id)
 		}
 	}
-	var all []api.Section
-	for {
-		var page api.Paginated[api.Section]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/sections", query, &page)
-		cancel()
-		if err != nil {
-			return nil, err
-		}
-		setRequestID(ctx, reqID)
-		all = append(all, page.Results...)
-		if page.NextCursor == "" {
-			break
-		}
-		query.Set("cursor", page.NextCursor)
-	}
-	return all, nil
+	all, _, err := fetchPaginated[api.Section](ctx, "/sections", query, true)
+	return all, err
 }
 
 func listAllLabels(ctx *Context) ([]api.Label, error) {
@@ -241,23 +211,8 @@ func listAllLabels(ctx *Context) ([]api.Label, error) {
 	}
 	query := url.Values{}
 	query.Set("limit", "200")
-	var all []api.Label
-	for {
-		var page api.Paginated[api.Label]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/labels", query, &page)
-		cancel()
-		if err != nil {
-			return nil, err
-		}
-		setRequestID(ctx, reqID)
-		all = append(all, page.Results...)
-		if page.NextCursor == "" {
-			break
-		}
-		query.Set("cursor", page.NextCursor)
-	}
-	return all, nil
+	all, _, err := fetchPaginated[api.Label](ctx, "/labels", query, true)
+	return all, err
 }
 
 func parseLimit(limit int) string {
