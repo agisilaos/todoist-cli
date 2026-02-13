@@ -171,3 +171,23 @@ func TestWriteErrorJSONUsesAPIRequestID(t *testing.T) {
 		t.Fatalf("unexpected json api error: %q", got)
 	}
 }
+
+func TestWriteErrorJSONIncludesAmbiguousDetails(t *testing.T) {
+	ctx := &Context{
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+	}
+	err := &CodeError{
+		Code: exitUsage,
+		Err: &AmbiguousMatchError{
+			Entity:  "project",
+			Input:   "hom",
+			Matches: []string{"Home", "Homework"},
+		},
+	}
+	writeError(ctx, err)
+	got := ctx.Stderr.(*bytes.Buffer).String()
+	if !strings.Contains(got, `"details"`) || !strings.Contains(got, `"ambiguous_match"`) || !strings.Contains(got, `"project"`) {
+		t.Fatalf("expected ambiguity details, got %q", got)
+	}
+}

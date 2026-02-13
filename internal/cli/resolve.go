@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -25,10 +26,17 @@ func resolveProjectID(ctx *Context, value string) (string, error) {
 		}
 	}
 	if useFuzzy(ctx) {
-		if id, err := resolveFuzzy(value, projects, func(p api.Project) string { return p.Name }, func(p api.Project) string { return p.ID }); err == nil {
-			return id, nil
-		} else if err != nil {
-			return "", err
+		candidates := fuzzyCandidates(value, projects, func(p api.Project) string { return p.Name }, func(p api.Project) string { return p.ID })
+		if len(candidates) == 1 {
+			return candidates[0].ID, nil
+		}
+		if len(candidates) > 1 {
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "project", value, candidates); err != nil {
+				return "", err
+			} else if ok {
+				return chosen, nil
+			}
+			return "", ambiguousMatchCodeError("project", value, candidates)
 		}
 	}
 	return value, nil
@@ -50,10 +58,17 @@ func resolveSectionID(ctx *Context, value string, project string) (string, error
 		}
 	}
 	if useFuzzy(ctx) {
-		if id, err := resolveFuzzy(value, sections, func(s api.Section) string { return s.Name }, func(s api.Section) string { return s.ID }); err == nil {
-			return id, nil
-		} else if err != nil {
-			return "", err
+		candidates := fuzzyCandidates(value, sections, func(s api.Section) string { return s.Name }, func(s api.Section) string { return s.ID })
+		if len(candidates) == 1 {
+			return candidates[0].ID, nil
+		}
+		if len(candidates) > 1 {
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "section", value, candidates); err != nil {
+				return "", err
+			} else if ok {
+				return chosen, nil
+			}
+			return "", ambiguousMatchCodeError("section", value, candidates)
 		}
 	}
 	return value, nil
@@ -74,33 +89,92 @@ func resolveLabelName(ctx *Context, value string) (string, error) {
 		}
 	}
 	if useFuzzy(ctx) {
-		if name, err := resolveFuzzy(value, labels, func(l api.Label) string { return l.Name }, func(l api.Label) string { return l.Name }); err == nil {
-			return name, nil
-		} else if err != nil {
-			return "", err
+		candidates := fuzzyCandidates(value, labels, func(l api.Label) string { return l.Name }, func(l api.Label) string { return l.Name })
+		if len(candidates) == 1 {
+			return candidates[0].ID, nil
+		}
+		if len(candidates) > 1 {
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "label", value, candidates); err != nil {
+				return "", err
+			} else if ok {
+				return chosen, nil
+			}
+			return "", ambiguousMatchCodeError("label", value, candidates)
 		}
 	}
 	return value, nil
 }
 
-func resolveFuzzy[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) (string, error) {
-	var matches []T
+type fuzzyCandidate struct {
+	ID   string
+	Name string
+}
+
+type AmbiguousMatchError struct {
+	Entity  string
+	Input   string
+	Matches []string
+}
+
+func (e *AmbiguousMatchError) Error() string {
+	return fmt.Sprintf("ambiguous %s match for %q; matches: %s", e.Entity, e.Input, strings.Join(e.Matches, ", "))
+}
+
+func fuzzyCandidates[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) []fuzzyCandidate {
+	var out []fuzzyCandidate
 	lower := strings.ToLower(value)
 	for _, item := range items {
 		name := strings.ToLower(nameFn(item))
 		if strings.Contains(name, lower) {
-			matches = append(matches, item)
+			out = append(out, fuzzyCandidate{ID: idFn(item), Name: nameFn(item)})
 		}
 	}
-	if len(matches) == 1 {
-		return idFn(matches[0]), nil
+	return out
+}
+
+func ambiguousMatchCodeError(entity, input string, candidates []fuzzyCandidate) error {
+	matches := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		matches = append(matches, c.Name)
 	}
-	if len(matches) > 1 {
-		names := make([]string, 0, len(matches))
-		for _, m := range matches {
-			names = append(names, nameFn(m))
-		}
-		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("ambiguous match for %q; matches: %s", value, strings.Join(names, ", "))}
+	return &CodeError{Code: exitUsage, Err: &AmbiguousMatchError{
+		Entity:  entity,
+		Input:   input,
+		Matches: matches,
+	}}
+}
+
+func promptAmbiguousChoice(ctx *Context, entity, input string, candidates []fuzzyCandidate) (string, bool, error) {
+	if ctx == nil || ctx.Global.NoInput || !isTTYReader(ctx.Stdin) {
+		return "", false, nil
+	}
+	fmt.Fprintf(ctx.Stderr, "Multiple %ss match %q:\n", entity, input)
+	for i, c := range candidates {
+		fmt.Fprintf(ctx.Stderr, "  %d) %s (id:%s)\n", i+1, c.Name, c.ID)
+	}
+	fmt.Fprint(ctx.Stderr, "Choose number (or press Enter to cancel): ")
+	line, err := readLine(ctx.Stdin)
+	if err != nil {
+		return "", false, err
+	}
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return "", false, nil
+	}
+	idx, err := strconv.Atoi(line)
+	if err != nil || idx < 1 || idx > len(candidates) {
+		return "", false, &CodeError{Code: exitUsage, Err: errors.New("invalid selection for ambiguous match")}
+	}
+	return candidates[idx-1].ID, true, nil
+}
+
+func resolveFuzzy[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) (string, error) {
+	candidates := fuzzyCandidates(value, items, nameFn, idFn)
+	if len(candidates) == 1 {
+		return candidates[0].ID, nil
+	}
+	if len(candidates) > 1 {
+		return "", ambiguousMatchCodeError("value", value, candidates)
 	}
 	return "", nil
 }

@@ -15,6 +15,7 @@ Commands:
   auth        Authenticate and manage tokens
   task        Manage tasks
   project     Manage projects
+  workspace   Manage workspaces
   section     Manage sections
   label       Manage labels
   comment     Manage comments
@@ -42,6 +43,7 @@ Global flags:
   -f, --force           Skip confirmation prompts
   --fuzzy               Enable fuzzy name resolution
   --no-fuzzy            Disable fuzzy name resolution
+  --progress-jsonl      Emit progress events as JSONL to stderr or file
   --base-url <url>      Override API base URL
 
 Examples:
@@ -70,6 +72,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 	case "project":
 		printProjectHelp(ctx.Stdout)
+	case "workspace":
+		printWorkspaceHelp(ctx.Stdout)
 	case "section":
 		printSectionHelp(ctx.Stdout)
 	case "label":
@@ -96,6 +100,7 @@ func printAuthHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist auth login [--token-stdin] [--print-env]
   todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
+  todoist auth login --oauth-device [--client-id <id>] [--print-env]
   todoist auth status
   todoist auth logout
 
@@ -103,6 +108,7 @@ Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser
   todoist auth login --print-env
 `)
@@ -112,17 +118,21 @@ func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist auth login [--token-stdin] [--print-env]
   todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
+  todoist auth login --oauth-device [--client-id <id>] [--print-env]
                     [--oauth-authorize-url <url>] [--oauth-token-url <url>]
+                    [--oauth-device-url <url>]
                     [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 
 Flags:
   --token-stdin                Read token from stdin
   --print-env                  Print token export instead of saving profile credentials
   --oauth                      Authenticate using OAuth PKCE flow
+  --oauth-device               Authenticate using OAuth device flow (headless-friendly)
   --no-browser                 Do not auto-open browser for OAuth flow
   --client-id <id>             OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
   --oauth-authorize-url <url>  OAuth authorize URL override
   --oauth-token-url <url>      OAuth token URL override
+  --oauth-device-url <url>     OAuth device code URL override
   --oauth-listen <host:port>   OAuth callback listen address (default 127.0.0.1:8765)
   --oauth-redirect-uri <uri>   OAuth redirect URI (default http://<listen>/callback)
 
@@ -130,6 +140,7 @@ Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser --print-env
 `)
 }
@@ -141,7 +152,9 @@ func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
   todoist task view <ref> [--full]
   todoist task update <ref> [flags]
   todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
+  todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [--parent <id>] --yes
   todoist task complete <ref>
+  todoist task complete --filter <query> --yes
   todoist task reopen <ref>
   todoist task delete <ref> [--yes]
 
@@ -187,11 +200,18 @@ Examples:
 func printProjectHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist project list [--archived]
+  todoist project collaborators <id|name>
   todoist project add --name <name> [flags]
   todoist project update --id <project_id> [flags]
   todoist project archive --id <project_id>
   todoist project unarchive --id <project_id>
   todoist project delete --id <project_id>
+`)
+}
+
+func printWorkspaceHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist workspace list
 `)
 }
 
@@ -225,10 +245,10 @@ func printCommentHelp(out interface{ Write([]byte) (int, error) }) {
 func printAgentHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
-  todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
+  todoist agent apply <instruction> --confirm <token> [--planner <cmd>] [--policy <file>]
   todoist agent apply --plan <file> --confirm <token>
-  todoist agent apply --plan <file> --confirm <token> --dry-run
-  todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force]
+  todoist agent apply --plan <file> --confirm <token> --dry-run [--policy <file>]
+  todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force] [--policy <file>]
   todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force]
   todoist agent examples
   todoist agent planner
@@ -244,6 +264,7 @@ Context flags:
   --context-project <name>   Limit planner context to project(s) (repeatable)
   --context-label <name>     Limit planner context to label(s) (repeatable)
   --context-completed <Nd>   Include completed tasks for last N days (e.g. 7d)
+  --policy <file>            Enforce policy rules for planned actions
 `)
 }
 

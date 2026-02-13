@@ -115,14 +115,28 @@ func writeError(ctx *Context, err error) {
 		}
 	}
 	if ctx.Mode == output.ModeJSON {
+		details := map[string]any(nil)
+		var ambiguousErr *AmbiguousMatchError
+		if errors.As(err, &ambiguousErr) {
+			details = map[string]any{
+				"type":    "ambiguous_match",
+				"entity":  ambiguousErr.Entity,
+				"input":   ambiguousErr.Input,
+				"matches": ambiguousErr.Matches,
+			}
+		}
 		enc := json.NewEncoder(ctx.Stderr)
 		if !ctx.Global.QuietJSON {
 			enc.SetIndent("", "  ")
 		}
-		_ = enc.Encode(map[string]any{
+		payload := map[string]any{
 			"error": err.Error(),
 			"meta":  meta,
-		})
+		}
+		if details != nil {
+			payload["details"] = details
+		}
+		_ = enc.Encode(payload)
 		return
 	}
 	if meta.RequestID != "" {

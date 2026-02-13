@@ -159,6 +159,7 @@ func agentApply(ctx *Context, args []string) error {
 	var planPath string
 	var confirm string
 	var planner string
+	var policyPath string
 	var onError string
 	var expectedVersion int
 	var contextProjects multiValue
@@ -168,6 +169,7 @@ func agentApply(ctx *Context, args []string) error {
 	fs.StringVar(&planPath, "plan", "", "Plan file (or - for stdin)")
 	fs.StringVar(&confirm, "confirm", "", "Confirmation token")
 	fs.StringVar(&planner, "planner", "", "Planner command")
+	fs.StringVar(&policyPath, "policy", "", "Policy file path")
 	fs.StringVar(&onError, "on-error", "fail", "On error: fail|continue")
 	fs.IntVar(&expectedVersion, "plan-version", 1, "Expected plan version")
 	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
@@ -182,11 +184,15 @@ func agentApply(ctx *Context, args []string) error {
 		printAgentHelp(ctx.Stdout)
 		return nil
 	}
+	emitProgress(ctx, "agent_apply_start", map[string]any{
+		"command": "agent apply",
+	})
 	var plan Plan
 	if planPath != "" {
 		var err error
 		plan, err = readPlanFile(planPath, ctx.Stdin)
 		if err != nil {
+			emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 			return err
 		}
 	} else {
@@ -197,6 +203,7 @@ func agentApply(ctx *Context, args []string) error {
 		}
 		ctxOpts, err := parseContextOptions(ctx, contextProjects, contextLabels, contextCompleted)
 		if err != nil {
+			emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 			return err
 		}
 		p, err := runPlanner(ctx, planner, instruction, expectedVersion, ctxOpts)
@@ -206,6 +213,16 @@ func agentApply(ctx *Context, args []string) error {
 		plan = p
 	}
 	if err := validatePlan(plan, expectedVersion); err != nil {
+		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
+		return err
+	}
+	policy, err := loadAgentPolicy(ctx, policyPath)
+	if err != nil {
+		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
+		return err
+	}
+	if err := enforceAgentPolicy(plan, policy); err != nil {
+		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
 	if !ctx.Global.Force {
@@ -219,19 +236,24 @@ func agentApply(ctx *Context, args []string) error {
 		}
 	}
 	if ctx.Global.DryRun {
+		emitProgress(ctx, "agent_apply_complete", map[string]any{"dry_run": true, "action_count": len(plan.Actions)})
 		return writePlanPreview(ctx, plan, true)
 	}
 	if err := ensureClient(ctx); err != nil {
+		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
-	results, err := applyActionsWithMode(ctx, plan.Actions, onError)
+	results, err := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, onError)
 	if err != nil && onError == "fail" {
+		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
 	plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
 	if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
+		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
+	emitProgress(ctx, "agent_apply_complete", map[string]any{"action_count": len(plan.Actions)})
 	return writePlanApplyResult(ctx, plan, results, err)
 }
 
@@ -244,6 +266,7 @@ func agentStatus(ctx *Context) error {
 }
 
 func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVersion int, ctxOpts plannerContextOptions) (Plan, error) {
+	emitProgress(ctx, "agent_planner_start", map[string]any{"instruction": instruction})
 	if plannerCmd == "" {
 		plannerCmd, _ = resolvePlannerCmd(ctx, plannerCmd, true)
 	}
@@ -289,6 +312,7 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 	if err := normalizeAndValidatePlan(&plan, instruction, ctx.Now, expectedVersion); err != nil {
 		return Plan{}, err
 	}
+	emitProgress(ctx, "agent_planner_complete", map[string]any{"action_count": len(plan.Actions)})
 	return plan, nil
 }
 
@@ -832,24 +856,50 @@ func toAnySlice[T any](items []T) []any {
 	}
 	return out
 }
-func applyActionsWithMode(ctx *Context, actions []Action, onError string) ([]applyResult, error) {
+func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, onError string) ([]applyResult, error) {
 	if onError == "" {
 		onError = "fail"
 	}
+	journal, journalPath, err := loadReplayJournal(ctx)
+	if err != nil {
+		return nil, err
+	}
 	results := make([]applyResult, 0, len(actions))
-	for _, action := range actions {
+	for idx, action := range actions {
+		emitProgress(ctx, "agent_action_start", map[string]any{"index": idx, "action_type": action.Type})
+		replayKey := makeReplayKey(confirmToken, idx, action)
+		if _, ok := journal.Applied[replayKey]; ok {
+			results = append(results, applyResult{Action: action, SkippedReplay: true})
+			emitProgress(ctx, "agent_action_skipped_replay", map[string]any{"index": idx, "action_type": action.Type})
+			continue
+		}
 		err := applyAction(ctx, action)
 		results = append(results, applyResult{Action: action, Error: err})
+		if err != nil {
+			emitProgress(ctx, "agent_action_error", map[string]any{"index": idx, "action_type": action.Type, "error": err.Error()})
+		} else {
+			nowFn := time.Now
+			if ctx != nil && ctx.Now != nil {
+				nowFn = ctx.Now
+			}
+			markReplayApplied(&journal, replayKey, nowFn())
+			emitProgress(ctx, "agent_action_complete", map[string]any{"index": idx, "action_type": action.Type})
+		}
 		if err != nil && onError == "fail" {
+			_ = saveReplayJournal(journalPath, journal)
 			return results, err
 		}
+	}
+	if err := saveReplayJournal(journalPath, journal); err != nil {
+		return results, err
 	}
 	return results, nil
 }
 
 type applyResult struct {
-	Action Action `json:"action"`
-	Error  error  `json:"-"`
+	Action        Action `json:"action"`
+	Error         error  `json:"-"`
+	SkippedReplay bool   `json:"skipped_replay,omitempty"`
 }
 
 func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyErr error) error {
@@ -866,6 +916,11 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 		}
 		for _, r := range results {
 			entry := resultJSON{Action: r.Action}
+			if r.SkippedReplay {
+				entry.Error = "skipped_replay"
+				out.Results = append(out.Results, entry)
+				continue
+			}
 			if r.Error != nil {
 				entry.Error = r.Error.Error()
 			}
@@ -876,6 +931,9 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 	fmt.Fprintf(ctx.Stdout, "Applied plan: %s\n", plan.Instruction)
 	for i, r := range results {
 		status := "ok"
+		if r.SkippedReplay {
+			status = "skipped (replay)"
+		}
 		if r.Error != nil {
 			status = "error: " + r.Error.Error()
 		}

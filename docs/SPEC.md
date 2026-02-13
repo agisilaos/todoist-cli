@@ -10,7 +10,8 @@ Go-based CLI for Todoist. Binary name: `todoist`. Designed for humans and script
 - **Fallback**: `~/.config/todoist/credentials.json`
 - Profiles supported via `--profile` / `TODOIST_PROFILE`
 - OAuth PKCE login supported via `todoist auth login --oauth` (client ID from `--client-id` or `TODOIST_OAUTH_CLIENT_ID`)
-- OAuth endpoint/listen overrides: `TODOIST_OAUTH_AUTHORIZE_URL`, `TODOIST_OAUTH_TOKEN_URL`, `TODOIST_OAUTH_LISTEN`
+- OAuth device login supported via `todoist auth login --oauth-device`
+- OAuth endpoint/listen overrides: `TODOIST_OAUTH_AUTHORIZE_URL`, `TODOIST_OAUTH_TOKEN_URL`, `TODOIST_OAUTH_DEVICE_URL`, `TODOIST_OAUTH_LISTEN`
 
 ## Command Structure
 
@@ -38,8 +39,8 @@ todoist task delete --id <id> [--yes]
 
 ```
 todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
-todoist agent apply --plan <file> --confirm <token> [--on-error fail|continue] [--dry-run]
-todoist agent run --instruction <text> [--confirm <token>|--force]
+todoist agent apply --plan <file> --confirm <token> [--on-error fail|continue] [--dry-run] [--policy <file>]
+todoist agent run --instruction <text> [--confirm <token>|--force] [--policy <file>]
 todoist agent schedule print --weekly "sat 09:00" [--cron]
 todoist agent planner --set --cmd "<cmd>"
 ```
@@ -55,6 +56,7 @@ todoist agent planner --set --cmd "<cmd>"
 - `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
 - `--quiet-json` emits compact single-line JSON errors (useful for agents and log pipelines).
 - `todoist schema` is the output contract source of truth (for example: `task_list` and `task_item_ndjson`).
+- `--progress-jsonl[=path]` emits agent progress events as JSONL (stderr or file).
 
 ## Parsing Rules
 

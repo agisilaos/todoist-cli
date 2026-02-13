@@ -31,24 +31,25 @@ const (
 )
 
 type GlobalOptions struct {
-	Help       bool
-	Version    bool
-	Quiet      bool
-	QuietJSON  bool
-	Verbose    bool
-	JSON       bool
-	Plain      bool
-	NDJSON     bool
-	NoColor    bool
-	NoInput    bool
-	TimeoutSec int
-	ConfigPath string
-	Profile    string
-	DryRun     bool
-	Force      bool
-	BaseURL    string
-	Fuzzy      bool
-	NoFuzzy    bool
+	Help          bool
+	Version       bool
+	Quiet         bool
+	QuietJSON     bool
+	Verbose       bool
+	JSON          bool
+	Plain         bool
+	NDJSON        bool
+	NoColor       bool
+	NoInput       bool
+	TimeoutSec    int
+	ConfigPath    string
+	Profile       string
+	DryRun        bool
+	Force         bool
+	BaseURL       string
+	Fuzzy         bool
+	NoFuzzy       bool
+	ProgressJSONL string
 }
 
 type Context struct {
@@ -69,6 +70,7 @@ type Context struct {
 	Client    *api.Client
 	Now       func() time.Time
 	RequestID string
+	Progress  *progressSink
 }
 
 func Execute(args []string, stdout, stderr io.Writer) int {
@@ -95,6 +97,10 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		Global: opts,
 		Mode:   mode,
 		Now:    time.Now,
+	}
+	if sink, err := newProgressSink(opts.ProgressJSONL, stderr); err == nil {
+		ctx.Progress = sink
+		defer sink.Close()
 	}
 	if err := loadConfig(ctx); err != nil {
 		fmt.Fprintln(stderr, err)
@@ -192,6 +198,15 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			}
 			i++
 			opts.BaseURL = args[i]
+		case strings.HasPrefix(arg, "--progress-jsonl="):
+			opts.ProgressJSONL = strings.TrimPrefix(arg, "--progress-jsonl=")
+		case arg == "--progress-jsonl":
+			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				i++
+				opts.ProgressJSONL = args[i]
+			} else {
+				opts.ProgressJSONL = "-"
+			}
 		default:
 			rest = append(rest, arg)
 		}
@@ -324,6 +339,10 @@ type CodeError struct {
 
 func (e *CodeError) Error() string {
 	return e.Err.Error()
+}
+
+func (e *CodeError) Unwrap() error {
+	return e.Err
 }
 
 func toExitCode(err error) int {

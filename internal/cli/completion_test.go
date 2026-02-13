@@ -40,28 +40,34 @@ func TestCompletionScriptsIncludeOAuthAuthLoginFlags(t *testing.T) {
 	expectedFlags := map[string][]string{
 		"bash": {
 			"--oauth",
+			"--oauth-device",
 			"--no-browser",
 			"--client-id",
 			"--oauth-authorize-url",
 			"--oauth-token-url",
+			"--oauth-device-url",
 			"--oauth-listen",
 			"--oauth-redirect-uri",
 		},
 		"zsh": {
 			"--oauth",
+			"--oauth-device",
 			"--no-browser",
 			"--client-id",
 			"--oauth-authorize-url",
 			"--oauth-token-url",
+			"--oauth-device-url",
 			"--oauth-listen",
 			"--oauth-redirect-uri",
 		},
 		"fish": {
 			"-l oauth",
+			"-l oauth-device",
 			"-l no-browser",
 			"-l client-id",
 			"-l oauth-authorize-url",
 			"-l oauth-token-url",
+			"-l oauth-device-url",
 			"-l oauth-listen",
 			"-l oauth-redirect-uri",
 		},
@@ -81,9 +87,9 @@ func TestCompletionScriptsIncludeOAuthAuthLoginFlags(t *testing.T) {
 
 func TestCompletionScriptsIncludeFuzzyGlobalFlags(t *testing.T) {
 	expectedFlags := map[string][]string{
-		"bash": {"--fuzzy", "--no-fuzzy"},
-		"zsh":  {"--fuzzy", "--no-fuzzy"},
-		"fish": {"-l fuzzy", "-l no-fuzzy"},
+		"bash": {"--fuzzy", "--no-fuzzy", "--progress-jsonl"},
+		"zsh":  {"--fuzzy", "--no-fuzzy", "--progress-jsonl"},
+		"fish": {"-l fuzzy", "-l no-fuzzy", "-l progress-jsonl"},
 	}
 	for _, shell := range []string{"bash", "zsh", "fish"} {
 		script, err := completionScript(shell)
@@ -94,6 +100,22 @@ func TestCompletionScriptsIncludeFuzzyGlobalFlags(t *testing.T) {
 			if !strings.Contains(script, flag) {
 				t.Fatalf("%s completion missing %s", shell, flag)
 			}
+		}
+	}
+}
+
+func TestCompletionScriptsIncludeAgentPolicyFlag(t *testing.T) {
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		flag := "--policy"
+		if shell == "fish" {
+			flag = "-l policy"
+		}
+		if !strings.Contains(script, flag) {
+			t.Fatalf("%s completion missing %s", shell, flag)
 		}
 	}
 }

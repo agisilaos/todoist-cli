@@ -217,3 +217,31 @@ func TestContractNDJSONWritersForAllLists(t *testing.T) {
 		t.Fatalf("unexpected comment ndjson output: %q", ctx.Stdout.(*bytes.Buffer).String())
 	}
 }
+
+func TestContractTaskCompleteBulkRequiresYes(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "complete", "--filter", "today", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "requires --yes") {
+		t.Fatalf("expected requires --yes error, got %q", stderr.String())
+	}
+}
+
+func TestContractTaskMoveBulkRejectsIDCombination(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "move", "--id", "123", "--filter", "today", "--project", "Home", "--yes", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "cannot be combined") {
+		t.Fatalf("expected cannot be combined error, got %q", stderr.String())
+	}
+}

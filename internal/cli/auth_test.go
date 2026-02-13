@@ -21,6 +21,18 @@ func TestAuthLoginOAuthRejectsTokenStdin(t *testing.T) {
 	assertUsageErrorContains(t, err, "--token-stdin cannot be used with --oauth")
 }
 
+func TestAuthLoginOAuthAndDeviceAreMutuallyExclusive(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	err := authLogin(ctx, []string{"--oauth", "--oauth-device"})
+	assertUsageErrorContains(t, err, "mutually exclusive")
+}
+
+func TestAuthLoginOAuthDeviceRejectsTokenStdin(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	err := authLogin(ctx, []string{"--oauth-device", "--token-stdin"})
+	assertUsageErrorContains(t, err, "--token-stdin cannot be used with --oauth-device")
+}
+
 func TestAuthLoginOAuthRequiresClientID(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_CLIENT_ID", "")
 
@@ -50,6 +62,31 @@ func TestAuthLoginOAuthStoresToken(t *testing.T) {
 	}
 	got := creds.Profiles[ctx.Profile].Token
 	if got != "oauth-token-123" {
+		t.Fatalf("unexpected stored token: %q", got)
+	}
+}
+
+func TestAuthLoginOAuthDeviceStoresToken(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	restore := stubPerformOAuthDeviceLogin(func(_ *Context, _ oauthConfig) (string, error) {
+		return "oauth-device-token-123", nil
+	})
+	defer restore()
+
+	if err := authLogin(ctx, []string{"--oauth-device", "--client-id", "client-1"}); err != nil {
+		t.Fatalf("authLogin: %v", err)
+	}
+
+	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
+	creds, exists, err := config.LoadCredentials(credsPath)
+	if err != nil {
+		t.Fatalf("load credentials: %v", err)
+	}
+	if !exists {
+		t.Fatalf("expected credentials file to exist")
+	}
+	got := creds.Profiles[ctx.Profile].Token
+	if got != "oauth-device-token-123" {
 		t.Fatalf("unexpected stored token: %q", got)
 	}
 }
@@ -196,6 +233,14 @@ func stubPerformOAuthLogin(fn func(ctx *Context, cfg oauthConfig) (string, error
 	performOAuthLogin = fn
 	return func() {
 		performOAuthLogin = prev
+	}
+}
+
+func stubPerformOAuthDeviceLogin(fn func(ctx *Context, cfg oauthConfig) (string, error)) func() {
+	prev := performOAuthDeviceLogin
+	performOAuthDeviceLogin = fn
+	return func() {
+		performOAuthDeviceLogin = prev
 	}
 }
 

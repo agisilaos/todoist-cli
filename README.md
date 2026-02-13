@@ -97,6 +97,7 @@ Environment variables:
 - `TODOIST_OAUTH_CLIENT_ID` (OAuth client ID used by `auth login --oauth`)
 - `TODOIST_OAUTH_AUTHORIZE_URL` (override OAuth authorize URL)
 - `TODOIST_OAUTH_TOKEN_URL` (override OAuth token URL)
+- `TODOIST_OAUTH_DEVICE_URL` (override OAuth device-code URL)
 - `TODOIST_OAUTH_LISTEN` (override OAuth callback listen address)
 - `TODOIST_FUZZY` (1 to enable fuzzy name resolution)
 - `TODOIST_TABLE_WIDTH` (override table width for human output)
@@ -127,6 +128,7 @@ Global flags apply to every command:
 -f, --force           Skip confirmation prompts
 --fuzzy               Enable fuzzy name resolution
 --no-fuzzy            Disable fuzzy name resolution
+--progress-jsonl      Emit progress events as JSONL to stderr or file
 --base-url <url>      Override API base URL
 ```
 
@@ -146,14 +148,16 @@ Manage Todoist credentials and profiles.
 ```
 todoist auth login [--token-stdin] [--print-env]
 todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
+todoist auth login --oauth-device [--client-id <id>] [--print-env]
                   [--oauth-authorize-url <url>] [--oauth-token-url <url>]
-                  [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
+                  [--oauth-device-url <url>] [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 todoist auth status
 todoist auth logout
 ```
 
 - `auth login` prompts for a token (TTY) or reads from stdin with `--token-stdin`. Stores tokens in `~/.config/todoist/credentials.json` (0600).
 - `auth login --oauth` runs OAuth PKCE via local callback (`http://127.0.0.1:8765/callback` by default). If browser auto-open fails, the command prints a warning and continues waiting for callback so you can open the URL manually.
+- `auth login --oauth-device` runs OAuth Device Flow (good for headless/CI/SSH); it prints verification URL/code and polls until authorized.
 - `auth status` prints active profile and whether a token is present.
 - `auth logout` deletes stored credentials for the active profile.
 - Use `--print-env` to emit `TODOIST_TOKEN=...` for piping into other tools (`--json`/`--ndjson` return structured output with the export string).
@@ -168,7 +172,9 @@ todoist task add --content <text> [flags]
 todoist task view <ref> [--full]
 todoist task update <ref> [flags]
 todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
+todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [--parent <id>] --yes
 todoist task complete <ref>
+todoist task complete --filter <query> --yes
 todoist task reopen <ref>
 todoist task delete <ref> [--yes]
 ```
@@ -220,7 +226,17 @@ Examples:
 - `echo "Write launch blog #Marketing @writing p2 due:friday" | todoist add --content -`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
 - `todoist task view id:123456 --full`
- - `todoist task complete "Pay rent"`
+- `todoist task complete "Pay rent"`
+
+### Workspaces
+
+```
+todoist workspace list
+todoist project collaborators <id|name>
+```
+
+- `workspace list` shows workspaces available to the authenticated user.
+- `project collaborators` lists collaborators for a shared project.
 
 ### Inbox
 
@@ -318,11 +334,11 @@ Integrate with an external planner to generate and apply bulk plans.
 
 ```
 todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
-todoist agent apply <instruction> --confirm <token> [--planner <cmd>]
+todoist agent apply <instruction> --confirm <token> [--planner <cmd>] [--policy <file>]
 todoist agent apply --plan <file> --confirm <token>
-todoist agent apply --plan <file> --confirm <token> --dry-run
+todoist agent apply --plan <file> --confirm <token> --dry-run [--policy <file>]
 todoist agent apply --plan <file> --confirm <token> --on-error fail|continue
-todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force]
+todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force] [--policy <file>]
 todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--cron]
 todoist agent examples
 todoist agent planner
@@ -342,6 +358,9 @@ todoist agent status
 - `agent run` combines plan + apply for automation (cron/launchd).
 - `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`).
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
+- `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).
+- `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default).
+- Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token.
 
 Planner contract checklist:
 - Emit valid JSON to stdout matching `todoist schema --name plan`.

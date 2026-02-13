@@ -25,6 +25,8 @@ func projectCommand(ctx *Context, args []string) error {
 	switch sub {
 	case "list":
 		return projectList(ctx, args[1:])
+	case "collaborators":
+		return projectCollaborators(ctx, args[1:])
 	case "add":
 		return projectAdd(ctx, args[1:])
 	case "update":
@@ -38,6 +40,66 @@ func projectCommand(ctx *Context, args []string) error {
 	default:
 		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown project subcommand: %s", args[0])}
 	}
+}
+
+func projectCollaborators(ctx *Context, args []string) error {
+	fs := flag.NewFlagSet("project collaborators", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var id string
+	var cursor string
+	var limit int
+	var all bool
+	var help bool
+	fs.StringVar(&id, "id", "", "Project ID or name")
+	fs.StringVar(&cursor, "cursor", "", "Cursor")
+	fs.IntVar(&limit, "limit", 50, "Limit")
+	fs.BoolVar(&all, "all", false, "Fetch all pages")
+	fs.BoolVar(&help, "help", false, "Show help")
+	fs.BoolVar(&help, "h", false, "Show help")
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printProjectHelp(ctx.Stdout)
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		id = fs.Arg(0)
+	}
+	if id == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("project collaborators requires --id or a project reference")}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	resolvedID, err := resolveProjectID(ctx, id)
+	if err != nil {
+		return err
+	}
+	query := url.Values{}
+	query.Set("limit", strconv.Itoa(limit))
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	var allCollaborators []api.Collaborator
+	var next string
+	for {
+		var page api.Paginated[api.Collaborator]
+		reqCtx, cancel := requestContext(ctx)
+		reqID, err := ctx.Client.Get(reqCtx, "/projects/"+resolvedID+"/collaborators", query, &page)
+		cancel()
+		if err != nil {
+			return err
+		}
+		setRequestID(ctx, reqID)
+		allCollaborators = append(allCollaborators, page.Results...)
+		next = page.NextCursor
+		if !all || next == "" {
+			break
+		}
+		query.Set("cursor", next)
+	}
+	return writeProjectCollaborators(ctx, allCollaborators, next)
 }
 
 func projectList(ctx *Context, args []string) error {
@@ -336,4 +398,22 @@ func writeProjectList(ctx *Context, projects []api.Project, cursor string) error
 		return output.WritePlain(ctx.Stdout, rows)
 	}
 	return output.WriteTable(ctx.Stdout, []string{"ID", "Name", "Parent", "Archived", "Shared"}, rows)
+}
+
+func writeProjectCollaborators(ctx *Context, collaborators []api.Collaborator, cursor string) error {
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, collaborators, output.Meta{RequestID: ctx.RequestID, Count: len(collaborators), Cursor: cursor})
+	}
+	if ctx.Mode == output.ModeNDJSON {
+		items := make([]any, 0, len(collaborators))
+		for _, c := range collaborators {
+			items = append(items, c)
+		}
+		return output.WriteNDJSON(ctx.Stdout, items)
+	}
+	rows := make([][]string, 0, len(collaborators))
+	for _, c := range collaborators {
+		rows = append(rows, []string{c.ID, c.Name, c.Email})
+	}
+	return output.WriteTable(ctx.Stdout, []string{"ID", "Name", "Email"}, rows)
 }

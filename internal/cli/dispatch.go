@@ -17,6 +17,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = taskCommand(ctx, rest)
 	case "project":
 		err = projectCommand(ctx, rest)
+	case "workspace":
+		err = workspaceCommand(ctx, rest)
 	case "section":
 		err = sectionCommand(ctx, rest)
 	case "label":

@@ -13,6 +13,7 @@ import (
 )
 
 var performOAuthLogin = authOAuthLogin
+var performOAuthDeviceLogin = authOAuthDeviceLogin
 var generateOAuthRandomFn = generateOAuthRandom
 var buildOAuthAuthorizationURLFn = buildOAuthAuthorizationURL
 var openOAuthBrowserFn = openOAuthBrowser
@@ -50,20 +51,24 @@ func authLogin(ctx *Context, args []string) error {
 	var tokenStdin bool
 	var printEnv bool
 	var oauth bool
+	var oauthDevice bool
 	var noBrowser bool
 	var clientID string
 	var authorizeURL string
 	var tokenURL string
+	var deviceURL string
 	var oauthListen string
 	var redirectURI string
 	var help bool
 	fs.BoolVar(&tokenStdin, "token-stdin", false, "Read token from stdin")
 	fs.BoolVar(&printEnv, "print-env", false, "Print export command instead of saving")
 	fs.BoolVar(&oauth, "oauth", false, "Authenticate via OAuth PKCE flow")
+	fs.BoolVar(&oauthDevice, "oauth-device", false, "Authenticate via OAuth device flow")
 	fs.BoolVar(&noBrowser, "no-browser", false, "Do not auto-open browser for OAuth flow")
 	fs.StringVar(&clientID, "client-id", "", "OAuth client ID")
 	fs.StringVar(&authorizeURL, "oauth-authorize-url", "", "OAuth authorize URL")
 	fs.StringVar(&tokenURL, "oauth-token-url", "", "OAuth token URL")
+	fs.StringVar(&deviceURL, "oauth-device-url", "", "OAuth device code URL")
 	fs.StringVar(&oauthListen, "oauth-listen", "", "OAuth callback listen address (host:port)")
 	fs.StringVar(&redirectURI, "oauth-redirect-uri", "", "OAuth redirect URI")
 	fs.BoolVar(&help, "help", false, "Show help")
@@ -76,14 +81,34 @@ func authLogin(ctx *Context, args []string) error {
 		return nil
 	}
 	if oauth {
+		if oauthDevice {
+			return &CodeError{Code: exitUsage, Err: errors.New("--oauth and --oauth-device are mutually exclusive")}
+		}
 		if tokenStdin {
 			return &CodeError{Code: exitUsage, Err: errors.New("--token-stdin cannot be used with --oauth")}
 		}
-		cfg, err := buildOAuthConfig(clientID, authorizeURL, tokenURL, redirectURI, oauthListen, noBrowser)
+		cfg, err := buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, noBrowser)
 		if err != nil {
 			return &CodeError{Code: exitUsage, Err: err}
 		}
 		token, err := performOAuthLogin(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		if printEnv {
+			return writeAuthPrintEnv(ctx, token)
+		}
+		return storeProfileToken(ctx, token)
+	}
+	if oauthDevice {
+		if tokenStdin {
+			return &CodeError{Code: exitUsage, Err: errors.New("--token-stdin cannot be used with --oauth-device")}
+		}
+		cfg, err := buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, true)
+		if err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
+		token, err := performOAuthDeviceLogin(ctx, cfg)
 		if err != nil {
 			return err
 		}
@@ -149,6 +174,28 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (string, error) {
 		return "", err
 	}
 	token, err := exchangeOAuthTokenFn(reqCtx, cfg, code, verifier)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (string, error) {
+	reqCtx, cancel := requestContext(ctx)
+	defer cancel()
+	deviceCode, userCode, verifyURL, verifyURLComplete, intervalSec, expiresInSec, err := startOAuthDeviceFlow(reqCtx, cfg)
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintln(ctx.Stderr, "OAuth device flow started.")
+	if verifyURLComplete != "" {
+		fmt.Fprintf(ctx.Stderr, "Open this URL and approve access:\n%s\n", verifyURLComplete)
+	} else {
+		fmt.Fprintf(ctx.Stderr, "Open: %s\n", verifyURL)
+		fmt.Fprintf(ctx.Stderr, "Code: %s\n", userCode)
+	}
+	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
+	token, err := pollOAuthDeviceToken(reqCtx, cfg, deviceCode, intervalSec, expiresInSec)
 	if err != nil {
 		return "", err
 	}

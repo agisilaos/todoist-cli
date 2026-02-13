@@ -80,6 +80,42 @@ func (c *Client) QuickAdd(ctx context.Context, text string) (Task, string, error
 	return task, reqID, nil
 }
 
+func (c *Client) SyncWorkspaces(ctx context.Context) ([]Workspace, string, error) {
+	fullURL, err := c.buildURL("/sync", nil)
+	if err != nil {
+		return nil, "", err
+	}
+	requestID := NewRequestID()
+	form := url.Values{}
+	form.Set("sync_token", "*")
+	form.Set("resource_types", `["workspaces"]`)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, requestID, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Request-Id", requestID)
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return nil, requestID, err
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
+	if resp.StatusCode >= 400 {
+		return nil, requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(data)), RequestID: requestID}
+	}
+	var payload struct {
+		Workspaces []Workspace `json:"workspaces"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return nil, requestID, fmt.Errorf("decode sync response: %w", err)
+	}
+	return payload.Workspaces, requestID, nil
+}
+
 func (c *Client) doJSON(ctx context.Context, method, path string, query url.Values, body any, out any, includeRequestID bool) (string, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {

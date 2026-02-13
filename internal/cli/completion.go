@@ -142,10 +142,10 @@ _todoist() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]}"
 
-  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --base-url"
+  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today inbox add auth task project workspace section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -171,7 +171,7 @@ _todoist() {
         return 0
       fi
       if [[ ${COMP_WORDS[2]} == "login" ]]; then
-        COMPREPLY=( $(compgen -W "--token-stdin --print-env --oauth --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-listen --oauth-redirect-uri ${global_flags}" -- "$cur") )
+        COMPREPLY=( $(compgen -W "--token-stdin --print-env --oauth --oauth-device --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri ${global_flags}" -- "$cur") )
         return 0
       fi
       ;;
@@ -186,13 +186,22 @@ _todoist() {
       return 0
       ;;
     project)
-      local subs="list ls add update archive unarchive delete rm del"
+      local subs="list ls collaborators add update archive unarchive delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local project_flags="--archived --id --name --description --parent --color --favorite --view"
+      local project_flags="--archived --id --name --description --parent --color --favorite --view --cursor --limit --all"
       COMPREPLY=( $(compgen -W "${project_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
+    workspace)
+      local subs="list ls"
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
+        return 0
+      fi
+      COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
       return 0
       ;;
     section)
@@ -231,7 +240,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local agent_flags="--out --planner --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed"
+      local agent_flags="--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed"
       COMPREPLY=( $(compgen -W "${agent_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -252,7 +261,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(today inbox add auth task project section label comment agent completion schema planner help)' \
+  '1:command:(today inbox add auth task project workspace section label comment agent completion schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -266,13 +275,16 @@ case $words[1] in
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
   auth)
-    _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env --oauth --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-listen --oauth-redirect-uri)'
+    _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env --oauth --oauth-device --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --base-url)'
+    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
     ;;
   project)
-    _arguments '2:subcommand:(list ls add update archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
+    _arguments '2:subcommand:(list ls collaborators add update archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all)'
+    ;;
+  workspace)
+    _arguments '2:subcommand:(list ls)'
     ;;
   section)
     _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--project --name --id)'
@@ -284,7 +296,7 @@ case $words[1] in
     _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --project --content --id)'
     ;;
   agent)
-    _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
+    _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
     ;;
   schema)
     _arguments '*:flags:(--name)'
@@ -302,7 +314,7 @@ esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task project section label comment agent completion schema planner help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today inbox add auth task project workspace section label comment agent completion schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -322,6 +334,7 @@ complete -c todoist -s n -l dry-run -d "Preview changes without applying"
 complete -c todoist -s f -l force -d "Skip confirmation prompts"
 complete -c todoist -l fuzzy -d "Enable fuzzy name resolution"
 complete -c todoist -l no-fuzzy -d "Disable fuzzy name resolution"
+complete -c todoist -l progress-jsonl -d "Emit progress events as JSONL"
 complete -c todoist -l base-url -d "Override API base URL"
 
 # auth
@@ -329,10 +342,12 @@ complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_use_subcomm
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l token-stdin -d "Read token from stdin"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l print-env -d "Print TODOIST_TOKEN export"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth -d "Authenticate via OAuth PKCE flow"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-device -d "Authenticate via OAuth device flow"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l no-browser -d "Do not auto-open browser for OAuth flow"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l client-id -d "OAuth client ID"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-authorize-url -d "OAuth authorize URL"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-token-url -d "OAuth token URL"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-device-url -d "OAuth device code URL"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-listen -d "OAuth callback listen address"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-redirect-uri -d "OAuth redirect URI"
 
@@ -341,8 +356,11 @@ complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcomm
 complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes
 
 # project
-complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list ls add update archive unarchive delete rm del'
-complete -c todoist -n '__fish_seen_subcommand_from project' -l archived -l id -l name -l description -l parent -l color -l favorite -l view
+complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list ls collaborators add update archive unarchive delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from project' -l archived -l id -l name -l description -l parent -l color -l favorite -l view -l cursor -l limit -l all
+
+# workspace
+complete -c todoist -n '__fish_seen_subcommand_from workspace; and __fish_use_subcommand' -a 'list ls'
 
 # section
 complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a 'list ls add update delete rm del'
@@ -368,7 +386,7 @@ complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l descripti
 
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply run schedule examples planner status'
-complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l plan -l confirm -l instruction -l on-error -l plan-version -l context-project -l context-label -l context-completed
+complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l policy -l plan -l confirm -l instruction -l on-error -l plan-version -l context-project -l context-label -l context-completed
 
 # schema
 complete -c todoist -n '__fish_seen_subcommand_from schema' -l name

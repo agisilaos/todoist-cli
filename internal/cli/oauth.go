@@ -21,6 +21,7 @@ import (
 const (
 	defaultOAuthAuthorizeURL = "https://todoist.com/oauth/authorize"
 	defaultOAuthTokenURL     = "https://todoist.com/oauth/access_token"
+	defaultOAuthDeviceURL    = "https://todoist.com/oauth/device/code"
 	defaultOAuthListenAddr   = "127.0.0.1:8765"
 )
 
@@ -28,12 +29,13 @@ type oauthConfig struct {
 	ClientID     string
 	AuthorizeURL string
 	TokenURL     string
+	DeviceURL    string
 	RedirectURI  string
 	ListenAddr   string
 	NoBrowser    bool
 }
 
-func buildOAuthConfig(clientID, authorizeURL, tokenURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
+func buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
 	if clientID == "" {
 		clientID = strings.TrimSpace(os.Getenv("TODOIST_OAUTH_CLIENT_ID"))
 	}
@@ -54,6 +56,13 @@ func buildOAuthConfig(clientID, authorizeURL, tokenURL, redirectURI, listenAddr 
 			tokenURL = defaultOAuthTokenURL
 		}
 	}
+	if deviceURL == "" {
+		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_DEVICE_URL")); env != "" {
+			deviceURL = env
+		} else {
+			deviceURL = defaultOAuthDeviceURL
+		}
+	}
 	if listenAddr == "" {
 		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_LISTEN")); env != "" {
 			listenAddr = env
@@ -68,6 +77,7 @@ func buildOAuthConfig(clientID, authorizeURL, tokenURL, redirectURI, listenAddr 
 		ClientID:     clientID,
 		AuthorizeURL: authorizeURL,
 		TokenURL:     tokenURL,
+		DeviceURL:    deviceURL,
 		RedirectURI:  redirectURI,
 		ListenAddr:   listenAddr,
 		NoBrowser:    noBrowser,
@@ -228,4 +238,124 @@ func exchangeOAuthToken(ctx context.Context, cfg oauthConfig, code, codeVerifier
 		return "", fmt.Errorf("oauth token exchange returned empty access_token")
 	}
 	return payload.AccessToken, nil
+}
+
+func startOAuthDeviceFlow(ctx context.Context, cfg oauthConfig) (deviceCode, userCode, verifyURL, verifyURLComplete string, intervalSec int, expiresInSec int, err error) {
+	form := url.Values{}
+	form.Set("client_id", cfg.ClientID)
+	form.Set("scope", "data:read_write,data:delete,project:delete")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.DeviceURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", "", "", "", 0, 0, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", "", "", 0, 0, err
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 8*1024))
+	if resp.StatusCode >= 400 {
+		return "", "", "", "", 0, 0, fmt.Errorf("oauth device code request failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+	}
+	var payload struct {
+		DeviceCode              string `json:"device_code"`
+		UserCode                string `json:"user_code"`
+		VerificationURI         string `json:"verification_uri"`
+		VerificationURIComplete string `json:"verification_uri_complete"`
+		Interval                int    `json:"interval"`
+		ExpiresIn               int    `json:"expires_in"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return "", "", "", "", 0, 0, fmt.Errorf("decode oauth device code response: %w", err)
+	}
+	if strings.TrimSpace(payload.DeviceCode) == "" || strings.TrimSpace(payload.UserCode) == "" {
+		return "", "", "", "", 0, 0, fmt.Errorf("oauth device code response missing required fields")
+	}
+	if payload.Interval <= 0 {
+		payload.Interval = 5
+	}
+	if payload.ExpiresIn <= 0 {
+		payload.ExpiresIn = 600
+	}
+	return payload.DeviceCode, payload.UserCode, payload.VerificationURI, payload.VerificationURIComplete, payload.Interval, payload.ExpiresIn, nil
+}
+
+func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int) (string, error) {
+	if intervalSec <= 0 {
+		intervalSec = 5
+	}
+	if expiresInSec <= 0 {
+		expiresInSec = 600
+	}
+	deadline := time.Now().Add(time.Duration(expiresInSec) * time.Second)
+
+	for {
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("oauth device flow timed out")
+		}
+		form := url.Values{}
+		form.Set("client_id", cfg.ClientID)
+		form.Set("device_code", deviceCode)
+		form.Set("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.TokenURL, strings.NewReader(form.Encode()))
+		if err != nil {
+			return "", err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 8*1024))
+		resp.Body.Close()
+
+		var payload struct {
+			AccessToken string `json:"access_token"`
+			Error       string `json:"error"`
+		}
+		_ = json.Unmarshal(data, &payload)
+
+		if resp.StatusCode < 400 && strings.TrimSpace(payload.AccessToken) != "" {
+			return payload.AccessToken, nil
+		}
+
+		switch payload.Error {
+		case "authorization_pending":
+			if err := waitForOAuthPollFn(ctx, time.Duration(intervalSec)*time.Second); err != nil {
+				return "", err
+			}
+			continue
+		case "slow_down":
+			intervalSec += 5
+			if err := waitForOAuthPollFn(ctx, time.Duration(intervalSec)*time.Second); err != nil {
+				return "", err
+			}
+			continue
+		case "access_denied":
+			return "", fmt.Errorf("oauth device authorization denied")
+		case "expired_token":
+			return "", fmt.Errorf("oauth device code expired")
+		}
+
+		if resp.StatusCode >= 400 {
+			return "", fmt.Errorf("oauth device token polling failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+		}
+		return "", fmt.Errorf("oauth device token polling failed: empty access_token")
+	}
+}
+
+var waitForOAuthPollFn = waitForOAuthPoll
+
+func waitForOAuthPoll(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

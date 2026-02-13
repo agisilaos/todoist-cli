@@ -59,5 +59,21 @@ type Comment struct {
 	Attachment map[string]interface{} `json:"file_attachment"`
 }
 
+type Collaborator struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type Workspace struct {
+	ID                    string `json:"id"`
+	Name                  string `json:"name"`
+	Role                  string `json:"role"`
+	Plan                  string `json:"plan"`
+	DomainName            string `json:"domain_name"`
+	CurrentMemberCount    int    `json:"current_member_count"`
+	CurrentActiveProjects int    `json:"current_active_projects"`
+}
+
 // Some endpoints return only name arrays (shared labels).
 type SharedLabel string

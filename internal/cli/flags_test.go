@@ -37,7 +37,7 @@ func TestParseGlobalFlagsValues(t *testing.T) {
 }
 
 func TestParseGlobalFlagsInterspersed(t *testing.T) {
-	opts, rest, err := parseGlobalFlags([]string{"planner", "--json", "--quiet-json", "--profile", "work"}, nil)
+	opts, rest, err := parseGlobalFlags([]string{"planner", "--json", "--quiet-json", "--profile", "work", "--progress-jsonl=events.jsonl"}, nil)
 	if err != nil {
 		t.Fatalf("parse flags: %v", err)
 	}
@@ -49,6 +49,9 @@ func TestParseGlobalFlagsInterspersed(t *testing.T) {
 	}
 	if opts.Profile != "work" {
 		t.Fatalf("expected profile work, got %q", opts.Profile)
+	}
+	if opts.ProgressJSONL != "events.jsonl" {
+		t.Fatalf("expected progress-jsonl path, got %q", opts.ProgressJSONL)
 	}
 	if len(rest) != 1 || rest[0] != "planner" {
 		t.Fatalf("unexpected rest args: %#v", rest)

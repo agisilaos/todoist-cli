@@ -394,6 +394,15 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 }
 
 func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool) error {
+	allTasks, next, err := listTasksByFilter(ctx, filter, cursor, limit, all)
+	if err != nil {
+		return err
+	}
+	// Keep original ordering from API for filter; no client sort to preserve meaning.
+	return writeTaskList(ctx, allTasks, next, wide)
+}
+
+func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool) ([]api.Task, string, error) {
 	query := url.Values{}
 	query.Set("query", filter)
 	query.Set("limit", strconv.Itoa(limit))
@@ -408,7 +417,7 @@ func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, 
 		reqID, err := ctx.Client.Get(reqCtx, "/tasks/filter", query, &page)
 		cancel()
 		if err != nil {
-			return err
+			return nil, "", err
 		}
 		setRequestID(ctx, reqID)
 		allTasks = append(allTasks, page.Results...)
@@ -418,8 +427,7 @@ func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, 
 		}
 		query.Set("cursor", next)
 	}
-	// Keep original ordering from API for filter; no client sort to preserve meaning.
-	return writeTaskList(ctx, allTasks, next, wide)
+	return allTasks, next, nil
 }
 
 func taskListCompleted(ctx *Context, completedBy, filter, project, section, parent, since, until, cursor string, limit int, all bool, wide bool) error {
@@ -737,11 +745,15 @@ func taskMove(ctx *Context, args []string) error {
 	var project string
 	var section string
 	var parent string
+	var filter string
+	var yes bool
 	var help bool
 	fs.StringVar(&id, "id", "", "Task ID")
 	fs.StringVar(&project, "project", "", "Project")
 	fs.StringVar(&section, "section", "", "Section")
 	fs.StringVar(&parent, "parent", "", "Parent")
+	fs.StringVar(&filter, "filter", "", "Filter query for bulk move")
+	fs.BoolVar(&yes, "yes", false, "Required for bulk move")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -751,7 +763,7 @@ func taskMove(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
-	if id == "" && len(fs.Args()) > 0 {
+	if filter == "" && id == "" && len(fs.Args()) > 0 {
 		ref := strings.Join(fs.Args(), " ")
 		if err := ensureClient(ctx); err != nil {
 			return err
@@ -762,7 +774,7 @@ func taskMove(ctx *Context, args []string) error {
 		}
 		id = task.ID
 	}
-	if id == "" {
+	if filter == "" && id == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("--id is required (or pass a text reference)")}
 	}
@@ -772,6 +784,66 @@ func taskMove(ctx *Context, args []string) error {
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
+	}
+	if filter != "" {
+		if id != "" || len(fs.Args()) > 0 {
+			return &CodeError{Code: exitUsage, Err: errors.New("--filter cannot be combined with --id or positional task reference")}
+		}
+		if !yes && !ctx.Global.Force {
+			return &CodeError{Code: exitUsage, Err: errors.New("bulk move with --filter requires --yes (or --force)")}
+		}
+		tasks, _, err := listTasksByFilter(ctx, filter, "", 200, true)
+		if err != nil {
+			return err
+		}
+		ids := make([]string, 0, len(tasks))
+		for _, t := range tasks {
+			ids = append(ids, t.ID)
+		}
+		body := map[string]any{}
+		if project != "" {
+			id, err := resolveProjectID(ctx, project)
+			if err != nil {
+				return err
+			}
+			body["project_id"] = id
+		}
+		if section != "" {
+			id, err := resolveSectionID(ctx, section, project)
+			if err != nil {
+				return err
+			}
+			body["section_id"] = id
+		}
+		if parent != "" {
+			body["parent_id"] = parent
+		}
+		if ctx.Global.DryRun {
+			return writeDryRun(ctx, "task move bulk", map[string]any{"filter": filter, "count": len(ids), "ids": ids, "payload": body})
+		}
+		moved := 0
+		failed := 0
+		for _, taskID := range ids {
+			reqCtx, cancel := requestContext(ctx)
+			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/move", nil, body, nil, true)
+			cancel()
+			if err != nil {
+				failed++
+				continue
+			}
+			setRequestID(ctx, reqID)
+			moved++
+		}
+		if ctx.Mode == output.ModeJSON {
+			return output.WriteJSON(ctx.Stdout, map[string]any{
+				"filter": filter,
+				"moved":  moved,
+				"failed": failed,
+				"count":  len(ids),
+			}, output.Meta{RequestID: ctx.RequestID})
+		}
+		fmt.Fprintf(ctx.Stdout, "bulk move complete: moved=%d failed=%d total=%d\n", moved, failed, len(ids))
+		return nil
 	}
 	body := map[string]any{}
 	if project != "" {
@@ -805,13 +877,80 @@ func taskMove(ctx *Context, args []string) error {
 }
 
 func taskComplete(ctx *Context, args []string) error {
-	id, err := requireTaskID(ctx, "task complete", args)
-	if err != nil {
-		printTaskHelp(ctx.Stderr)
-		return err
+	fs := flag.NewFlagSet("task complete", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var id string
+	var filter string
+	var yes bool
+	var help bool
+	fs.StringVar(&id, "id", "", "Task ID")
+	fs.StringVar(&filter, "filter", "", "Filter query for bulk complete")
+	fs.BoolVar(&yes, "yes", false, "Required for bulk complete")
+	fs.BoolVar(&help, "help", false, "Show help")
+	fs.BoolVar(&help, "h", false, "Show help")
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printTaskHelp(ctx.Stdout)
+		return nil
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
+	}
+	if filter != "" {
+		if id != "" || len(fs.Args()) > 0 {
+			return &CodeError{Code: exitUsage, Err: errors.New("--filter cannot be combined with --id or positional task reference")}
+		}
+		if !yes && !ctx.Global.Force {
+			return &CodeError{Code: exitUsage, Err: errors.New("bulk complete with --filter requires --yes (or --force)")}
+		}
+		tasks, _, err := listTasksByFilter(ctx, filter, "", 200, true)
+		if err != nil {
+			return err
+		}
+		ids := make([]string, 0, len(tasks))
+		for _, t := range tasks {
+			ids = append(ids, t.ID)
+		}
+		if ctx.Global.DryRun {
+			return writeDryRun(ctx, "task complete bulk", map[string]any{"filter": filter, "count": len(ids), "ids": ids})
+		}
+		completed := 0
+		failed := 0
+		for _, taskID := range ids {
+			reqCtx, cancel := requestContext(ctx)
+			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/close", nil, nil, nil, true)
+			cancel()
+			if err != nil {
+				failed++
+				continue
+			}
+			setRequestID(ctx, reqID)
+			completed++
+		}
+		if ctx.Mode == output.ModeJSON {
+			return output.WriteJSON(ctx.Stdout, map[string]any{
+				"filter":    filter,
+				"completed": completed,
+				"failed":    failed,
+				"count":     len(ids),
+			}, output.Meta{RequestID: ctx.RequestID})
+		}
+		fmt.Fprintf(ctx.Stdout, "bulk complete done: completed=%d failed=%d total=%d\n", completed, failed, len(ids))
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		ref := strings.Join(fs.Args(), " ")
+		task, err := resolveTaskRef(ctx, ref)
+		if err != nil {
+			return err
+		}
+		id = task.ID
+	}
+	if id == "" {
+		printTaskHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: errors.New("task complete requires --id or a reference")}
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "task complete", map[string]any{"id": id})

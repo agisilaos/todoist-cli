@@ -21,6 +21,7 @@ type agentRunOptions struct {
 	ContextProjects  []string
 	ContextLabels    []string
 	ContextCompleted string
+	PolicyPath       string
 }
 
 func agentRun(ctx *Context, args []string) error {
@@ -34,6 +35,7 @@ func agentRun(ctx *Context, args []string) error {
 	fs.StringVar(&opts.OnError, "on-error", "fail", "On error: fail|continue")
 	fs.IntVar(&opts.ExpectedVersion, "plan-version", 1, "Expected plan version")
 	fs.StringVar(&opts.OutPath, "out", "", "Write plan output to file")
+	fs.StringVar(&opts.PolicyPath, "policy", "", "Policy file path")
 	var contextProjects multiValue
 	var contextLabels multiValue
 	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
@@ -59,9 +61,13 @@ func agentRun(ctx *Context, args []string) error {
 	opts.DryRun = ctx.Global.DryRun
 	opts.ContextProjects = contextProjects
 	opts.ContextLabels = contextLabels
+	emitProgress(ctx, "agent_run_start", map[string]any{
+		"command": "agent run",
+	})
 
 	plan, err := loadOrPlan(ctx, opts)
 	if err != nil {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}
 	if opts.OutPath != "" && opts.OutPath != "-" {
@@ -70,6 +76,16 @@ func agentRun(ctx *Context, args []string) error {
 		}
 	}
 	if err := validatePlan(plan, opts.ExpectedVersion); err != nil {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
+		return err
+	}
+	policy, err := loadAgentPolicy(ctx, opts.PolicyPath)
+	if err != nil {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
+		return err
+	}
+	if err := enforceAgentPolicy(plan, policy); err != nil {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}
 	if !opts.Force {
@@ -81,19 +97,24 @@ func agentRun(ctx *Context, args []string) error {
 		}
 	}
 	if opts.DryRun {
+		emitProgress(ctx, "agent_run_complete", map[string]any{"dry_run": true, "action_count": len(plan.Actions)})
 		return writePlanPreview(ctx, plan, true)
 	}
 	if err := ensureClient(ctx); err != nil {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}
-	results, applyErr := applyActionsWithMode(ctx, plan.Actions, opts.OnError)
+	results, applyErr := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, opts.OnError)
 	if applyErr != nil && opts.OnError == "fail" {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": applyErr.Error()})
 		return applyErr
 	}
 	plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
 	if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
+		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}
+	emitProgress(ctx, "agent_run_complete", map[string]any{"action_count": len(plan.Actions)})
 	return writePlanApplyResult(ctx, plan, results, applyErr)
 }
 

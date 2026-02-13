@@ -8,12 +8,13 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestBuildOAuthConfigRequiresClientID(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_CLIENT_ID", "")
 
-	_, err := buildOAuthConfig("", "", "", "", "", false)
+	_, err := buildOAuthConfig("", "", "", "", "", "", false)
 	if err == nil {
 		t.Fatalf("expected missing client id error")
 	}
@@ -26,9 +27,10 @@ func TestBuildOAuthConfigDefaultsAndEnv(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_CLIENT_ID", "env-client")
 	t.Setenv("TODOIST_OAUTH_AUTHORIZE_URL", "https://auth.example.com/authorize")
 	t.Setenv("TODOIST_OAUTH_TOKEN_URL", "https://auth.example.com/token")
+	t.Setenv("TODOIST_OAUTH_DEVICE_URL", "https://auth.example.com/device")
 	t.Setenv("TODOIST_OAUTH_LISTEN", "127.0.0.1:9999")
 
-	cfg, err := buildOAuthConfig("", "", "", "", "", true)
+	cfg, err := buildOAuthConfig("", "", "", "", "", "", true)
 	if err != nil {
 		t.Fatalf("buildOAuthConfig: %v", err)
 	}
@@ -41,6 +43,9 @@ func TestBuildOAuthConfigDefaultsAndEnv(t *testing.T) {
 	if cfg.TokenURL != "https://auth.example.com/token" {
 		t.Fatalf("unexpected token url: %q", cfg.TokenURL)
 	}
+	if cfg.DeviceURL != "https://auth.example.com/device" {
+		t.Fatalf("unexpected device url: %q", cfg.DeviceURL)
+	}
 	if cfg.ListenAddr != "127.0.0.1:9999" {
 		t.Fatalf("unexpected listen addr: %q", cfg.ListenAddr)
 	}
@@ -49,6 +54,60 @@ func TestBuildOAuthConfigDefaultsAndEnv(t *testing.T) {
 	}
 	if !cfg.NoBrowser {
 		t.Fatalf("expected no-browser true")
+	}
+}
+
+func TestStartOAuthDeviceFlowSuccess(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		data, _ := io.ReadAll(r.Body)
+		values, err := url.ParseQuery(string(data))
+		if err != nil {
+			t.Fatalf("parse body: %v", err)
+		}
+		if values.Get("client_id") != "client-1" {
+			t.Fatalf("unexpected client_id: %q", values.Get("client_id"))
+		}
+		_, _ = w.Write([]byte(`{"device_code":"dev-1","user_code":"ABCD","verification_uri":"https://verify","verification_uri_complete":"https://verify?user_code=ABCD","interval":2,"expires_in":300}`))
+	}))
+	defer ts.Close()
+
+	cfg := oauthConfig{ClientID: "client-1", DeviceURL: ts.URL}
+	deviceCode, userCode, verifyURL, verifyURLComplete, intervalSec, expiresInSec, err := startOAuthDeviceFlow(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("startOAuthDeviceFlow: %v", err)
+	}
+	if deviceCode != "dev-1" || userCode != "ABCD" || verifyURL != "https://verify" || verifyURLComplete == "" || intervalSec != 2 || expiresInSec != 300 {
+		t.Fatalf("unexpected device flow response: %q %q %q %q %d %d", deviceCode, userCode, verifyURL, verifyURLComplete, intervalSec, expiresInSec)
+	}
+}
+
+func TestPollOAuthDeviceTokenSuccessAfterPending(t *testing.T) {
+	prevWait := waitForOAuthPollFn
+	waitForOAuthPollFn = func(ctx context.Context, delay time.Duration) error { return nil }
+	defer func() { waitForOAuthPollFn = prevWait }()
+
+	calls := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls == 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":"authorization_pending"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"access_token":"token-device-1"}`))
+	}))
+	defer ts.Close()
+
+	cfg := oauthConfig{ClientID: "client-1", TokenURL: ts.URL}
+	token, err := pollOAuthDeviceToken(context.Background(), cfg, "dev-1", 1, 10)
+	if err != nil {
+		t.Fatalf("pollOAuthDeviceToken: %v", err)
+	}
+	if token != "token-device-1" {
+		t.Fatalf("unexpected token: %q", token)
 	}
 }
 
