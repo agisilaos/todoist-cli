@@ -108,6 +108,32 @@ Examples:
 `)
 }
 
+func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
+                    [--oauth-authorize-url <url>] [--oauth-token-url <url>]
+                    [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
+
+Flags:
+  --token-stdin                Read token from stdin
+  --print-env                  Print token export instead of saving profile credentials
+  --oauth                      Authenticate using OAuth PKCE flow
+  --no-browser                 Do not auto-open browser for OAuth flow
+  --client-id <id>             OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
+  --oauth-authorize-url <url>  OAuth authorize URL override
+  --oauth-token-url <url>      OAuth token URL override
+  --oauth-listen <host:port>   OAuth callback listen address (default 127.0.0.1:8765)
+  --oauth-redirect-uri <uri>   OAuth redirect URI (default http://<listen>/callback)
+
+Examples:
+  todoist auth login
+  todoist auth login --token-stdin < token.txt
+  todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist auth login --oauth --no-browser --print-env
+`)
+}
+
 func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist task list [--filter <query>] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--wide] [--all-projects]

@@ -20,7 +20,15 @@ var waitForOAuthCodeFn = waitForOAuthCode
 var exchangeOAuthTokenFn = exchangeOAuthToken
 
 func authCommand(ctx *Context, args []string) error {
-	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
+		printAuthHelp(ctx.Stdout)
+		return nil
+	}
+	if args[0] == "help" {
+		if len(args) > 1 && args[1] == "login" {
+			printAuthLoginHelp(ctx.Stdout)
+			return nil
+		}
 		printAuthHelp(ctx.Stdout)
 		return nil
 	}
@@ -64,7 +72,7 @@ func authLogin(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
-		printAuthHelp(ctx.Stdout)
+		printAuthLoginHelp(ctx.Stdout)
 		return nil
 	}
 	if oauth {

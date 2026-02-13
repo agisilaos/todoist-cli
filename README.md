@@ -146,6 +146,8 @@ Manage Todoist credentials and profiles.
 ```
 todoist auth login [--token-stdin] [--print-env]
 todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
+                  [--oauth-authorize-url <url>] [--oauth-token-url <url>]
+                  [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 todoist auth status
 todoist auth logout
 ```
