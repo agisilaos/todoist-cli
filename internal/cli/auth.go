@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
+
+var performOAuthLogin = authOAuthLogin
 
 func authCommand(ctx *Context, args []string) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
@@ -33,9 +36,23 @@ func authLogin(ctx *Context, args []string) error {
 	fs.SetOutput(io.Discard)
 	var tokenStdin bool
 	var printEnv bool
+	var oauth bool
+	var noBrowser bool
+	var clientID string
+	var authorizeURL string
+	var tokenURL string
+	var oauthListen string
+	var redirectURI string
 	var help bool
 	fs.BoolVar(&tokenStdin, "token-stdin", false, "Read token from stdin")
 	fs.BoolVar(&printEnv, "print-env", false, "Print export command instead of saving")
+	fs.BoolVar(&oauth, "oauth", false, "Authenticate via OAuth PKCE flow")
+	fs.BoolVar(&noBrowser, "no-browser", false, "Do not auto-open browser for OAuth flow")
+	fs.StringVar(&clientID, "client-id", "", "OAuth client ID")
+	fs.StringVar(&authorizeURL, "oauth-authorize-url", "", "OAuth authorize URL")
+	fs.StringVar(&tokenURL, "oauth-token-url", "", "OAuth token URL")
+	fs.StringVar(&oauthListen, "oauth-listen", "", "OAuth callback listen address (host:port)")
+	fs.StringVar(&redirectURI, "oauth-redirect-uri", "", "OAuth redirect URI")
 	fs.BoolVar(&help, "help", false, "Show help")
 	fs.BoolVar(&help, "h", false, "Show help")
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -44,6 +61,24 @@ func authLogin(ctx *Context, args []string) error {
 	if help {
 		printAuthHelp(ctx.Stdout)
 		return nil
+	}
+	if oauth {
+		if tokenStdin {
+			return &CodeError{Code: exitUsage, Err: errors.New("--token-stdin cannot be used with --oauth")}
+		}
+		cfg, err := buildOAuthConfig(clientID, authorizeURL, tokenURL, redirectURI, oauthListen, noBrowser)
+		if err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
+		token, err := performOAuthLogin(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		if printEnv {
+			fmt.Fprintf(ctx.Stdout, "export TODOIST_TOKEN=%s\n", token)
+			return nil
+		}
+		return storeProfileToken(ctx, token)
 	}
 	var token string
 	if tokenStdin {
@@ -73,6 +108,42 @@ func authLogin(ctx *Context, args []string) error {
 		fmt.Fprintf(ctx.Stdout, "export TODOIST_TOKEN=%s\n", token)
 		return nil
 	}
+	return storeProfileToken(ctx, token)
+}
+
+func authOAuthLogin(ctx *Context, cfg oauthConfig) (string, error) {
+	verifier, err := generateOAuthRandom(32)
+	if err != nil {
+		return "", err
+	}
+	state, err := generateOAuthRandom(16)
+	if err != nil {
+		return "", err
+	}
+	authURL, err := buildOAuthAuthorizationURL(cfg, oauthCodeChallenge(verifier), state)
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintf(ctx.Stderr, "OAuth authorization URL:\n%s\n", authURL)
+	if !cfg.NoBrowser {
+		if err := openOAuthBrowser(authURL); err != nil {
+			return "", fmt.Errorf("open browser: %w", err)
+		}
+	}
+	reqCtx, cancel := requestContext(ctx)
+	defer cancel()
+	code, err := waitForOAuthCode(reqCtx, cfg, state, 3*time.Minute)
+	if err != nil {
+		return "", err
+	}
+	token, err := exchangeOAuthToken(reqCtx, cfg, code, verifier)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func storeProfileToken(ctx *Context, token string) error {
 	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
 	creds, _, err := config.LoadCredentials(credsPath)
 	if err != nil {

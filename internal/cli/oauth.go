@@ -1,0 +1,231 @@
+package cli
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"runtime"
+	"strings"
+	"time"
+)
+
+const (
+	defaultOAuthAuthorizeURL = "https://todoist.com/oauth/authorize"
+	defaultOAuthTokenURL     = "https://todoist.com/oauth/access_token"
+	defaultOAuthListenAddr   = "127.0.0.1:8765"
+)
+
+type oauthConfig struct {
+	ClientID     string
+	AuthorizeURL string
+	TokenURL     string
+	RedirectURI  string
+	ListenAddr   string
+	NoBrowser    bool
+}
+
+func buildOAuthConfig(clientID, authorizeURL, tokenURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
+	if clientID == "" {
+		clientID = strings.TrimSpace(os.Getenv("TODOIST_OAUTH_CLIENT_ID"))
+	}
+	if clientID == "" {
+		return oauthConfig{}, fmt.Errorf("missing OAuth client id; set --client-id or TODOIST_OAUTH_CLIENT_ID")
+	}
+	if authorizeURL == "" {
+		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_AUTHORIZE_URL")); env != "" {
+			authorizeURL = env
+		} else {
+			authorizeURL = defaultOAuthAuthorizeURL
+		}
+	}
+	if tokenURL == "" {
+		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_TOKEN_URL")); env != "" {
+			tokenURL = env
+		} else {
+			tokenURL = defaultOAuthTokenURL
+		}
+	}
+	if listenAddr == "" {
+		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_LISTEN")); env != "" {
+			listenAddr = env
+		} else {
+			listenAddr = defaultOAuthListenAddr
+		}
+	}
+	if redirectURI == "" {
+		redirectURI = "http://" + listenAddr + "/callback"
+	}
+	return oauthConfig{
+		ClientID:     clientID,
+		AuthorizeURL: authorizeURL,
+		TokenURL:     tokenURL,
+		RedirectURI:  redirectURI,
+		ListenAddr:   listenAddr,
+		NoBrowser:    noBrowser,
+	}, nil
+}
+
+func generateOAuthRandom(size int) (string, error) {
+	buf := make([]byte, size)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func oauthCodeChallenge(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+func buildOAuthAuthorizationURL(cfg oauthConfig, codeChallenge, state string) (string, error) {
+	u, err := url.Parse(cfg.AuthorizeURL)
+	if err != nil {
+		return "", err
+	}
+	q := u.Query()
+	q.Set("client_id", cfg.ClientID)
+	q.Set("scope", "data:read_write,data:delete,project:delete")
+	q.Set("state", state)
+	q.Set("redirect_uri", cfg.RedirectURI)
+	q.Set("code_challenge", codeChallenge)
+	q.Set("code_challenge_method", "S256")
+	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
+
+func openOAuthBrowser(url string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	default:
+		cmd = exec.Command("xdg-open", url)
+	}
+	return cmd.Start()
+}
+
+func waitForOAuthCode(ctx context.Context, cfg oauthConfig, expectedState string, timeout time.Duration) (string, error) {
+	parsedRedirect, err := url.Parse(cfg.RedirectURI)
+	if err != nil {
+		return "", fmt.Errorf("invalid redirect URI: %w", err)
+	}
+	callbackPath := parsedRedirect.Path
+	if callbackPath == "" {
+		callbackPath = "/callback"
+	}
+
+	ln, err := net.Listen("tcp", cfg.ListenAddr)
+	if err != nil {
+		return "", fmt.Errorf("listen OAuth callback: %w", err)
+	}
+	defer ln.Close()
+
+	resultCh := make(chan struct {
+		code string
+		err  error
+	}, 1)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc(callbackPath, func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if errMsg := q.Get("error"); errMsg != "" {
+			http.Error(w, "OAuth failed: "+errMsg, http.StatusBadRequest)
+			resultCh <- struct {
+				code string
+				err  error
+			}{"", fmt.Errorf("oauth authorization failed: %s", errMsg)}
+			return
+		}
+		state := q.Get("state")
+		if state == "" || state != expectedState {
+			http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
+			resultCh <- struct {
+				code string
+				err  error
+			}{"", fmt.Errorf("invalid oauth state")}
+			return
+		}
+		code := q.Get("code")
+		if code == "" {
+			http.Error(w, "Missing OAuth code", http.StatusBadRequest)
+			resultCh <- struct {
+				code string
+				err  error
+			}{"", fmt.Errorf("missing oauth code in callback")}
+			return
+		}
+		_, _ = io.WriteString(w, "Todoist CLI authorization successful. You can close this tab.")
+		resultCh <- struct {
+			code string
+			err  error
+		}{code, nil}
+	})
+
+	server := &http.Server{Handler: mux}
+	go func() {
+		_ = server.Serve(ln)
+	}()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = server.Shutdown(shutdownCtx)
+	}()
+
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	select {
+	case <-waitCtx.Done():
+		if waitCtx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("oauth callback timed out")
+		}
+		return "", waitCtx.Err()
+	case result := <-resultCh:
+		return result.code, result.err
+	}
+}
+
+func exchangeOAuthToken(ctx context.Context, cfg oauthConfig, code, codeVerifier string) (string, error) {
+	form := url.Values{}
+	form.Set("client_id", cfg.ClientID)
+	form.Set("code", code)
+	form.Set("code_verifier", codeVerifier)
+	form.Set("redirect_uri", cfg.RedirectURI)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.TokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 8*1024))
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("oauth token exchange failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+	}
+	var payload struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return "", fmt.Errorf("decode oauth token response: %w", err)
+	}
+	if strings.TrimSpace(payload.AccessToken) == "" {
+		return "", fmt.Errorf("oauth token exchange returned empty access_token")
+	}
+	return payload.AccessToken, nil
+}

@@ -93,12 +93,15 @@ func helpCommand(ctx *Context, args []string) error {
 func printAuthHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist auth login [--token-stdin] [--print-env]
+  todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
   todoist auth status
   todoist auth logout
 
 Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
+  todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist auth login --oauth --no-browser
   todoist auth login --print-env
 `)
 }
