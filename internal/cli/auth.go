@@ -13,6 +13,11 @@ import (
 )
 
 var performOAuthLogin = authOAuthLogin
+var generateOAuthRandomFn = generateOAuthRandom
+var buildOAuthAuthorizationURLFn = buildOAuthAuthorizationURL
+var openOAuthBrowserFn = openOAuthBrowser
+var waitForOAuthCodeFn = waitForOAuthCode
+var exchangeOAuthTokenFn = exchangeOAuthToken
 
 func authCommand(ctx *Context, args []string) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
@@ -112,31 +117,32 @@ func authLogin(ctx *Context, args []string) error {
 }
 
 func authOAuthLogin(ctx *Context, cfg oauthConfig) (string, error) {
-	verifier, err := generateOAuthRandom(32)
+	verifier, err := generateOAuthRandomFn(32)
 	if err != nil {
 		return "", err
 	}
-	state, err := generateOAuthRandom(16)
+	state, err := generateOAuthRandomFn(16)
 	if err != nil {
 		return "", err
 	}
-	authURL, err := buildOAuthAuthorizationURL(cfg, oauthCodeChallenge(verifier), state)
+	authURL, err := buildOAuthAuthorizationURLFn(cfg, oauthCodeChallenge(verifier), state)
 	if err != nil {
 		return "", err
 	}
 	fmt.Fprintf(ctx.Stderr, "OAuth authorization URL:\n%s\n", authURL)
 	if !cfg.NoBrowser {
-		if err := openOAuthBrowser(authURL); err != nil {
-			return "", fmt.Errorf("open browser: %w", err)
+		if err := openOAuthBrowserFn(authURL); err != nil {
+			fmt.Fprintf(ctx.Stderr, "warning: could not open browser automatically: %v\n", err)
+			fmt.Fprintln(ctx.Stderr, "Open the OAuth authorization URL manually to continue.")
 		}
 	}
 	reqCtx, cancel := requestContext(ctx)
 	defer cancel()
-	code, err := waitForOAuthCode(reqCtx, cfg, state, 3*time.Minute)
+	code, err := waitForOAuthCodeFn(reqCtx, cfg, state, 3*time.Minute)
 	if err != nil {
 		return "", err
 	}
-	token, err := exchangeOAuthToken(reqCtx, cfg, code, verifier)
+	token, err := exchangeOAuthTokenFn(reqCtx, cfg, code, verifier)
 	if err != nil {
 		return "", err
 	}

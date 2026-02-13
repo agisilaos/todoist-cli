@@ -155,6 +155,9 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 	if !strings.Contains(got, "Agentic Todoist CLI") {
 		t.Fatalf("expected root help output, got %q", got)
 	}
+	if !strings.Contains(got, "--fuzzy") || !strings.Contains(got, "--no-fuzzy") {
+		t.Fatalf("expected fuzzy global flags in help, got %q", got)
+	}
 }
 
 func TestContractNDJSONWritersForAllLists(t *testing.T) {

@@ -142,7 +142,7 @@ _todoist() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]}"
 
-  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --base-url"
+  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "today inbox add auth task project section label comment agent completion schema planner help ${global_flags}" -- "$cur") )
@@ -171,7 +171,7 @@ _todoist() {
         return 0
       fi
       if [[ ${COMP_WORDS[2]} == "login" ]]; then
-        COMPREPLY=( $(compgen -W "--token-stdin --print-env ${global_flags}" -- "$cur") )
+        COMPREPLY=( $(compgen -W "--token-stdin --print-env --oauth --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-listen --oauth-redirect-uri ${global_flags}" -- "$cur") )
         return 0
       fi
       ;;
@@ -266,10 +266,10 @@ case $words[1] in
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
   auth)
-    _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env)'
+    _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env --oauth --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --base-url)'
+    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --base-url)'
     ;;
   project)
     _arguments '2:subcommand:(list ls add update archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view)'
@@ -320,12 +320,21 @@ complete -c todoist -l config -d "Config file path"
 complete -c todoist -l profile -d "Profile name"
 complete -c todoist -s n -l dry-run -d "Preview changes without applying"
 complete -c todoist -s f -l force -d "Skip confirmation prompts"
+complete -c todoist -l fuzzy -d "Enable fuzzy name resolution"
+complete -c todoist -l no-fuzzy -d "Disable fuzzy name resolution"
 complete -c todoist -l base-url -d "Override API base URL"
 
 # auth
 complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_use_subcommand' -a 'login status logout'
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l token-stdin -d "Read token from stdin"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l print-env -d "Print TODOIST_TOKEN export"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth -d "Authenticate via OAuth PKCE flow"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l no-browser -d "Do not auto-open browser for OAuth flow"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l client-id -d "OAuth client ID"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-authorize-url -d "OAuth authorize URL"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-token-url -d "OAuth token URL"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-listen -d "OAuth callback listen address"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-redirect-uri -d "OAuth redirect URI"
 
 # task
 complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list ls add view show update move complete reopen delete rm del'

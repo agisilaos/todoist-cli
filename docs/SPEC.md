@@ -9,6 +9,8 @@ Go-based CLI for Todoist. Binary name: `todoist`. Designed for humans and script
 - **Primary**: `TODOIST_TOKEN` environment variable
 - **Fallback**: `~/.config/todoist/credentials.json`
 - Profiles supported via `--profile` / `TODOIST_PROFILE`
+- OAuth PKCE login supported via `todoist auth login --oauth` (client ID from `--client-id` or `TODOIST_OAUTH_CLIENT_ID`)
+- OAuth endpoint/listen overrides: `TODOIST_OAUTH_AUTHORIZE_URL`, `TODOIST_OAUTH_TOKEN_URL`, `TODOIST_OAUTH_LISTEN`
 
 ## Command Structure
 

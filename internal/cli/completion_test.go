@@ -35,3 +35,65 @@ func TestCompletionInstallWritesFile(t *testing.T) {
 		t.Fatalf("expected install message, got %q", out.String())
 	}
 }
+
+func TestCompletionScriptsIncludeOAuthAuthLoginFlags(t *testing.T) {
+	expectedFlags := map[string][]string{
+		"bash": {
+			"--oauth",
+			"--no-browser",
+			"--client-id",
+			"--oauth-authorize-url",
+			"--oauth-token-url",
+			"--oauth-listen",
+			"--oauth-redirect-uri",
+		},
+		"zsh": {
+			"--oauth",
+			"--no-browser",
+			"--client-id",
+			"--oauth-authorize-url",
+			"--oauth-token-url",
+			"--oauth-listen",
+			"--oauth-redirect-uri",
+		},
+		"fish": {
+			"-l oauth",
+			"-l no-browser",
+			"-l client-id",
+			"-l oauth-authorize-url",
+			"-l oauth-token-url",
+			"-l oauth-listen",
+			"-l oauth-redirect-uri",
+		},
+	}
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		for _, flag := range expectedFlags[shell] {
+			if !strings.Contains(script, flag) {
+				t.Fatalf("%s completion missing %s", shell, flag)
+			}
+		}
+	}
+}
+
+func TestCompletionScriptsIncludeFuzzyGlobalFlags(t *testing.T) {
+	expectedFlags := map[string][]string{
+		"bash": {"--fuzzy", "--no-fuzzy"},
+		"zsh":  {"--fuzzy", "--no-fuzzy"},
+		"fish": {"-l fuzzy", "-l no-fuzzy"},
+	}
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		for _, flag := range expectedFlags[shell] {
+			if !strings.Contains(script, flag) {
+				t.Fatalf("%s completion missing %s", shell, flag)
+			}
+		}
+	}
+}

@@ -40,6 +40,8 @@ Global flags:
   --profile <name>      Profile name (default "default")
   -n, --dry-run         Preview changes without applying
   -f, --force           Skip confirmation prompts
+  --fuzzy               Enable fuzzy name resolution
+  --no-fuzzy            Disable fuzzy name resolution
   --base-url <url>      Override API base URL
 
 Examples:

@@ -94,6 +94,10 @@ Environment variables:
 - `TODOIST_CONFIG`
 - `TODOIST_TIMEOUT`
 - `TODOIST_BASE_URL`
+- `TODOIST_OAUTH_CLIENT_ID` (OAuth client ID used by `auth login --oauth`)
+- `TODOIST_OAUTH_AUTHORIZE_URL` (override OAuth authorize URL)
+- `TODOIST_OAUTH_TOKEN_URL` (override OAuth token URL)
+- `TODOIST_OAUTH_LISTEN` (override OAuth callback listen address)
 - `TODOIST_FUZZY` (1 to enable fuzzy name resolution)
 - `TODOIST_TABLE_WIDTH` (override table width for human output)
 
@@ -121,6 +125,8 @@ Global flags apply to every command:
 --profile <name>     Profile name (default "default")
 -n, --dry-run         Preview changes without applying
 -f, --force           Skip confirmation prompts
+--fuzzy               Enable fuzzy name resolution
+--no-fuzzy            Disable fuzzy name resolution
 --base-url <url>      Override API base URL
 ```
 
@@ -139,11 +145,13 @@ Manage Todoist credentials and profiles.
 
 ```
 todoist auth login [--token-stdin] [--print-env]
+todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
 todoist auth status
 todoist auth logout
 ```
 
 - `auth login` prompts for a token (TTY) or reads from stdin with `--token-stdin`. Stores tokens in `~/.config/todoist/credentials.json` (0600).
+- `auth login --oauth` runs OAuth PKCE via local callback (`http://127.0.0.1:8765/callback` by default). If browser auto-open fails, the command prints a warning and continues waiting for callback so you can open the URL manually.
 - `auth status` prints active profile and whether a token is present.
 - `auth logout` deletes stored credentials for the active profile.
 - Use `--print-env` to emit `TODOIST_TOKEN=...` for piping into other tools.

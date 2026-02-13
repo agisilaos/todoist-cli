@@ -2,11 +2,14 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
 )
@@ -71,6 +74,79 @@ func TestAuthLoginOAuthPrintEnvDoesNotStore(t *testing.T) {
 	}
 }
 
+func TestAuthOAuthLoginContinuesWhenBrowserOpenFails(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	cfg := oauthConfig{
+		ClientID:    "client-1",
+		RedirectURI: "http://127.0.0.1:8765/callback",
+	}
+	restore := stubOAuthFlowDeps(
+		func(size int) (string, error) {
+			if size == 32 {
+				return "verifier-1", nil
+			}
+			return "state-1", nil
+		},
+		func(_ oauthConfig, _, _ string) (string, error) { return "https://auth.example/authorize", nil },
+		func(_ string) error { return fmt.Errorf("open failed") },
+		func(_ context.Context, _ oauthConfig, _ string, _ time.Duration) (string, error) {
+			return "code-1", nil
+		},
+		func(_ context.Context, _ oauthConfig, _, _ string) (string, error) { return "token-1", nil },
+	)
+	defer restore()
+
+	token, err := authOAuthLogin(ctx, cfg)
+	if err != nil {
+		t.Fatalf("authOAuthLogin: %v", err)
+	}
+	if token != "token-1" {
+		t.Fatalf("unexpected token: %q", token)
+	}
+	stderr := ctx.Stderr.(*bytes.Buffer).String()
+	if !strings.Contains(stderr, "warning: could not open browser automatically") {
+		t.Fatalf("expected browser warning, got %q", stderr)
+	}
+	if !strings.Contains(stderr, "Open the OAuth authorization URL manually to continue.") {
+		t.Fatalf("expected manual-open guidance, got %q", stderr)
+	}
+}
+
+func TestAuthOAuthLoginNoBrowserSkipsBrowserOpen(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	cfg := oauthConfig{
+		ClientID:    "client-1",
+		RedirectURI: "http://127.0.0.1:8765/callback",
+		NoBrowser:   true,
+	}
+	openCalls := 0
+	restore := stubOAuthFlowDeps(
+		func(size int) (string, error) {
+			if size == 32 {
+				return "verifier-1", nil
+			}
+			return "state-1", nil
+		},
+		func(_ oauthConfig, _, _ string) (string, error) { return "https://auth.example/authorize", nil },
+		func(_ string) error {
+			openCalls++
+			return nil
+		},
+		func(_ context.Context, _ oauthConfig, _ string, _ time.Duration) (string, error) {
+			return "code-1", nil
+		},
+		func(_ context.Context, _ oauthConfig, _, _ string) (string, error) { return "token-1", nil },
+	)
+	defer restore()
+
+	if _, err := authOAuthLogin(ctx, cfg); err != nil {
+		t.Fatalf("authOAuthLogin: %v", err)
+	}
+	if openCalls != 0 {
+		t.Fatalf("expected no browser open calls, got %d", openCalls)
+	}
+}
+
 func newAuthTestContext(t *testing.T) *Context {
 	t.Helper()
 	tmp := t.TempDir()
@@ -88,6 +164,32 @@ func stubPerformOAuthLogin(fn func(ctx *Context, cfg oauthConfig) (string, error
 	performOAuthLogin = fn
 	return func() {
 		performOAuthLogin = prev
+	}
+}
+
+func stubOAuthFlowDeps(
+	randomFn func(size int) (string, error),
+	authURLFn func(cfg oauthConfig, codeChallenge, state string) (string, error),
+	openFn func(url string) error,
+	waitFn func(ctx context.Context, cfg oauthConfig, expectedState string, timeout time.Duration) (string, error),
+	exchangeFn func(ctx context.Context, cfg oauthConfig, code, codeVerifier string) (string, error),
+) func() {
+	prevRandom := generateOAuthRandomFn
+	prevAuthURL := buildOAuthAuthorizationURLFn
+	prevOpen := openOAuthBrowserFn
+	prevWait := waitForOAuthCodeFn
+	prevExchange := exchangeOAuthTokenFn
+	generateOAuthRandomFn = randomFn
+	buildOAuthAuthorizationURLFn = authURLFn
+	openOAuthBrowserFn = openFn
+	waitForOAuthCodeFn = waitFn
+	exchangeOAuthTokenFn = exchangeFn
+	return func() {
+		generateOAuthRandomFn = prevRandom
+		buildOAuthAuthorizationURLFn = prevAuthURL
+		openOAuthBrowserFn = prevOpen
+		waitForOAuthCodeFn = prevWait
+		exchangeOAuthTokenFn = prevExchange
 	}
 }
 
