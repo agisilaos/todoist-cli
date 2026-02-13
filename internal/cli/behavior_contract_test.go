@@ -245,3 +245,60 @@ func TestContractTaskMoveBulkRejectsIDCombination(t *testing.T) {
 		t.Fatalf("expected cannot be combined error, got %q", stderr.String())
 	}
 }
+
+func TestContractFilterAddDryRunJSON(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"filter", "add", "--name", "Today", "--query", "today", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	got := stdout.String()
+	if !strings.Contains(got, `"action": "filter add"`) || !strings.Contains(got, `"query": "today"`) {
+		t.Fatalf("unexpected filter add dry-run output: %q", got)
+	}
+}
+
+func TestContractFilterUpdateRequiresFields(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"filter", "update", "Today", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "no fields to update") {
+		t.Fatalf("unexpected error: %q", stderr.String())
+	}
+}
+
+func TestContractTaskAddAssigneeIDRefDryRun(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "add", "--content", "Write docs", "--assignee", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"assignee_id": "123"`) {
+		t.Fatalf("unexpected assignee payload: %q", stdout.String())
+	}
+}
+
+func TestContractTaskAddAssigneeNameRequiresProject(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "add", "--content", "Write docs", "--assignee", "Ada Lovelace", "--dry-run", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "--project is required") {
+		t.Fatalf("unexpected error: %q", stderr.String())
+	}
+}

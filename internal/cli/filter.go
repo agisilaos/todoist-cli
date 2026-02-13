@@ -65,7 +65,19 @@ func filterList(ctx *Context, args []string) error {
 }
 
 func filterShow(ctx *Context, args []string) error {
-	ref := strings.TrimSpace(strings.Join(args, " "))
+	fs := flag.NewFlagSet("filter show", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var help bool
+	fs.BoolVar(&help, "help", false, "Show help")
+	fs.BoolVar(&help, "h", false, "Show help")
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printFilterHelp(ctx.Stdout)
+		return nil
+	}
+	ref := strings.TrimSpace(strings.Join(fs.Args(), " "))
 	if ref == "" {
 		return &CodeError{Code: exitUsage, Err: errors.New("filter show requires a filter reference")}
 	}
