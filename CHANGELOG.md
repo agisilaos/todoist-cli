@@ -6,6 +6,20 @@ The format is based on *Keep a Changelog*, and this project adheres to *Semantic
 
 ## [Unreleased]
 
+## [v0.5.0] - 2026-02-13
+
+- feat(cli): add filter commands and assignee reference resolution (b773e9a)
+- feat(cli): add device auth, workspace/collab, agent policy+replay, progress, and bulk task ops (0da2b9f)
+- feat(auth): add detailed auth login help and nested help routing (1fc4f2f)
+- feat(auth): make --print-env honor json and ndjson modes (9ab4e67)
+- fix(cli): harden oauth UX and align completion/help docs (6175ebd)
+- fix(cli): route global --help to subcommand context (6dfc95f)
+- feat(auth): add OAuth PKCE login flow with unit tests (71d13fd)
+- feat: add json-first errors and resilient api retries (d972435)
+- feat: add quiet-json mode and command aliases with contracts (508bdce)
+- docs: refresh roadmap/spec and add cli behavior contracts (bf57574)
+- refactor: unify subcommand flag parsing and ndjson writers (8f81765)
+
 ## [v0.4.0] - 2026-02-12
 
 - fix: improve legacy task id errors and schema output noise (1e4ebfa)
