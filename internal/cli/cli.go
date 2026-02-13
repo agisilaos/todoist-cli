@@ -100,9 +100,12 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, err)
 		return exitError
 	}
-	if opts.Help || len(rest) == 0 {
+	if len(rest) == 0 {
 		printRootHelp(stdout)
 		return exitOK
+	}
+	if opts.Help {
+		rest = append(rest, "--help")
 	}
 
 	code := dispatch(ctx, rest)
