@@ -6,6 +6,12 @@ The format is based on *Keep a Changelog*, and this project adheres to *Semantic
 
 ## [Unreleased]
 
+## [v0.6.0] - 2026-02-14
+
+- feat(cli): add doctor command and cached, ranked reference resolution (da4663c)
+- refactor(cli): unify paginated fetch loops with shared helper (d5d5f51)
+- test(cli): harden filter help and assignee/filter contract coverage (5a77f33)
+
 ## [v0.5.0] - 2026-02-13
 
 - feat(cli): add filter commands and assignee reference resolution (b773e9a)
