@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -78,5 +79,77 @@ func TestDoctorCommandFailsWhenAPIProbeFails(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "doctor checks failed") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCheckAPIConnectivitySuccess(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/projects" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"results":[{"id":"p1","name":"Home"}],"next_cursor":""}`))
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 1},
+	}
+	check := checkAPIConnectivity(ctx)
+	if check.Status != "ok" {
+		t.Fatalf("expected ok status, got %#v", check)
+	}
+}
+
+func TestCheckCredentialsWarnsOnInsecurePermissions(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.json")
+	credsPath := config.CredentialsPathFromConfig(configPath)
+	if err := os.WriteFile(credsPath, []byte(`{"profiles":{"default":{"token":"x"}}}`), 0o644); err != nil {
+		t.Fatalf("write creds: %v", err)
+	}
+
+	ctx := &Context{
+		ConfigPath:  configPath,
+		Profile:     "default",
+		Token:       "token",
+		TokenSource: "credentials",
+	}
+	check := checkCredentials(ctx)
+	if check.Status != "warn" {
+		t.Fatalf("expected warn status, got %#v", check)
+	}
+	if !strings.Contains(check.Message, "permissions") {
+		t.Fatalf("expected permission warning, got %#v", check)
+	}
+}
+
+func TestCheckPlannerSetupWarnsOnMissingBinary(t *testing.T) {
+	ctx := &Context{Config: config.Config{PlannerCmd: "totally-missing-planner-bin --flag"}}
+	check := checkPlannerSetup(ctx)
+	if check.Status != "warn" {
+		t.Fatalf("expected warn status, got %#v", check)
+	}
+	if !strings.Contains(check.Message, "not found") {
+		t.Fatalf("expected missing binary message, got %#v", check)
+	}
+}
+
+func TestCheckPolicyFileParseFailure(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.json")
+	policyPath := filepath.Join(dir, "agent_policy.json")
+	if err := os.WriteFile(policyPath, []byte("{bad json"), 0o600); err != nil {
+		t.Fatalf("write policy: %v", err)
+	}
+	ctx := &Context{ConfigPath: configPath}
+	check := checkPolicyFile(ctx)
+	if check.Status != "fail" {
+		t.Fatalf("expected fail status, got %#v", check)
+	}
+	if !strings.Contains(check.Message, "parse failed") {
+		t.Fatalf("expected parse failed message, got %#v", check)
 	}
 }
