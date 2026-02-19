@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
-## [Unreleased]
-
 ## [v0.6.0] - 2026-02-14
 
 - feat(cli): add doctor command and cached, ranked reference resolution (da4663c)
