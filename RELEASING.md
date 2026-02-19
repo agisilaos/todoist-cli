@@ -1,25 +1,37 @@
 # Releasing
 
-This repo releases via a local script that handles:
-- Updating `CHANGELOG.md` from the Unreleased section.
-- Tagging and pushing `main` + the release tag.
-- Building macOS release artifacts (`dist/`).
-- Creating a GitHub release (if `gh` is installed).
-- Updating `Formula/todoist-cli.rb` in `agisilaos/homebrew-tap`.
+This repository uses the unified release workflow.
 
-## Create a Release
-
-1. Ensure `main` is up to date and the working tree is clean.
-2. Run:
+## Release Flow
 
 ```bash
-scripts/release.sh vX.Y.Z
+make release-check VERSION=vX.Y.Z
+make release-dry-run VERSION=vX.Y.Z
+make release VERSION=vX.Y.Z
 ```
 
-That tags `HEAD`, pushes the tag, builds artifacts, and updates the Homebrew tap.
+## What Each Step Does
+
+- `make release-check VERSION=vX.Y.Z`
+  - validates version/tag preconditions
+  - runs tests, vet, docs checks, and formatting checks
+  - verifies version-stamped binary output
+- `make release-dry-run VERSION=vX.Y.Z`
+  - builds darwin release archives and checksums
+  - performs no remote mutations
+- `make release VERSION=vX.Y.Z`
+  - runs release-check
+  - updates changelog from git history
+  - tags and pushes release
+  - publishes GitHub release artifacts
+  - updates Homebrew formula in `agisilaos/homebrew-tap`
+
+## Changelog Policy
+
+- Do not use `## [Unreleased]`.
+- Add concrete released sections only (for example `## [v0.7.0] - 2026-02-19`).
 
 ## Notes
 
-- Requires macOS, `go`, `python3`, and `git`. Install `gh` if you want automated GitHub releases.
-- The script expects `CHANGELOG.md` to include a `## [Unreleased]` section.
-- Set `HOMEBREW_TAP_REPO` or `HOMEBREW_TAP_ORIGIN_URL` to override the tap repo or remote.
+- Run releases from macOS with a clean git worktree.
+- Required tools are validated by release scripts.

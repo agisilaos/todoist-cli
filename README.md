@@ -53,6 +53,13 @@ Release scripts:
 - `scripts/release-check.sh` validates version/tag preconditions, runs tests/vet/docs/format checks, and verifies stamped version output.
 - `scripts/release.sh` runs `release-check`, updates changelog from git history, builds darwin archives, publishes GitHub release/tag, and updates the Homebrew tap formula.
 
+## Docs
+
+- CLI specification: `docs/SPEC.md`
+- Roadmap: `docs/ROADMAP.md`
+- Release runbook: `RELEASING.md`
+- Release history: `CHANGELOG.md`
+
 ## Auth
 
 Use a personal API token from Todoist settings.
