@@ -247,48 +247,26 @@ func loadConfig(ctx *Context) error {
 		return err
 	}
 	cfg := config.MergeConfig(userCfg, projectCfg)
-	if env := os.Getenv("TODOIST_BASE_URL"); env != "" {
-		cfg.BaseURL = env
-	}
+	applyEnvString("TODOIST_BASE_URL", &cfg.BaseURL)
 	if ctx.Global.BaseURL != "" {
 		cfg.BaseURL = ctx.Global.BaseURL
 	}
-	if env := os.Getenv("TODOIST_TIMEOUT"); env != "" {
-		if v, err := strconv.Atoi(env); err == nil {
-			cfg.TimeoutSeconds = v
-		}
-	}
+	applyEnvInt("TODOIST_TIMEOUT", &cfg.TimeoutSeconds, false)
 	if ctx.Global.TimeoutSec > 0 {
 		cfg.TimeoutSeconds = ctx.Global.TimeoutSec
 	}
-	if env := os.Getenv("TODOIST_TABLE_WIDTH"); env != "" {
-		if v, err := strconv.Atoi(env); err == nil && v > 0 {
-			cfg.TableWidth = v
-		}
-	}
+	applyEnvInt("TODOIST_TABLE_WIDTH", &cfg.TableWidth, true)
 	if cfg.TimeoutSeconds == 0 {
 		cfg.TimeoutSeconds = 10
 	}
 	ctx.Config = cfg
 
-	profile := ctx.Global.Profile
-	if profile == "" {
-		profile = os.Getenv("TODOIST_PROFILE")
-	}
-	if profile == "" {
-		profile = cfg.DefaultProfile
-	}
-	if profile == "" {
-		profile = "default"
-	}
-	ctx.Profile = profile
+	ctx.Profile = resolveProfile(ctx.Global.Profile, cfg.DefaultProfile)
 
 	// Fuzzy resolution flag/env
 	fuzzy := ctx.Global.Fuzzy
-	if env := os.Getenv("TODOIST_FUZZY"); env != "" {
-		if v, err := strconv.Atoi(env); err == nil && v > 0 {
-			fuzzy = true
-		}
+	if parsePositiveEnvFlag("TODOIST_FUZZY") {
+		fuzzy = true
 	}
 	if ctx.Global.NoFuzzy {
 		fuzzy = false
@@ -305,7 +283,7 @@ func loadConfig(ctx *Context) error {
 		if err != nil {
 			return err
 		}
-		if cred, ok := creds.Profiles[profile]; ok && cred.Token != "" {
+		if cred, ok := creds.Profiles[ctx.Profile]; ok && cred.Token != "" {
 			ctx.Token = cred.Token
 			ctx.TokenSource = "credentials"
 		}
@@ -377,4 +355,49 @@ func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
 
 func parseIDOrName(input string) string {
 	return stripIDPrefix(strings.TrimSpace(input))
+}
+
+func applyEnvString(key string, target *string) {
+	if target == nil {
+		return
+	}
+	if env := os.Getenv(key); env != "" {
+		*target = env
+	}
+}
+
+func applyEnvInt(key string, target *int, positiveOnly bool) {
+	if target == nil {
+		return
+	}
+	env := strings.TrimSpace(os.Getenv(key))
+	if env == "" {
+		return
+	}
+	v, err := strconv.Atoi(env)
+	if err != nil {
+		return
+	}
+	if positiveOnly && v <= 0 {
+		return
+	}
+	*target = v
+}
+
+func parsePositiveEnvFlag(key string) bool {
+	v, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	return err == nil && v > 0
+}
+
+func resolveProfile(flagValue, defaultProfile string) string {
+	if flagValue != "" {
+		return flagValue
+	}
+	if env := os.Getenv("TODOIST_PROFILE"); env != "" {
+		return env
+	}
+	if defaultProfile != "" {
+		return defaultProfile
+	}
+	return "default"
 }
