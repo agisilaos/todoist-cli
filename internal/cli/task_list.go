@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"strconv"
 
@@ -11,8 +9,7 @@ import (
 )
 
 func taskList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task list")
 	var filter string
 	var project string
 	var section string
@@ -50,8 +47,7 @@ func taskList(ctx *Context, args []string) error {
 	fs.StringVar(&preset, "preset", "", "Shortcut filter: today, overdue, next7")
 	fs.StringVar(&sortBy, "sort", "", "Sort by: due, priority")
 	fs.IntVar(&truncateWidth, "truncate-width", 0, "Override table width (human output)")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

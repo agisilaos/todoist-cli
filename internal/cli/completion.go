@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,13 +33,11 @@ func completionCommand(ctx *Context, args []string) error {
 }
 
 func completionInstall(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("completion install", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("completion install")
 	var path string
 	var help bool
 	fs.StringVar(&path, "path", "", "Install path override")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

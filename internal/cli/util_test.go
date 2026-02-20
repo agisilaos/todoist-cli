@@ -49,6 +49,28 @@ func TestParseFlagSetInterspersed(t *testing.T) {
 	}
 }
 
+func TestNewFlagSetSuppressesOutput(t *testing.T) {
+	fs := newFlagSet("x")
+	if fs == nil {
+		t.Fatalf("expected flagset")
+	}
+	if fs.Output() == nil {
+		t.Fatalf("expected output writer to be set")
+	}
+}
+
+func TestBindHelpFlag(t *testing.T) {
+	fs := newFlagSet("x")
+	var help bool
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, []string{"--help"}); err != nil {
+		t.Fatalf("parse help: %v", err)
+	}
+	if !help {
+		t.Fatalf("expected help flag to be set")
+	}
+}
+
 func TestParseFlagSetInterspersedUnknownFlag(t *testing.T) {
 	fs := flag.NewFlagSet("x", flag.ContinueOnError)
 	var name string

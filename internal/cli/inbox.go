@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -27,8 +25,7 @@ func inboxCommand(ctx *Context, args []string) error {
 }
 
 func inboxAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("inbox add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("inbox add")
 	var content string
 	var description string
 	var section string
@@ -56,8 +53,7 @@ func inboxAdd(ctx *Context, args []string) error {
 	fs.StringVar(&durationUnit, "duration-unit", "", "Duration unit")
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
 	fs.StringVar(&assignee, "assignee", "", "Assignee ID")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

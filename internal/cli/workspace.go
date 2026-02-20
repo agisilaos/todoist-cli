@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -24,11 +22,9 @@ func workspaceCommand(ctx *Context, args []string) error {
 }
 
 func workspaceList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("workspace list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("workspace list")
 	var help bool
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"strings"
 
@@ -12,15 +10,13 @@ import (
 )
 
 func taskView(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task view", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task view")
 	var id string
 	var full bool
 	var help bool
 	fs.StringVar(&id, "id", "", "Task ID")
 	fs.BoolVar(&full, "full", false, "Show full task fields")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

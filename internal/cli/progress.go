@@ -2,9 +2,10 @@ package cli
 
 import (
 	"encoding/json"
-	"io"
 	"os"
 	"time"
+
+	"io"
 )
 
 type progressSink struct {

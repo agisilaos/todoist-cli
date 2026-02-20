@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"strconv"
 
@@ -43,8 +41,7 @@ func projectCommand(ctx *Context, args []string) error {
 }
 
 func projectCollaborators(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("project collaborators", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("project collaborators")
 	var id string
 	var cursor string
 	var limit int
@@ -54,8 +51,7 @@ func projectCollaborators(ctx *Context, args []string) error {
 	fs.StringVar(&cursor, "cursor", "", "Cursor")
 	fs.IntVar(&limit, "limit", 50, "Limit")
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -89,8 +85,7 @@ func projectCollaborators(ctx *Context, args []string) error {
 }
 
 func projectList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("project list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("project list")
 	var archived bool
 	var cursor string
 	var limit int
@@ -100,8 +95,7 @@ func projectList(ctx *Context, args []string) error {
 	fs.StringVar(&cursor, "cursor", "", "Cursor")
 	fs.IntVar(&limit, "limit", 50, "Limit")
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -129,8 +123,7 @@ func projectList(ctx *Context, args []string) error {
 }
 
 func projectAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("project add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("project add")
 	var name string
 	var description string
 	var parent string
@@ -146,8 +139,7 @@ func projectAdd(ctx *Context, args []string) error {
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
 	fs.StringVar(&viewStyle, "view", "", "View style")
 	fs.StringVar(&workspace, "workspace", "", "Workspace ID")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -200,8 +192,7 @@ func projectAdd(ctx *Context, args []string) error {
 }
 
 func projectUpdate(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("project update", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("project update")
 	var id string
 	var name string
 	var description string
@@ -215,8 +206,7 @@ func projectUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&color, "color", "", "Color")
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
 	fs.StringVar(&viewStyle, "view", "", "View style")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

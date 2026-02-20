@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 
@@ -180,13 +178,11 @@ var schemas = []schemaDef{
 }
 
 func schemaCommand(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("schema", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("schema")
 	var name string
 	var help bool
 	fs.StringVar(&name, "name", "", "Schema name")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

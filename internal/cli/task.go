@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 
@@ -163,8 +161,7 @@ func taskCommand(ctx *Context, args []string) error {
 }
 
 func quickAddCommand(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("add")
 	var content string
 	var project string
 	var section string
@@ -180,8 +177,7 @@ func quickAddCommand(ctx *Context, args []string) error {
 	fs.Var((*priorityFlag)(&priority), "priority", "Priority (accepts p1..p4)")
 	fs.StringVar(&dueString, "due", "", "Due string")
 	fs.BoolVar(&strict, "strict", false, "Disable quick-add parsing")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

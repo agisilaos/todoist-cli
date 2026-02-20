@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -38,11 +36,9 @@ func filterCommand(ctx *Context, args []string) error {
 }
 
 func filterList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("filter list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("filter list")
 	var help bool
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -62,11 +58,9 @@ func filterList(ctx *Context, args []string) error {
 }
 
 func filterShow(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("filter show", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("filter show")
 	var help bool
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -93,8 +87,7 @@ func filterShow(ctx *Context, args []string) error {
 }
 
 func filterAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("filter add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("filter add")
 	var name string
 	var queryStr string
 	var color string
@@ -104,8 +97,7 @@ func filterAdd(ctx *Context, args []string) error {
 	fs.StringVar(&queryStr, "query", "", "Filter query")
 	fs.StringVar(&color, "color", "", "Color")
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -141,8 +133,7 @@ func filterAdd(ctx *Context, args []string) error {
 }
 
 func filterUpdate(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("filter update", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("filter update")
 	var ref string
 	var name string
 	var queryStr string
@@ -156,8 +147,7 @@ func filterUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&color, "color", "", "Color")
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
 	fs.BoolVar(&unfavorite, "unfavorite", false, "Unfavorite")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -215,15 +205,13 @@ func filterUpdate(ctx *Context, args []string) error {
 }
 
 func filterDelete(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("filter delete", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("filter delete")
 	var ref string
 	var yes bool
 	var help bool
 	fs.StringVar(&ref, "id", "", "Filter ID or name")
 	fs.BoolVar(&yes, "yes", false, "Skip confirmation")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

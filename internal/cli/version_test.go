@@ -2,9 +2,10 @@ package cli
 
 import (
 	"bytes"
-	"io"
 	"strings"
 	"testing"
+
+	"io"
 )
 
 func TestVersionOutput(t *testing.T) {

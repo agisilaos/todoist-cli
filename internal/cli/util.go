@@ -16,6 +16,20 @@ import (
 
 type multiValue []string
 
+func newFlagSet(name string) *flag.FlagSet {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	return fs
+}
+
+func bindHelpFlag(fs *flag.FlagSet, help *bool) {
+	if fs == nil || help == nil {
+		return
+	}
+	fs.BoolVar(help, "help", false, "Show help")
+	fs.BoolVar(help, "h", false, "Show help")
+}
+
 func (m *multiValue) String() string {
 	return strings.Join(*m, ",")
 }
@@ -29,8 +43,7 @@ func (m *multiValue) Set(value string) error {
 }
 
 func requireIDArg(name string, args []string) (string, error) {
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet(name)
 	var id string
 	fs.StringVar(&id, "id", "", "ID")
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -43,8 +56,7 @@ func requireIDArg(name string, args []string) (string, error) {
 }
 
 func requireTaskID(ctx *Context, name string, args []string) (string, error) {
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet(name)
 	var id string
 	fs.StringVar(&id, "id", "", "Task ID")
 	if err := parseFlagSetInterspersed(fs, args); err != nil {

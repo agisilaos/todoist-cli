@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -46,8 +44,7 @@ func authCommand(ctx *Context, args []string) error {
 }
 
 func authLogin(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("auth login", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("auth login")
 	var tokenStdin bool
 	var printEnv bool
 	var oauth bool
@@ -71,8 +68,7 @@ func authLogin(ctx *Context, args []string) error {
 	fs.StringVar(&deviceURL, "oauth-device-url", "", "OAuth device code URL")
 	fs.StringVar(&oauthListen, "oauth-listen", "", "OAuth callback listen address (host:port)")
 	fs.StringVar(&redirectURI, "oauth-redirect-uri", "", "OAuth redirect URI")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

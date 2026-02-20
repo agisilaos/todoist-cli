@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"strconv"
 
@@ -37,8 +35,7 @@ func commentCommand(ctx *Context, args []string) error {
 }
 
 func commentList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("comment list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("comment list")
 	var task string
 	var project string
 	var cursor string
@@ -50,8 +47,7 @@ func commentList(ctx *Context, args []string) error {
 	fs.StringVar(&cursor, "cursor", "", "Cursor")
 	fs.IntVar(&limit, "limit", 50, "Limit")
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -89,8 +85,7 @@ func commentList(ctx *Context, args []string) error {
 }
 
 func commentAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("comment add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("comment add")
 	var content string
 	var task string
 	var project string
@@ -98,8 +93,7 @@ func commentAdd(ctx *Context, args []string) error {
 	fs.StringVar(&content, "content", "", "Comment content")
 	fs.StringVar(&task, "task", "", "Task ID")
 	fs.StringVar(&project, "project", "", "Project ID")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -144,15 +138,13 @@ func commentAdd(ctx *Context, args []string) error {
 }
 
 func commentUpdate(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("comment update", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("comment update")
 	var id string
 	var content string
 	var help bool
 	fs.StringVar(&id, "id", "", "Comment ID")
 	fs.StringVar(&content, "content", "", "Comment content")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

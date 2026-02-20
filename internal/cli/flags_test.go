@@ -2,11 +2,12 @@ package cli
 
 import (
 	"bytes"
-	"io"
 	"strings"
 	"testing"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
+
+	"io"
 )
 
 func TestParseGlobalFlagsConflicts(t *testing.T) {

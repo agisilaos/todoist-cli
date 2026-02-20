@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -34,8 +32,7 @@ func agentSchedule(ctx *Context, args []string) error {
 }
 
 func agentSchedulePrint(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("agent schedule print", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("agent schedule print")
 	var weekly string
 	var planner string
 	var instruction string
@@ -65,8 +62,7 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	fs.StringVar(&contextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
 	fs.BoolVar(&cron, "cron", false, "Print cron entry")
 	fs.StringVar(&binPath, "bin", "", "Path to todoist binary (defaults to current executable)")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

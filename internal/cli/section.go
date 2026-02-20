@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"strconv"
 
@@ -37,8 +35,7 @@ func sectionCommand(ctx *Context, args []string) error {
 }
 
 func sectionList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("section list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("section list")
 	var project string
 	var cursor string
 	var limit int
@@ -48,8 +45,7 @@ func sectionList(ctx *Context, args []string) error {
 	fs.StringVar(&cursor, "cursor", "", "Cursor")
 	fs.IntVar(&limit, "limit", 50, "Limit")
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -80,15 +76,13 @@ func sectionList(ctx *Context, args []string) error {
 }
 
 func sectionAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("section add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("section add")
 	var name string
 	var project string
 	var help bool
 	fs.StringVar(&name, "name", "", "Section name")
 	fs.StringVar(&project, "project", "", "Project")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -123,15 +117,13 @@ func sectionAdd(ctx *Context, args []string) error {
 }
 
 func sectionUpdate(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("section update", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("section update")
 	var id string
 	var name string
 	var help bool
 	fs.StringVar(&id, "id", "", "Section ID")
 	fs.StringVar(&name, "name", "", "Section name")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

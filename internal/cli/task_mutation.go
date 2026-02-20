@@ -2,16 +2,13 @@ package cli
 
 import (
 	"errors"
-	"flag"
-	"io"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 )
 
 func taskAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task add")
 	var content string
 	var description string
 	var project string
@@ -45,8 +42,7 @@ func taskAdd(ctx *Context, args []string) error {
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
 	fs.StringVar(&assignee, "assignee", "", "Assignee reference (id, me, name, email)")
 	fs.BoolVar(&quick, "quick", false, "Quick add using inbox defaults")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -120,8 +116,7 @@ func taskAdd(ctx *Context, args []string) error {
 }
 
 func taskUpdate(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task update", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task update")
 	var id string
 	var content string
 	var description string
@@ -151,8 +146,7 @@ func taskUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
 	fs.StringVar(&assignee, "assignee", "", "Assignee reference (id, me, name, email)")
 	fs.StringVar(&project, "project", "", "Project (used for assignee name/email resolution)")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

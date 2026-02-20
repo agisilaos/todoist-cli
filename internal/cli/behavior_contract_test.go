@@ -2,12 +2,13 @@ package cli
 
 import (
 	"bytes"
-	"io"
 	"strings"
 	"testing"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/output"
+
+	"io"
 )
 
 func TestContractPlannerAcceptsGlobalFlagsAfterCommand(t *testing.T) {

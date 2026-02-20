@@ -3,11 +3,12 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
+
+	"io"
 )
 
 func readLine(r io.Reader) (string, error) {

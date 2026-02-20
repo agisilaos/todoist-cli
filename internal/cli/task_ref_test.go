@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/config"
+
+	"io"
 )
 
 type testRoundTripFunc func(*http.Request) (*http.Response, error)

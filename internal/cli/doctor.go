@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"os/exec"
@@ -23,12 +21,10 @@ type doctorCheck struct {
 }
 
 func doctorCommand(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("doctor")
 	var help bool
 	var strict bool
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	fs.BoolVar(&strict, "strict", false, "Exit non-zero on warnings")
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}

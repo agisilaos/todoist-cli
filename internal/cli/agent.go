@@ -5,9 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"os/exec"
 	"strings"
 	"time"
@@ -39,8 +37,7 @@ func agentCommand(ctx *Context, args []string) error {
 }
 
 func agentPlan(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("agent plan", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("agent plan")
 	var outPath string
 	var planner string
 	var expectedVersion int
@@ -54,8 +51,7 @@ func agentPlan(ctx *Context, args []string) error {
 	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
 	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
 	fs.StringVar(&contextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -88,8 +84,7 @@ func agentPlan(ctx *Context, args []string) error {
 }
 
 func agentApply(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("agent apply", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("agent apply")
 	var planPath string
 	var confirm string
 	var planner string
@@ -109,8 +104,7 @@ func agentApply(ctx *Context, args []string) error {
 	fs.Var(&contextProjects, "context-project", "Project context (repeatable)")
 	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
 	fs.StringVar(&contextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

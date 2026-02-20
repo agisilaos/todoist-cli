@@ -2,9 +2,7 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"net/url"
 	"strconv"
 
@@ -37,8 +35,7 @@ func labelCommand(ctx *Context, args []string) error {
 }
 
 func labelList(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("label list", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("label list")
 	var cursor string
 	var limit int
 	var all bool
@@ -46,8 +43,7 @@ func labelList(ctx *Context, args []string) error {
 	fs.StringVar(&cursor, "cursor", "", "Cursor")
 	fs.IntVar(&limit, "limit", 50, "Limit")
 	fs.BoolVar(&all, "all", false, "Fetch all pages")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -71,8 +67,7 @@ func labelList(ctx *Context, args []string) error {
 }
 
 func labelAdd(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("label add", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("label add")
 	var name string
 	var color string
 	var order int
@@ -82,8 +77,7 @@ func labelAdd(ctx *Context, args []string) error {
 	fs.StringVar(&color, "color", "", "Label color")
 	fs.IntVar(&order, "order", 0, "Order")
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -123,8 +117,7 @@ func labelAdd(ctx *Context, args []string) error {
 }
 
 func labelUpdate(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("label update", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("label update")
 	var id string
 	var name string
 	var color string
@@ -138,8 +131,7 @@ func labelUpdate(ctx *Context, args []string) error {
 	fs.IntVar(&order, "order", 0, "Order")
 	fs.BoolVar(&favorite, "favorite", false, "Favorite")
 	fs.BoolVar(&unfavorite, "unfavorite", false, "Unfavorite")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

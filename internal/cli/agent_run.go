@@ -2,8 +2,6 @@ package cli
 
 import (
 	"errors"
-	"flag"
-	"io"
 	"strings"
 	"time"
 )
@@ -25,8 +23,7 @@ type agentRunOptions struct {
 }
 
 func agentRun(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("agent run", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("agent run")
 	var opts agentRunOptions
 	fs.StringVar(&opts.PlanPath, "plan", "", "Plan file (or - for stdin)")
 	fs.StringVar(&opts.Instruction, "instruction", "", "Instruction to plan/apply")
@@ -42,8 +39,7 @@ func agentRun(ctx *Context, args []string) error {
 	fs.Var(&contextLabels, "context-label", "Label context (repeatable)")
 	fs.StringVar(&opts.ContextCompleted, "context-completed", "", "Include completed tasks from last Nd (e.g. 7d)")
 	var help bool
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

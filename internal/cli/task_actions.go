@@ -2,17 +2,14 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func taskMove(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task move", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task move")
 	var id string
 	var project string
 	var section string
@@ -26,8 +23,7 @@ func taskMove(ctx *Context, args []string) error {
 	fs.StringVar(&parent, "parent", "", "Parent")
 	fs.StringVar(&filter, "filter", "", "Filter query for bulk move")
 	fs.BoolVar(&yes, "yes", false, "Required for bulk move")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -121,8 +117,7 @@ func taskMove(ctx *Context, args []string) error {
 }
 
 func taskComplete(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task complete", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task complete")
 	var id string
 	var filter string
 	var yes bool
@@ -130,8 +125,7 @@ func taskComplete(ctx *Context, args []string) error {
 	fs.StringVar(&id, "id", "", "Task ID")
 	fs.StringVar(&filter, "filter", "", "Filter query for bulk complete")
 	fs.BoolVar(&yes, "yes", false, "Required for bulk complete")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
@@ -232,15 +226,13 @@ func taskReopen(ctx *Context, args []string) error {
 }
 
 func taskDelete(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("task delete", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("task delete")
 	var id string
 	var yes bool
 	var help bool
 	fs.StringVar(&id, "id", "", "Task ID")
 	fs.BoolVar(&yes, "yes", false, "Skip confirmation")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}

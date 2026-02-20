@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
@@ -11,15 +9,13 @@ import (
 )
 
 func agentPlanner(ctx *Context, args []string) error {
-	fs := flag.NewFlagSet("agent planner", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	fs := newFlagSet("agent planner")
 	var cmd string
 	var set bool
 	var help bool
 	fs.StringVar(&cmd, "cmd", "", "Planner command to set")
 	fs.BoolVar(&set, "set", false, "Set planner command")
-	fs.BoolVar(&help, "help", false, "Show help")
-	fs.BoolVar(&help, "h", false, "Show help")
+	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
