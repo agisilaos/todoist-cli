@@ -14,6 +14,10 @@ Thanks for your interest in contributing.
    ```bash
    gofmt -w $(rg --files -g '*.go')
    ```
+5. Run coverage guardrails:
+   ```bash
+   make coverage-check
+   ```
 
 ## Guidelines
 
