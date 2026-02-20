@@ -230,3 +230,74 @@ func TestClientRetriesPostWithRequestIDOn429(t *testing.T) {
 		t.Fatalf("expected 2 attempts, got %d", calls)
 	}
 }
+
+func TestRetryPolicyShouldRetryStatus(t *testing.T) {
+	tests := []struct {
+		name             string
+		method           string
+		includeRequestID bool
+		status           int
+		want             bool
+	}{
+		{name: "get retries 503", method: http.MethodGet, status: http.StatusServiceUnavailable, want: true},
+		{name: "get retries 500", method: http.MethodGet, status: http.StatusInternalServerError, want: true},
+		{name: "get does not retry 400", method: http.MethodGet, status: http.StatusBadRequest, want: false},
+		{name: "post retries with request id on 429", method: http.MethodPost, includeRequestID: true, status: http.StatusTooManyRequests, want: true},
+		{name: "post does not retry without request id", method: http.MethodPost, includeRequestID: false, status: http.StatusTooManyRequests, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldRetryStatus(tt.method, tt.includeRequestID, tt.status)
+			if got != tt.want {
+				t.Fatalf("shouldRetryStatus()=%v want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRetryPolicyShouldRetryTransport(t *testing.T) {
+	tests := []struct {
+		name             string
+		method           string
+		includeRequestID bool
+		err              error
+		want             bool
+	}{
+		{name: "get retries transport error", method: http.MethodGet, err: errors.New("boom"), want: true},
+		{name: "post retries transport with request id", method: http.MethodPost, includeRequestID: true, err: errors.New("boom"), want: true},
+		{name: "post no retry transport without request id", method: http.MethodPost, err: errors.New("boom"), want: false},
+		{name: "no error does not retry", method: http.MethodGet, err: nil, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldRetryTransport(tt.method, tt.includeRequestID, tt.err)
+			if got != tt.want {
+				t.Fatalf("shouldRetryTransport()=%v want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRetryDelay(t *testing.T) {
+	tests := []struct {
+		name       string
+		attempt    int
+		retryAfter string
+		want       time.Duration
+	}{
+		{name: "retry-after seconds", retryAfter: "2", want: 2 * time.Second},
+		{name: "retry-after capped to 3s", retryAfter: "99", want: 3 * time.Second},
+		{name: "attempt0 backoff", attempt: 0, want: 200 * time.Millisecond},
+		{name: "attempt1 backoff", attempt: 1, want: 400 * time.Millisecond},
+		{name: "attempt2 backoff", attempt: 2, want: 800 * time.Millisecond},
+		{name: "backoff capped", attempt: 10, want: 1200 * time.Millisecond},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := retryDelay(tt.attempt, tt.retryAfter)
+			if got != tt.want {
+				t.Fatalf("retryDelay()=%v want %v", got, tt.want)
+			}
+		})
+	}
+}
