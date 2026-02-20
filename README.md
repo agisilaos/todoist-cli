@@ -527,7 +527,7 @@ Plan output schema:
   "confirm_token": "6f2b",
   "summary": { "tasks": 12, "projects": 0, "sections": 0, "labels": 1, "comments": 0 },
   "actions": [
-    { "type": "task_move", "task_id": "123", "project": "Catch Up" },
+    { "type": "task_move", "task_id": "123", "project_id": "2203306141" },
     { "type": "task_update", "task_id": "123", "labels": ["overdue"] }
   ]
 }
@@ -540,6 +540,11 @@ Supported action types:
 - `section_add`, `section_update`, `section_delete`
 - `label_add`, `label_update`, `label_delete`
 - `comment_add`, `comment_update`, `comment_delete`
+
+Action field notes:
+
+- Task/section/comment actions accept explicit IDs (`project_id`, `section_id`) or reference fields (`project`, `section`) where applicable.
+- `comment_add` must include `content` and one target: `task_id` or `project`/`project_id`.
 
 ## Limits (from Todoist docs)
 

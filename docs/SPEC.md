@@ -56,6 +56,12 @@ todoist agent schedule print --weekly "sat 09:00" [--cron]
 todoist agent planner --set --cmd "<cmd>"
 ```
 
+Planner action schema notes:
+
+- `task_move` accepts either `project`/`section` references or explicit `project_id`/`section_id`.
+- `section_add` accepts `project` or `project_id`.
+- `comment_add` requires `content` plus `task_id` or `project`/`project_id`.
+
 ## References
 
 - Use `id:<id>` to explicitly reference IDs.

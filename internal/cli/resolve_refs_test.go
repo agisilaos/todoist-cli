@@ -110,3 +110,35 @@ func TestListAllActiveTasksUsesCache(t *testing.T) {
 		t.Fatalf("expected one API hit, got %d", hits)
 	}
 }
+
+func TestResolveProjectIDReturnsNumericWithoutLookup(t *testing.T) {
+	ctx := &Context{}
+	got, err := resolveProjectID(ctx, "id:12345")
+	if err != nil {
+		t.Fatalf("resolveProjectID: %v", err)
+	}
+	if got != "12345" {
+		t.Fatalf("expected numeric id passthrough, got %q", got)
+	}
+}
+
+func TestResolveProjectIDPropagatesLookupErrors(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/projects" {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error":"boom"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if _, err := resolveProjectID(ctx, "Home"); err == nil {
+		t.Fatalf("expected resolver error")
+	}
+}

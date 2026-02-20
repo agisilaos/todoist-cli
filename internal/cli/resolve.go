@@ -12,14 +12,22 @@ import (
 )
 
 func resolveProjectID(ctx *Context, value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
+	original := strings.TrimSpace(value)
+	if original == "" {
 		return "", nil
 	}
+	explicitID := strings.HasPrefix(strings.ToLower(original), "id:")
+	value = original
 	value = stripIDPrefix(value)
+	if explicitID {
+		return value, nil
+	}
+	if isNumeric(value) {
+		return value, nil
+	}
 	projects, err := listAllProjects(ctx)
 	if err != nil {
-		return value, nil
+		return "", err
 	}
 	for _, p := range projects {
 		if strings.EqualFold(p.Name, value) {
@@ -44,14 +52,22 @@ func resolveProjectID(ctx *Context, value string) (string, error) {
 }
 
 func resolveSectionID(ctx *Context, value string, project string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
+	original := strings.TrimSpace(value)
+	if original == "" {
 		return "", nil
 	}
+	explicitID := strings.HasPrefix(strings.ToLower(original), "id:")
+	value = original
 	value = stripIDPrefix(value)
+	if explicitID {
+		return value, nil
+	}
+	if isNumeric(value) {
+		return value, nil
+	}
 	sections, err := listAllSections(ctx, project)
 	if err != nil {
-		return value, nil
+		return "", err
 	}
 	for _, s := range sections {
 		if strings.EqualFold(s.Name, value) {
@@ -82,7 +98,7 @@ func resolveLabelName(ctx *Context, value string) (string, error) {
 	}
 	labels, err := listAllLabels(ctx)
 	if err != nil {
-		return value, nil
+		return "", err
 	}
 	for _, l := range labels {
 		if strings.EqualFold(l.Name, value) {
