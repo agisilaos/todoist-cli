@@ -154,18 +154,18 @@ func writeTaskNDJSON(ctx *Context, tasks []api.Task) error {
 	return output.WriteNDJSON(ctx.Stdout, items)
 }
 
-func formatDue(due map[string]interface{}) string {
+func formatDue(due *api.Due) string {
 	if due == nil {
 		return ""
 	}
-	if val, ok := due["datetime"].(string); ok && val != "" {
-		return val
+	if due.Datetime != "" {
+		return due.Datetime
 	}
-	if val, ok := due["date"].(string); ok && val != "" {
-		return val
+	if due.Date != "" {
+		return due.Date
 	}
-	if val, ok := due["string"].(string); ok && val != "" {
-		return val
+	if due.String != "" {
+		return due.String
 	}
 	return ""
 }
@@ -194,17 +194,17 @@ func sortTasks(tasks []api.Task, sortBy string) {
 	}
 }
 
-func parseDue(due map[string]interface{}) time.Time {
+func parseDue(due *api.Due) time.Time {
 	if due == nil {
 		return time.Time{}
 	}
-	if val, ok := due["datetime"].(string); ok && val != "" {
-		if t, err := time.Parse(time.RFC3339, val); err == nil {
+	if due.Datetime != "" {
+		if t, err := time.Parse(time.RFC3339, due.Datetime); err == nil {
 			return t
 		}
 	}
-	if val, ok := due["date"].(string); ok && val != "" {
-		if t, err := time.Parse("2006-01-02", val); err == nil {
+	if due.Date != "" {
+		if t, err := time.Parse("2006-01-02", due.Date); err == nil {
 			return t
 		}
 	}

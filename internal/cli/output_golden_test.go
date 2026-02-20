@@ -19,7 +19,7 @@ func TestWriteTaskListPlainSnapshot(t *testing.T) {
 		Config: config.Config{TableWidth: 80},
 	}
 	tasks := []api.Task{
-		{ID: "123456789", Content: "Write launch blog", ProjectID: "proj1", SectionID: "sec1", Labels: []string{"focus", "writing"}, Priority: 4, Checked: false, Due: map[string]interface{}{"date": "2026-01-01"}},
+		{ID: "123456789", Content: "Write launch blog", ProjectID: "proj1", SectionID: "sec1", Labels: []string{"focus", "writing"}, Priority: 4, Checked: false, Due: &api.Due{Date: "2026-01-01"}},
 		{ID: "987654321", Content: "Fix bug in CLI", ProjectID: "proj2", SectionID: "", Labels: nil, Priority: 2, Checked: true},
 	}
 	if err := writeTaskList(ctx, tasks, "", false); err != nil {

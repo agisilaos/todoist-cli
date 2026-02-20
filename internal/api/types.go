@@ -6,20 +6,26 @@ type Paginated[T any] struct {
 }
 
 type Task struct {
-	ID          string                 `json:"id"`
-	Content     string                 `json:"content"`
-	Description string                 `json:"description"`
-	ProjectID   string                 `json:"project_id"`
-	SectionID   string                 `json:"section_id"`
-	ParentID    string                 `json:"parent_id"`
-	Labels      []string               `json:"labels"`
-	Priority    int                    `json:"priority"`
-	Checked     bool                   `json:"checked"`
-	Due         map[string]interface{} `json:"due"`
-	AddedAt     string                 `json:"added_at"`
-	CompletedAt string                 `json:"completed_at"`
-	UpdatedAt   string                 `json:"updated_at"`
-	NoteCount   int                    `json:"note_count"`
+	ID          string   `json:"id"`
+	Content     string   `json:"content"`
+	Description string   `json:"description"`
+	ProjectID   string   `json:"project_id"`
+	SectionID   string   `json:"section_id"`
+	ParentID    string   `json:"parent_id"`
+	Labels      []string `json:"labels"`
+	Priority    int      `json:"priority"`
+	Checked     bool     `json:"checked"`
+	Due         *Due     `json:"due"`
+	AddedAt     string   `json:"added_at"`
+	CompletedAt string   `json:"completed_at"`
+	UpdatedAt   string   `json:"updated_at"`
+	NoteCount   int      `json:"note_count"`
+}
+
+type Due struct {
+	Date     string `json:"date,omitempty"`
+	Datetime string `json:"datetime,omitempty"`
+	String   string `json:"string,omitempty"`
 }
 
 type Project struct {
@@ -53,10 +59,16 @@ type Label struct {
 }
 
 type Comment struct {
-	ID         string                 `json:"id"`
-	Content    string                 `json:"content"`
-	PostedAt   string                 `json:"posted_at"`
-	Attachment map[string]interface{} `json:"file_attachment"`
+	ID         string          `json:"id"`
+	Content    string          `json:"content"`
+	PostedAt   string          `json:"posted_at"`
+	Attachment *FileAttachment `json:"file_attachment"`
+}
+
+type FileAttachment struct {
+	FileName string `json:"file_name,omitempty"`
+	FileType string `json:"file_type,omitempty"`
+	FileURL  string `json:"file_url,omitempty"`
 }
 
 type Collaborator struct {
