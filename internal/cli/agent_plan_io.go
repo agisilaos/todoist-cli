@@ -1,0 +1,158 @@
+package cli
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/output"
+)
+
+func writePlanOutput(ctx *Context, plan Plan) error {
+	return writePlanPreview(ctx, plan, false)
+}
+
+func writePlanFile(path string, plan Plan) error {
+	if path == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(plan, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o600)
+}
+
+func readPlanFile(path string, stdin io.Reader) (Plan, error) {
+	var data []byte
+	var err error
+	if path == "-" {
+		if stdin == nil {
+			return Plan{}, errors.New("stdin not available")
+		}
+		data, err = io.ReadAll(stdin)
+	} else {
+		data, err = os.ReadFile(path)
+	}
+	if err != nil {
+		return Plan{}, err
+	}
+	var plan Plan
+	if err := json.Unmarshal(data, &plan); err != nil {
+		return Plan{}, err
+	}
+	return plan, nil
+}
+
+func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
+	if ctx.Mode == output.ModeJSON {
+		payload := map[string]any{
+			"plan":         plan,
+			"dry_run":      dryRun,
+			"action_count": len(plan.Actions),
+			"summary":      plan.Summary,
+		}
+		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+	}
+	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
+	if dryRun {
+		fmt.Fprintln(ctx.Stdout, "DRY RUN: no actions applied")
+	}
+	fmt.Fprintf(ctx.Stdout, "Confirm: %s\n", plan.ConfirmToken)
+	fmt.Fprintf(ctx.Stdout, "Actions: %d (tasks=%d projects=%d sections=%d labels=%d comments=%d)\n",
+		len(plan.Actions), plan.Summary.Tasks, plan.Summary.Projects, plan.Summary.Sections, plan.Summary.Labels, plan.Summary.Comments)
+	for i, action := range plan.Actions {
+		fmt.Fprintf(ctx.Stdout, "%d. %s\n", i+1, action.Type)
+	}
+	return nil
+}
+
+func normalizeAndValidatePlan(plan *Plan, instruction string, now func() time.Time, expectedVersion int) error {
+	if plan.Version == 0 {
+		plan.Version = 1
+	}
+	if expectedVersion > 0 && plan.Version != expectedVersion {
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported plan version %d (expected %d)", plan.Version, expectedVersion)}
+	}
+	if plan.Instruction == "" {
+		plan.Instruction = instruction
+	}
+	if plan.CreatedAt == "" {
+		plan.CreatedAt = now().UTC().Format(time.RFC3339)
+	}
+	if plan.Summary == (PlanSummary{}) {
+		plan.Summary = summarizeActions(plan.Actions)
+	}
+	return validatePlan(*plan, expectedVersion)
+}
+
+func lastPlanPath(ctx *Context) string {
+	if ctx.ConfigPath == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(ctx.ConfigPath), "last_plan.json")
+}
+
+func newConfirmToken() string {
+	id := api.NewRequestID()
+	if len(id) >= 4 {
+		return id[:4]
+	}
+	return "confirm"
+}
+
+func toAnySlice[T any](items []T) []any {
+	out := make([]any, 0, len(items))
+	for _, item := range items {
+		out = append(out, item)
+	}
+	return out
+}
+
+func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyErr error) error {
+	if ctx.Mode == output.ModeJSON {
+		type resultJSON struct {
+			Action Action `json:"action"`
+			Error  string `json:"error,omitempty"`
+		}
+		out := struct {
+			Plan    Plan         `json:"plan"`
+			Results []resultJSON `json:"results"`
+		}{
+			Plan: plan,
+		}
+		for _, r := range results {
+			entry := resultJSON{Action: r.Action}
+			if r.SkippedReplay {
+				entry.Error = "skipped_replay"
+				out.Results = append(out.Results, entry)
+				continue
+			}
+			if r.Error != nil {
+				entry.Error = r.Error.Error()
+			}
+			out.Results = append(out.Results, entry)
+		}
+		return output.WriteJSON(ctx.Stdout, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+	}
+	fmt.Fprintf(ctx.Stdout, "Applied plan: %s\n", plan.Instruction)
+	for i, r := range results {
+		status := "ok"
+		if r.SkippedReplay {
+			status = "skipped (replay)"
+		}
+		if r.Error != nil {
+			status = "error: " + r.Error.Error()
+		}
+		fmt.Fprintf(ctx.Stdout, "%d. %s [%s]\n", i+1, r.Action.Type, status)
+	}
+	return applyErr
+}
