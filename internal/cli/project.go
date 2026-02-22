@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	appprojects "github.com/agisilaos/todoist-cli/internal/app/projects"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -147,35 +148,29 @@ func projectAdd(ctx *Context, args []string) error {
 		printProjectHelp(ctx.Stdout)
 		return nil
 	}
-	if name == "" {
-		printProjectHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--name is required")}
-	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	body := map[string]any{"name": name}
-	if description != "" {
-		body["description"] = description
-	}
+	parentID := ""
 	if parent != "" {
 		id, err := resolveProjectID(ctx, parent)
 		if err != nil {
 			return err
 		}
-		body["parent_id"] = id
+		parentID = id
 	}
-	if color != "" {
-		body["color"] = color
-	}
-	if favorite {
-		body["is_favorite"] = true
-	}
-	if viewStyle != "" {
-		body["view_style"] = viewStyle
-	}
-	if workspace != "" {
-		body["workspace_id"] = workspace
+	body, err := appprojects.BuildAddPayload(appprojects.AddInput{
+		Name:        name,
+		Description: description,
+		ParentID:    parentID,
+		Color:       color,
+		Favorite:    favorite,
+		ViewStyle:   viewStyle,
+		WorkspaceID: workspace,
+	})
+	if err != nil {
+		printProjectHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "project add", body)
@@ -214,29 +209,18 @@ func projectUpdate(ctx *Context, args []string) error {
 		printProjectHelp(ctx.Stdout)
 		return nil
 	}
-	if id == "" {
+	var err error
+	id, body, err := appprojects.BuildUpdatePayload(appprojects.UpdateInput{
+		ID:          id,
+		Name:        name,
+		Description: description,
+		Color:       color,
+		Favorite:    favorite,
+		ViewStyle:   viewStyle,
+	})
+	if err != nil {
 		printProjectHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id is required")}
-	}
-	body := map[string]any{}
-	if name != "" {
-		body["name"] = name
-	}
-	if description != "" {
-		body["description"] = description
-	}
-	if color != "" {
-		body["color"] = color
-	}
-	if favorite {
-		body["is_favorite"] = true
-	}
-	if viewStyle != "" {
-		body["view_style"] = viewStyle
-	}
-	if len(body) == 0 {
-		printProjectHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("no fields to update")}
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
