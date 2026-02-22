@@ -304,6 +304,35 @@ func TestContractFilterUpdateRequiresFields(t *testing.T) {
 	}
 }
 
+func TestContractCommentAddDryRunJSON(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"comment", "add", "--task", "123", "--content", "Need QA sign-off", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	got := stdout.String()
+	if !strings.Contains(got, `"action": "comment add"`) || !strings.Contains(got, `"task_id": "123"`) {
+		t.Fatalf("unexpected comment add dry-run output: %q", got)
+	}
+}
+
+func TestContractCommentUpdateRequiresFields(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"comment", "update", "--id", "c1", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "--id and --content are required") {
+		t.Fatalf("unexpected error: %q", stderr.String())
+	}
+}
+
 func TestContractTaskAddAssigneeIDRefDryRun(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "dummy")
 

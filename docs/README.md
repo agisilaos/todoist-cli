@@ -3,6 +3,7 @@
 ## Core
 
 - CLI specification: `SPEC.md`
+- Architecture overview: `ARCHITECTURE.md`
 - Product roadmap: `ROADMAP.md`
 
 ## Release

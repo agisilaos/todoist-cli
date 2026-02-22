@@ -1,12 +1,12 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	appcomments "github.com/agisilaos/todoist-cli/internal/app/comments"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -55,9 +55,9 @@ func commentList(ctx *Context, args []string) error {
 		printCommentHelp(ctx.Stdout)
 		return nil
 	}
-	if task == "" && project == "" {
+	if err := appcomments.ValidateList(appcomments.ListInput{TaskID: task, ProjectID: project}); err != nil {
 		printCommentHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--task or --project is required")}
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -101,27 +101,25 @@ func commentAdd(ctx *Context, args []string) error {
 		printCommentHelp(ctx.Stdout)
 		return nil
 	}
-	if content == "" {
-		printCommentHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--content is required")}
-	}
-	if task == "" && project == "" {
-		printCommentHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--task or --project is required")}
-	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	body := map[string]any{"content": content}
-	if task != "" {
-		body["task_id"] = task
-	}
+	projectID := ""
 	if project != "" {
 		id, err := resolveProjectID(ctx, project)
 		if err != nil {
 			return err
 		}
-		body["project_id"] = id
+		projectID = id
+	}
+	body, err := appcomments.BuildAddPayload(appcomments.AddInput{
+		Content:   content,
+		TaskID:    task,
+		ProjectID: projectID,
+	})
+	if err != nil {
+		printCommentHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "comment add", body)
@@ -152,20 +150,23 @@ func commentUpdate(ctx *Context, args []string) error {
 		printCommentHelp(ctx.Stdout)
 		return nil
 	}
-	if id == "" || content == "" {
+	commentID, body, err := appcomments.BuildUpdatePayload(appcomments.UpdateInput{
+		ID:      id,
+		Content: content,
+	})
+	if err != nil {
 		printCommentHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id and --content are required")}
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	body := map[string]any{"content": content}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "comment update", body)
 	}
 	var comment api.Comment
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/comments/"+id, nil, body, &comment, true)
+	reqID, err := ctx.Client.Post(reqCtx, "/comments/"+commentID, nil, body, &comment, true)
 	cancel()
 	if err != nil {
 		return err
