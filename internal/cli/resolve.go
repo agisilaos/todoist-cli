@@ -4,91 +4,79 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 )
 
 func resolveProjectID(ctx *Context, value string) (string, error) {
-	original := strings.TrimSpace(value)
-	if original == "" {
+	normalized, directID := apprefs.NormalizeRef(value)
+	if normalized == "" {
 		return "", nil
 	}
-	explicitID := strings.HasPrefix(strings.ToLower(original), "id:")
-	value = original
-	value = stripIDPrefix(value)
-	if explicitID {
-		return value, nil
-	}
-	if isNumeric(value) {
-		return value, nil
+	if directID {
+		return normalized, nil
 	}
 	projects, err := listAllProjects(ctx)
 	if err != nil {
 		return "", err
 	}
 	for _, p := range projects {
-		if strings.EqualFold(p.Name, value) {
+		if strings.EqualFold(p.Name, normalized) {
 			return p.ID, nil
 		}
 	}
 	if useFuzzy(ctx) {
-		candidates := fuzzyCandidates(value, projects, func(p api.Project) string { return p.Name }, func(p api.Project) string { return p.ID })
+		candidates := fuzzyCandidates(normalized, projects, func(p api.Project) string { return p.Name }, func(p api.Project) string { return p.ID })
 		if len(candidates) == 1 {
 			return candidates[0].ID, nil
 		}
 		if len(candidates) > 1 {
-			if chosen, ok, err := promptAmbiguousChoice(ctx, "project", value, candidates); err != nil {
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "project", normalized, candidates); err != nil {
 				return "", err
 			} else if ok {
 				return chosen, nil
 			}
-			return "", ambiguousMatchCodeError("project", value, candidates)
+			return "", ambiguousMatchCodeError("project", normalized, candidates)
 		}
 	}
-	return value, nil
+	return normalized, nil
 }
 
 func resolveSectionID(ctx *Context, value string, project string) (string, error) {
-	original := strings.TrimSpace(value)
-	if original == "" {
+	normalized, directID := apprefs.NormalizeRef(value)
+	if normalized == "" {
 		return "", nil
 	}
-	explicitID := strings.HasPrefix(strings.ToLower(original), "id:")
-	value = original
-	value = stripIDPrefix(value)
-	if explicitID {
-		return value, nil
-	}
-	if isNumeric(value) {
-		return value, nil
+	if directID {
+		return normalized, nil
 	}
 	sections, err := listAllSections(ctx, project)
 	if err != nil {
 		return "", err
 	}
 	for _, s := range sections {
-		if strings.EqualFold(s.Name, value) {
+		if strings.EqualFold(s.Name, normalized) {
 			return s.ID, nil
 		}
 	}
 	if useFuzzy(ctx) {
-		candidates := fuzzyCandidates(value, sections, func(s api.Section) string { return s.Name }, func(s api.Section) string { return s.ID })
+		candidates := fuzzyCandidates(normalized, sections, func(s api.Section) string { return s.Name }, func(s api.Section) string { return s.ID })
 		if len(candidates) == 1 {
 			return candidates[0].ID, nil
 		}
 		if len(candidates) > 1 {
-			if chosen, ok, err := promptAmbiguousChoice(ctx, "section", value, candidates); err != nil {
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "section", normalized, candidates); err != nil {
 				return "", err
 			} else if ok {
 				return chosen, nil
 			}
-			return "", ambiguousMatchCodeError("section", value, candidates)
+			return "", ambiguousMatchCodeError("section", normalized, candidates)
 		}
 	}
-	return value, nil
+	return normalized, nil
 }
 
 func resolveLabelName(ctx *Context, value string) (string, error) {
@@ -122,82 +110,11 @@ func resolveLabelName(ctx *Context, value string) (string, error) {
 	return value, nil
 }
 
-type fuzzyCandidate struct {
-	ID   string
-	Name string
-	Rank int
-}
-
-type AmbiguousMatchError struct {
-	Entity  string
-	Input   string
-	Matches []string
-}
-
-func (e *AmbiguousMatchError) Error() string {
-	return fmt.Sprintf("ambiguous %s match for %q; matches: %s", e.Entity, e.Input, strings.Join(e.Matches, ", "))
-}
+type fuzzyCandidate = apprefs.Candidate
+type AmbiguousMatchError = apprefs.AmbiguousMatchError
 
 func fuzzyCandidates[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) []fuzzyCandidate {
-	var out []fuzzyCandidate
-	lower := strings.ToLower(strings.TrimSpace(value))
-	if lower == "" {
-		return nil
-	}
-	for _, item := range items {
-		name := strings.TrimSpace(nameFn(item))
-		rank, ok := candidateRank(lower, strings.ToLower(name))
-		if ok {
-			out = append(out, fuzzyCandidate{ID: idFn(item), Name: name, Rank: rank})
-		}
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Rank != out[j].Rank {
-			return out[i].Rank < out[j].Rank
-		}
-		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
-	})
-	if len(out) > 8 {
-		out = out[:8]
-	}
-	return out
-}
-
-func candidateRank(query, target string) (int, bool) {
-	if query == "" || target == "" {
-		return 0, false
-	}
-	if target == query {
-		return 0, true
-	}
-	if strings.HasPrefix(target, query) {
-		return 100 + len(target) - len(query), true
-	}
-	if idx := strings.Index(target, query); idx >= 0 {
-		return 200 + (idx * 8) + (len(target) - len(query)), true
-	}
-	gap, ok := subsequenceGap(query, target)
-	if ok {
-		return 400 + gap + (len(target) - len(query)), true
-	}
-	return 0, false
-}
-
-func subsequenceGap(query, target string) (int, bool) {
-	qi := 0
-	prev := -1
-	gap := 0
-	for ti := 0; ti < len(target) && qi < len(query); ti++ {
-		if target[ti] != query[qi] {
-			continue
-		}
-		if prev >= 0 {
-			gap += ti - prev - 1
-		}
-		prev = ti
-		qi++
-	}
-	return gap, qi == len(query)
+	return apprefs.FuzzyCandidates(value, items, nameFn, idFn)
 }
 
 func ambiguousMatchCodeError(entity, input string, candidates []fuzzyCandidate) error {
@@ -237,9 +154,9 @@ func promptAmbiguousChoice(ctx *Context, entity, input string, candidates []fuzz
 }
 
 func resolveFuzzy[T any](value string, items []T, nameFn func(T) string, idFn func(T) string) (string, error) {
-	candidates := fuzzyCandidates(value, items, nameFn, idFn)
-	if len(candidates) == 1 {
-		return candidates[0].ID, nil
+	id, candidates := apprefs.ResolveFuzzy(value, items, nameFn, idFn)
+	if id != "" {
+		return id, nil
 	}
 	if len(candidates) > 1 {
 		return "", ambiguousMatchCodeError("value", value, candidates)

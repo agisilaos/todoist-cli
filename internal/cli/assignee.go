@@ -7,14 +7,16 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	appassignees "github.com/agisilaos/todoist-cli/internal/app/assignees"
 )
 
 func resolveAssigneeID(ctx *Context, assigneeRef, projectRef, taskID string) (string, error) {
 	ref := strings.TrimSpace(assigneeRef)
+	parsedRef := appassignees.ParseRef(ref)
 	if ref == "" {
 		return "", nil
 	}
-	if strings.EqualFold(ref, "me") {
+	if parsedRef.IsMe {
 		reqCtx, cancel := requestContext(ctx)
 		id, reqID, err := ctx.Client.SyncCurrentUserID(reqCtx)
 		cancel()
@@ -24,9 +26,8 @@ func resolveAssigneeID(ctx *Context, assigneeRef, projectRef, taskID string) (st
 		setRequestID(ctx, reqID)
 		return id, nil
 	}
-	stripped := stripIDPrefix(ref)
-	if stripped != ref || isNumeric(stripped) {
-		return stripped, nil
+	if parsedRef.ID != "" {
+		return parsedRef.ID, nil
 	}
 
 	projectID := ""
@@ -55,23 +56,17 @@ func resolveAssigneeID(ctx *Context, assigneeRef, projectRef, taskID string) (st
 	if err != nil {
 		return "", err
 	}
+	appCollaborators := make([]appassignees.Collaborator, 0, len(collaborators))
 	for _, c := range collaborators {
-		if strings.EqualFold(c.ID, ref) || strings.EqualFold(c.Name, ref) || strings.EqualFold(c.Email, ref) {
-			return c.ID, nil
-		}
+		appCollaborators = append(appCollaborators, appassignees.Collaborator{
+			ID:    c.ID,
+			Name:  c.Name,
+			Email: c.Email,
+		})
 	}
-	var candidates []fuzzyCandidate
-	lower := strings.ToLower(ref)
-	for _, c := range collaborators {
-		if strings.Contains(strings.ToLower(c.Name), lower) || strings.Contains(strings.ToLower(c.Email), lower) {
-			candidates = append(candidates, fuzzyCandidate{
-				ID:   c.ID,
-				Name: fmt.Sprintf("%s <%s>", c.Name, c.Email),
-			})
-		}
-	}
-	if len(candidates) == 1 {
-		return candidates[0].ID, nil
+	id, candidates, found := appassignees.MatchCollaboratorID(ref, appCollaborators)
+	if found {
+		return id, nil
 	}
 	if len(candidates) > 1 {
 		if chosen, ok, err := promptAmbiguousChoice(ctx, "assignee", ref, candidates); err != nil {
