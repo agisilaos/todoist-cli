@@ -4,15 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 )
-
-var relativeAgoPattern = regexp.MustCompile(`^([0-9]+)\s+(day|days|week|weeks)\s+ago$`)
 
 func taskList(ctx *Context, args []string) error {
 	fs := newFlagSet("task list")
@@ -158,7 +156,7 @@ func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool)
 	if !isInvalidSearchQueryError(err) || !isLikelyLiteralFilter(filter) {
 		return nil, "", err
 	}
-	query.Set("query", toSearchFilter(filter))
+	query.Set("query", apptasks.ToSearchFilter(filter))
 	return fetchPaginated[api.Task](ctx, "/tasks/filter", query, all)
 }
 
@@ -218,20 +216,7 @@ func isInvalidSearchQueryError(err error) bool {
 }
 
 func isLikelyLiteralFilter(filter string) bool {
-	value := strings.TrimSpace(filter)
-	if value == "" {
-		return false
-	}
-	if strings.ContainsAny(value, "@#|&!:()[]{}") {
-		return false
-	}
-	return true
-}
-
-func toSearchFilter(value string) string {
-	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`)
-	escaped := replacer.Replace(strings.TrimSpace(value))
-	return fmt.Sprintf(`search: "%s"`, escaped)
+	return apptasks.IsLikelyLiteralFilter(filter)
 }
 
 func normalizeCompletedDateRange(ctx *Context, since, until string) (string, string, error) {
@@ -239,90 +224,9 @@ func normalizeCompletedDateRange(ctx *Context, since, until string) (string, str
 	if ctx != nil && ctx.Now != nil {
 		now = ctx.Now
 	}
-	var err error
-	since = strings.TrimSpace(since)
-	until = strings.TrimSpace(until)
-	if since != "" {
-		since, err = normalizeCompletedDateValue(since, now())
-		if err != nil {
-			return "", "", err
-		}
-		if until == "" {
-			until = now().UTC().Format("2006-01-02")
-		}
+	s, u, err := apptasks.NormalizeCompletedDateRange(now(), since, until)
+	if err != nil {
+		return "", "", &CodeError{Code: exitUsage, Err: err}
 	}
-	if until != "" {
-		until, err = normalizeCompletedDateValue(until, now())
-		if err != nil {
-			return "", "", err
-		}
-	}
-	if since != "" && until != "" && since > until {
-		return "", "", &CodeError{Code: exitUsage, Err: errors.New("--since must be on or before --until")}
-	}
-	return since, until, nil
-}
-
-func normalizeCompletedDateValue(value string, now time.Time) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", nil
-	}
-	if t, err := time.Parse("2006-01-02", value); err == nil {
-		return t.Format("2006-01-02"), nil
-	}
-	if t, err := time.Parse(time.RFC3339, value); err == nil {
-		return t.UTC().Format("2006-01-02"), nil
-	}
-	lower := strings.ToLower(value)
-	switch lower {
-	case "today":
-		return now.UTC().Format("2006-01-02"), nil
-	case "yesterday":
-		return now.UTC().AddDate(0, 0, -1).Format("2006-01-02"), nil
-	case "tomorrow":
-		return now.UTC().AddDate(0, 0, 1).Format("2006-01-02"), nil
-	}
-	if weekday, ok := parseWeekday(lower); ok {
-		return mostRecentWeekday(now.UTC(), weekday).Format("2006-01-02"), nil
-	}
-	if m := relativeAgoPattern.FindStringSubmatch(lower); len(m) == 3 {
-		n, _ := strconv.Atoi(m[1])
-		switch m[2] {
-		case "day", "days":
-			return now.UTC().AddDate(0, 0, -n).Format("2006-01-02"), nil
-		case "week", "weeks":
-			return now.UTC().AddDate(0, 0, -(n * 7)).Format("2006-01-02"), nil
-		}
-	}
-	return "", &CodeError{
-		Code: exitUsage,
-		Err:  fmt.Errorf("invalid date %q; use YYYY-MM-DD, RFC3339, today/yesterday, weekday name, or '<N> days ago'", value),
-	}
-}
-
-func parseWeekday(value string) (time.Weekday, bool) {
-	switch value {
-	case "sunday":
-		return time.Sunday, true
-	case "monday":
-		return time.Monday, true
-	case "tuesday":
-		return time.Tuesday, true
-	case "wednesday":
-		return time.Wednesday, true
-	case "thursday":
-		return time.Thursday, true
-	case "friday":
-		return time.Friday, true
-	case "saturday":
-		return time.Saturday, true
-	default:
-		return time.Sunday, false
-	}
-}
-
-func mostRecentWeekday(now time.Time, weekday time.Weekday) time.Time {
-	diff := (int(now.Weekday()) - int(weekday) + 7) % 7
-	return now.AddDate(0, 0, -diff)
+	return s, u, nil
 }
