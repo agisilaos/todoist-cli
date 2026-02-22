@@ -429,6 +429,36 @@ func TestContractTaskAddAssigneeIDRefDryRun(t *testing.T) {
 	}
 }
 
+func TestContractTaskAddNaturalShorthandDryRun(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "add", "--content", "Buy milk #id:123 @errands p2 due:tomorrow", "--natural", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	got := stdout.String()
+	if !strings.Contains(got, `"content": "Buy milk"`) || !strings.Contains(got, `"project_id": "123"`) || !strings.Contains(got, `"labels": [`) || !strings.Contains(got, `"priority": 3`) || !strings.Contains(got, `"due_string": "tomorrow"`) {
+		t.Fatalf("unexpected natural shorthand payload: %q", got)
+	}
+}
+
+func TestContractTaskUpdateNaturalShorthandDryRun(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "update", "--id", "123", "--content", "Call mom p1 due:today", "--natural", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	got := stdout.String()
+	if !strings.Contains(got, `"content": "Call mom"`) || !strings.Contains(got, `"priority": 4`) || !strings.Contains(got, `"due_string": "today"`) {
+		t.Fatalf("unexpected natural update payload: %q", got)
+	}
+}
+
 func TestContractTaskAddAssigneeNameRequiresProject(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "dummy")
 

@@ -181,6 +181,7 @@ Task flags:
   --duration-unit <unit>     Duration unit (minute/day)
   --deadline <YYYY-MM-DD>    Deadline date
   --assignee <ref>           Assignee reference (id, me, name, email)
+  --natural                  Parse quick-add style tokens in content (#project @label p1..p4 due:...)
   --yes                      Skip delete confirmation
 
 Notes:

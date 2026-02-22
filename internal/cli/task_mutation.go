@@ -25,6 +25,7 @@ func taskAdd(ctx *Context, args []string) error {
 	var deadline string
 	var assignee string
 	var quick bool
+	var natural bool
 	var help bool
 	fs.StringVar(&content, "content", "", "Task content")
 	fs.StringVar(&description, "description", "", "Task description")
@@ -42,6 +43,7 @@ func taskAdd(ctx *Context, args []string) error {
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
 	fs.StringVar(&assignee, "assignee", "", "Assignee reference (id, me, name, email)")
 	fs.BoolVar(&quick, "quick", false, "Quick add using inbox defaults")
+	fs.BoolVar(&natural, "natural", false, "Parse quick-add style tokens in content (#project @label p1..p4 due:...)")
 	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
@@ -63,6 +65,24 @@ func taskAdd(ctx *Context, args []string) error {
 	if content == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("--content is required (or pass as positional text)")}
+	}
+	if natural {
+		parsed := parseQuickAdd(content)
+		if parsed.Content != "" {
+			content = parsed.Content
+		}
+		if project == "" && parsed.Project != "" {
+			project = parsed.Project
+		}
+		if len(labels) == 0 && len(parsed.Labels) > 0 {
+			labels = append(labels, parsed.Labels...)
+		}
+		if priority == 0 && parsed.Priority > 0 {
+			priority = parsed.Priority
+		}
+		if dueString == "" && parsed.Due != "" {
+			dueString = parsed.Due
+		}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -131,6 +151,7 @@ func taskUpdate(ctx *Context, args []string) error {
 	var deadline string
 	var assignee string
 	var project string
+	var natural bool
 	var help bool
 	fs.StringVar(&id, "id", "", "Task ID")
 	fs.StringVar(&content, "content", "", "Task content")
@@ -146,6 +167,7 @@ func taskUpdate(ctx *Context, args []string) error {
 	fs.StringVar(&deadline, "deadline", "", "Deadline date")
 	fs.StringVar(&assignee, "assignee", "", "Assignee reference (id, me, name, email)")
 	fs.StringVar(&project, "project", "", "Project (used for assignee name/email resolution)")
+	fs.BoolVar(&natural, "natural", false, "Parse quick-add style tokens in content (#project @label p1..p4 due:...)")
 	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
@@ -168,6 +190,24 @@ func taskUpdate(ctx *Context, args []string) error {
 	if id == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("--id is required (or pass a text reference)")}
+	}
+	if natural && strings.TrimSpace(content) != "" {
+		parsed := parseQuickAdd(content)
+		if parsed.Content != "" {
+			content = parsed.Content
+		}
+		if project == "" && parsed.Project != "" {
+			project = parsed.Project
+		}
+		if len(labels) == 0 && len(parsed.Labels) > 0 {
+			labels = append(labels, parsed.Labels...)
+		}
+		if priority == 0 && parsed.Priority > 0 {
+			priority = parsed.Priority
+		}
+		if dueString == "" && parsed.Due != "" {
+			dueString = parsed.Due
+		}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err

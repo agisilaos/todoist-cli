@@ -199,6 +199,7 @@ By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or 
 --duration-unit <unit>     Duration unit (minute/day)
 --deadline <YYYY-MM-DD>    Deadline date
 --assignee <ref>           Assignee reference (id, me, name, email)
+--natural                  Parse quick-add style tokens in content (#project @label p1..p4 due:...)
 --yes                      Skip delete confirmation
 ```
 
@@ -213,6 +214,7 @@ Notes:
 - If you pass `--since` without `--until`, `--until` defaults to today.
 - Bulk commands using `--filter` accept Todoist query syntax; plain text is treated as search text.
 - `--strict` is a flag on `todoist add` (quick-add command), not on `todoist task add`.
+- `task add/update --natural` lets you pass quick-add style tokens in `--content` (for example `#Home @errands p2 due:tomorrow`) and maps them to REST fields.
 
 Table options:
 

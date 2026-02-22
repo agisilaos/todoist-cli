@@ -47,7 +47,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --preset --sort --truncate-width --yes"
+      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --preset --sort --truncate-width --yes"
       COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -158,7 +158,7 @@ case $words[1] in
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env --oauth --oauth-device --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
+    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
     ;;
   filter)
     _arguments '2:subcommand:(list ls show add update delete rm del)' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
