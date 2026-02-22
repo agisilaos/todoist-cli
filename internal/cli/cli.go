@@ -37,6 +37,7 @@ type GlobalOptions struct {
 	Quiet         bool
 	QuietJSON     bool
 	Verbose       bool
+	Accessible    bool
 	JSON          bool
 	Plain         bool
 	NDJSON        bool
@@ -64,6 +65,7 @@ type Context struct {
 	Profile    string
 	ConfigPath string
 	Fuzzy      bool
+	Accessible bool
 
 	Token       string
 	TokenSource string
@@ -141,6 +143,8 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			opts.QuietJSON = true
 		case arg == "--verbose" || arg == "-v":
 			opts.Verbose = true
+		case arg == "--accessible":
+			opts.Accessible = true
 		case arg == "--json":
 			opts.JSON = true
 		case arg == "--plain":
@@ -272,6 +276,11 @@ func loadConfig(ctx *Context) error {
 		fuzzy = false
 	}
 	ctx.Fuzzy = fuzzy
+	accessible := ctx.Global.Accessible
+	if parsePositiveEnvFlag("TODOIST_ACCESSIBLE") {
+		accessible = true
+	}
+	ctx.Accessible = accessible
 
 	token := os.Getenv("TODOIST_TOKEN")
 	if token != "" {

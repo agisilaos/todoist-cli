@@ -100,6 +100,7 @@ Environment variables:
 - `TODOIST_OAUTH_DEVICE_URL` (override OAuth device-code URL)
 - `TODOIST_OAUTH_LISTEN` (override OAuth callback listen address)
 - `TODOIST_FUZZY` (1 to enable fuzzy name resolution)
+- `TODOIST_ACCESSIBLE` (1 to add screen-reader-friendly labels in human output)
 - `TODOIST_TABLE_WIDTH` (override table width for human output)
 
 ## Usage
@@ -116,6 +117,7 @@ Global flags apply to every command:
 -q, --quiet          Suppress non-essential output
 --quiet-json         Compact single-line JSON errors (for scripts/agents)
 -v, --verbose        Enable verbose output
+--accessible         Add text markers for screen-reader-friendly task output
 --json               JSON output
 --plain              Plain text output
 --ndjson             NDJSON output
@@ -469,6 +471,7 @@ Where supported, name resolution is built-in (e.g., `--project <name>` and `--se
 - `--ndjson` outputs one JSON object per line (streaming friendly) across task/project/section/label/comment lists.
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
+- `--accessible` (or `TODOIST_ACCESSIBLE=1`) adds explicit text markers for task due/priority values in human output.
 - `--truncate-width` or `TODOIST_TABLE_WIDTH` lets you set table width; `--wide` expands columns.
 - Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
 

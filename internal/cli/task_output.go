@@ -124,6 +124,8 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 		content := cleanCell(task.Content)
 		id := cleanCell(task.ID)
 		due := formatDue(task.Due)
+		due = accessibleDueValue(ctx, due)
+		priority := accessiblePriorityValue(ctx, task.Priority)
 		if ctx.Mode == output.ModeHuman {
 			content = truncateString(content, cfg.Content)
 			project = truncateString(cleanCell(project), cfg.Project)
@@ -139,7 +141,7 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 			section,
 			labels,
 			due,
-			strconv.Itoa(task.Priority),
+			priority,
 			formatCompleted(task.Checked, task.CompletedAt),
 		})
 	}
@@ -178,6 +180,23 @@ func formatCompleted(checked bool, completedAt string) string {
 		return "yes"
 	}
 	return "no"
+}
+
+func accessibleDueValue(ctx *Context, due string) string {
+	if !useAccessible(ctx) || strings.TrimSpace(due) == "" {
+		return due
+	}
+	return "due:" + due
+}
+
+func accessiblePriorityValue(ctx *Context, priority int) string {
+	if !useAccessible(ctx) {
+		return strconv.Itoa(priority)
+	}
+	if priority <= 0 {
+		return ""
+	}
+	return "p" + strconv.Itoa(priority)
 }
 
 func sortTasks(tasks []api.Task, sortBy string) {

@@ -32,6 +32,26 @@ func TestWriteTaskListPlainSnapshot(t *testing.T) {
 	}
 }
 
+func TestWriteTaskListPlainAccessibleSnapshot(t *testing.T) {
+	ctx := &Context{
+		Stdout:     &bytes.Buffer{},
+		Mode:       output.ModePlain,
+		Config:     config.Config{TableWidth: 80},
+		Accessible: true,
+	}
+	tasks := []api.Task{
+		{ID: "123456789", Content: "Write launch blog", ProjectID: "proj1", SectionID: "sec1", Labels: []string{"focus", "writing"}, Priority: 4, Checked: false, Due: &api.Due{Date: "2026-01-01"}},
+	}
+	if err := writeTaskList(ctx, tasks, "", false); err != nil {
+		t.Fatalf("writeTaskList: %v", err)
+	}
+	got := ctx.Stdout.(*bytes.Buffer).String()
+	want := "123456789\tWrite launch blog\tproj1\tsec1\tfocus,writing\tdue:2026-01-01\tp4\tno\n"
+	if got != want {
+		t.Fatalf("unexpected accessible plain output:\n%s", got)
+	}
+}
+
 func TestWriteTaskListJSONSnapshot(t *testing.T) {
 	ctx := &Context{
 		Stdout:    &bytes.Buffer{},

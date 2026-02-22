@@ -214,6 +214,10 @@ func useFuzzy(ctx *Context) bool {
 	return ctx != nil && ctx.Fuzzy
 }
 
+func useAccessible(ctx *Context) bool {
+	return ctx != nil && ctx.Accessible
+}
+
 func stripIDPrefix(value string) string {
 	value = strings.TrimSpace(value)
 	if strings.HasPrefix(strings.ToLower(value), "id:") {

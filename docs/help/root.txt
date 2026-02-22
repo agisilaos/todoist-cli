@@ -28,6 +28,7 @@ Global flags:
   -q, --quiet           Suppress non-essential output
   --quiet-json          Compact single-line JSON errors
   -v, --verbose         Enable verbose output
+  --accessible          Add text markers for screen-reader-friendly task output
   --json                JSON output
   --plain               Plain text output (tab-separated)
   --ndjson              NDJSON output

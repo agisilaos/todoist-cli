@@ -87,9 +87,9 @@ func TestCompletionScriptsIncludeOAuthAuthLoginFlags(t *testing.T) {
 
 func TestCompletionScriptsIncludeFuzzyGlobalFlags(t *testing.T) {
 	expectedFlags := map[string][]string{
-		"bash": {"--fuzzy", "--no-fuzzy", "--progress-jsonl"},
-		"zsh":  {"--fuzzy", "--no-fuzzy", "--progress-jsonl"},
-		"fish": {"-l fuzzy", "-l no-fuzzy", "-l progress-jsonl"},
+		"bash": {"--fuzzy", "--no-fuzzy", "--progress-jsonl", "--accessible"},
+		"zsh":  {"--fuzzy", "--no-fuzzy", "--progress-jsonl", "--accessible"},
+		"fish": {"-l fuzzy", "-l no-fuzzy", "-l progress-jsonl", "-l accessible"},
 	}
 	for _, shell := range []string{"bash", "zsh", "fish"} {
 		script, err := completionScript(shell)

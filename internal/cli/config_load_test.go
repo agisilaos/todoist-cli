@@ -116,6 +116,32 @@ func TestApplyEnvIntAndFlagParser(t *testing.T) {
 	}
 }
 
+func TestLoadConfigAccessibleEnvAndFlag(t *testing.T) {
+	tmp := t.TempDir()
+	userCfgPath := filepath.Join(tmp, "config.json")
+	if err := writeJSON(userCfgPath, config.Config{}); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	t.Setenv("TODOIST_ACCESSIBLE", "1")
+	ctx := &Context{Global: GlobalOptions{ConfigPath: userCfgPath}}
+	if err := loadConfig(ctx); err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ctx.Accessible {
+		t.Fatalf("expected accessible enabled from env")
+	}
+
+	t.Setenv("TODOIST_ACCESSIBLE", "0")
+	ctx = &Context{Global: GlobalOptions{ConfigPath: userCfgPath, Accessible: true}}
+	if err := loadConfig(ctx); err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ctx.Accessible {
+		t.Fatalf("expected accessible enabled from flag")
+	}
+}
+
 func writeJSON(path string, v any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
