@@ -29,7 +29,6 @@ Todoist API v1
 
 ## Service coverage
 
-- `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards.
 - `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, and task mutation payload builders.
 - `internal/app/projects`: add/update payload validation and construction.
 - `internal/app/filters`: add/update/delete validation and payload construction.
