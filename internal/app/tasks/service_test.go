@@ -127,3 +127,21 @@ func TestResolveMoveTargetsRequiresDestination(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestResolveTaskTargetFromRef(t *testing.T) {
+	svc := Service{Resolver: fakeResolver{task: api.Task{ID: "t99"}}}
+	id, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{Ref: "Pay rent"})
+	if err != nil {
+		t.Fatalf("ResolveTaskTarget: %v", err)
+	}
+	if id != "t99" {
+		t.Fatalf("unexpected id: %q", id)
+	}
+}
+
+func TestResolveTaskTargetRequiresValue(t *testing.T) {
+	svc := Service{}
+	if _, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{}); err == nil {
+		t.Fatalf("expected error")
+	}
+}

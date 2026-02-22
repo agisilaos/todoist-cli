@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -72,11 +74,12 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 		return "", err
 	}
 	ref := strings.Join(fs.Args(), " ")
-	task, err := resolveTaskRef(ctx, ref)
+	svc := apptasks.Service{Resolver: cliTaskResolver{ctx: ctx}}
+	resolvedID, err := svc.ResolveTaskTarget(context.Background(), apptasks.ResolveTaskTargetInput{Ref: ref})
 	if err != nil {
 		return "", err
 	}
-	return task.ID, nil
+	return resolvedID, nil
 }
 
 func writeDryRun(ctx *Context, action string, payload any) error {

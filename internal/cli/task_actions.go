@@ -257,25 +257,24 @@ func taskDelete(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
-	if id == "" && len(fs.Args()) > 0 {
-		if err := ensureClient(ctx); err != nil {
-			return err
-		}
-		ref := strings.Join(fs.Args(), " ")
-		task, err := resolveTaskRef(ctx, ref)
-		if err != nil {
-			return err
-		}
-		id = task.ID
-	}
-	id = stripIDPrefix(id)
-	if id == "" {
-		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --id or a reference")}
+	ref := ""
+	if len(fs.Args()) > 0 {
+		ref = strings.Join(fs.Args(), " ")
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
+	svc := apptasks.Service{Resolver: cliTaskResolver{ctx: ctx}}
+	resolvedID, err := svc.ResolveTaskTarget(context.Background(), apptasks.ResolveTaskTargetInput{ID: id, Ref: ref})
+	if err != nil {
+		if strings.TrimSpace(id) == "" && strings.TrimSpace(ref) == "" {
+			printTaskHelp(ctx.Stderr)
+			return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --id or a reference")}
+		}
+		printTaskHelp(ctx.Stderr)
+		return asUsageIfGeneric(err)
+	}
+	id = resolvedID
 	if !yes {
 		return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --yes")}
 	}

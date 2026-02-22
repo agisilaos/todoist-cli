@@ -55,6 +55,11 @@ type ResolveMoveResult struct {
 	Filter string
 }
 
+type ResolveTaskTargetInput struct {
+	ID  string
+	Ref string
+}
+
 func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveCompletionInput) (ResolveCompletionResult, error) {
 	id := stripIDPrefix(in.ID)
 	ref := strings.TrimSpace(in.Ref)
@@ -144,6 +149,26 @@ func (s Service) ResolveMoveTargets(ctx context.Context, in ResolveMoveInput) (R
 		return ResolveMoveResult{}, errors.New("--id is required (or pass a text reference)")
 	}
 	return ResolveMoveResult{Mode: "single", ID: id, IDs: []string{id}}, nil
+}
+
+func (s Service) ResolveTaskTarget(ctx context.Context, in ResolveTaskTargetInput) (string, error) {
+	id := stripIDPrefix(in.ID)
+	ref := strings.TrimSpace(in.Ref)
+	if id == "" && ref != "" {
+		if s.Resolver == nil {
+			return "", errors.New("task resolver is not configured")
+		}
+		task, err := s.Resolver.ResolveTaskRef(ctx, ref)
+		if err != nil {
+			return "", err
+		}
+		id = task.ID
+	}
+	id = stripIDPrefix(id)
+	if id == "" {
+		return "", errors.New("task id is required")
+	}
+	return id, nil
 }
 
 func stripIDPrefix(value string) string {
