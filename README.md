@@ -378,6 +378,7 @@ todoist agent status
 - `agent run` combines plan + apply for automation (cron/launchd).
 - `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`).
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
+- Planner context now includes active tasks (capped) in addition to projects/sections/labels/completed tasks.
 - `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).
 - `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default).
 - Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token.
@@ -385,6 +386,7 @@ todoist agent status
 Planner contract checklist:
 - Emit valid JSON to stdout matching `todoist schema --name plan`.
 - Include `confirm_token` and `actions` with supported types.
+- Optional: include `reason` per action for richer human review output.
 - Use stable action fields (IDs or names as documented).
 
 Scheduling example (macOS launchd):

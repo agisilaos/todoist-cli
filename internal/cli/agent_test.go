@@ -50,6 +50,23 @@ func TestWritePlanPreviewJSON(t *testing.T) {
 	}
 }
 
+func TestWritePlanPreviewHumanIncludesReason(t *testing.T) {
+	plan := Plan{
+		Instruction:  "triage",
+		ConfirmToken: "abcd",
+		Summary:      PlanSummary{Tasks: 1},
+		Actions:      []Action{{Type: "task_add", Reason: "overdue inbox cleanup"}},
+	}
+	var buf bytes.Buffer
+	ctx := &Context{Stdout: &buf}
+	if err := writePlanPreview(ctx, plan, false); err != nil {
+		t.Fatalf("writePlanPreview: %v", err)
+	}
+	if !strings.Contains(buf.String(), "task_add (overdue inbox cleanup)") {
+		t.Fatalf("expected reason in preview output, got %q", buf.String())
+	}
+}
+
 func TestAgentStatusNoPlanJSON(t *testing.T) {
 	tmp := t.TempDir()
 	var out bytes.Buffer

@@ -67,11 +67,17 @@ func buildPlannerContext(ctx *Context, opts plannerContextOptions) (PlannerConte
 			return PlannerContext{}, err
 		}
 	}
+	activeTasks, err := listAllActiveTasks(ctx)
+	if err != nil {
+		return PlannerContext{}, err
+	}
+	filteredActiveTasks := filterActiveTasksForContext(activeTasks, projectIDs, opts.LabelFilters)
 
 	return PlannerContext{
 		Projects:       toAnySlice(filteredProjects),
 		Sections:       toAnySlice(filteredSections),
 		Labels:         toAnySlice(filteredLabels),
+		ActiveTasks:    toAnySlice(filteredActiveTasks),
 		CompletedTasks: toAnySlice(completed),
 	}, nil
 }
@@ -201,4 +207,40 @@ func listCompletedTasks(ctx *Context, since string) ([]api.Task, error) {
 		query.Set("cursor", page.NextCursor)
 	}
 	return all, nil
+}
+
+func filterActiveTasksForContext(tasks []api.Task, projectIDs map[string]struct{}, labelFilters []string) []api.Task {
+	out := make([]api.Task, 0, len(tasks))
+	labelSet := map[string]struct{}{}
+	for _, label := range labelFilters {
+		trimmed := strings.TrimSpace(strings.ToLower(label))
+		if trimmed == "" {
+			continue
+		}
+		labelSet[trimmed] = struct{}{}
+	}
+	for _, task := range tasks {
+		if len(projectIDs) > 0 {
+			if _, ok := projectIDs[task.ProjectID]; !ok {
+				continue
+			}
+		}
+		if len(labelSet) > 0 {
+			hasAny := false
+			for _, label := range task.Labels {
+				if _, ok := labelSet[strings.ToLower(strings.TrimSpace(label))]; ok {
+					hasAny = true
+					break
+				}
+			}
+			if !hasAny {
+				continue
+			}
+		}
+		out = append(out, task)
+		if len(out) >= 50 {
+			break
+		}
+	}
+	return out
 }

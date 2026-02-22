@@ -88,6 +88,10 @@ func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 	fmt.Fprintf(ctx.Stdout, "Actions: %d (tasks=%d projects=%d sections=%d labels=%d comments=%d)\n",
 		len(plan.Actions), plan.Summary.Tasks, plan.Summary.Projects, plan.Summary.Sections, plan.Summary.Labels, plan.Summary.Comments)
 	for i, action := range plan.Actions {
+		if strings.TrimSpace(action.Reason) != "" {
+			fmt.Fprintf(ctx.Stdout, "%d. %s (%s)\n", i+1, action.Type, strings.TrimSpace(action.Reason))
+			continue
+		}
 		fmt.Fprintf(ctx.Stdout, "%d. %s\n", i+1, action.Type)
 	}
 	return nil

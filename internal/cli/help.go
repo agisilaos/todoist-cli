@@ -291,6 +291,8 @@ Context flags:
 Notes:
   agent status is safe on first run and reports planner config + whether a last plan exists.
   agent apply/agent run allow no-action plans in --dry-run mode for pipeline validation.
+  Planner context includes active tasks plus project/section/label/completed slices.
+  Plan actions may include optional "reason" text; human previews print it when present.
 `)
 }
 

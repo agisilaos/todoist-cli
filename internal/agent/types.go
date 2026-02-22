@@ -11,6 +11,7 @@ type PlannerContext struct {
 	Projects       []any `json:"projects"`
 	Sections       []any `json:"sections"`
 	Labels         []any `json:"labels"`
+	ActiveTasks    []any `json:"active_tasks,omitempty"`
 	CompletedTasks []any `json:"completed_tasks,omitempty"`
 }
 
@@ -40,6 +41,7 @@ type Action struct {
 	LabelID      string   `json:"label_id,omitempty"`
 	CommentID    string   `json:"comment_id,omitempty"`
 	Idempotent   bool     `json:"idempotent,omitempty"`
+	Reason       string   `json:"reason,omitempty"`
 	Content      string   `json:"content,omitempty"`
 	Description  string   `json:"description,omitempty"`
 	Name         string   `json:"name,omitempty"`

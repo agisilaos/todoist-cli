@@ -61,6 +61,11 @@ Planner action schema notes:
 - `task_move` accepts either `project`/`section` references or explicit `project_id`/`section_id`.
 - `section_add` accepts `project` or `project_id`.
 - `comment_add` requires `content` plus `task_id` or `project`/`project_id`.
+- `reason` is an optional action field for explanation in human plan previews.
+
+Planner context notes:
+
+- Planner request context includes `projects`, `sections`, `labels`, `active_tasks` (capped), and optional `completed_tasks`.
 
 ## References
 

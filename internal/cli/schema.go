@@ -104,6 +104,7 @@ var schemas = []schemaDef{
 						"type": "object",
 						"properties": map[string]any{
 							"type":          map[string]string{"type": "string"},
+							"reason":        map[string]string{"type": "string"},
 							"task_id":       map[string]string{"type": "string"},
 							"project_id":    map[string]string{"type": "string"},
 							"section_id":    map[string]string{"type": "string"},
@@ -168,6 +169,7 @@ var schemas = []schemaDef{
 						"projects":        map[string]any{"type": "array"},
 						"sections":        map[string]any{"type": "array"},
 						"labels":          map[string]any{"type": "array"},
+						"active_tasks":    map[string]any{"type": "array"},
 						"completed_tasks": map[string]any{"type": "array"},
 					},
 				},
