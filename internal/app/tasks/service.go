@@ -37,6 +37,24 @@ type ResolveCompletionResult struct {
 	Filter string
 }
 
+type ResolveMoveInput struct {
+	ID      string
+	Ref     string
+	Filter  string
+	Yes     bool
+	Force   bool
+	Project string
+	Section string
+	Parent  string
+}
+
+type ResolveMoveResult struct {
+	Mode   string
+	ID     string
+	IDs    []string
+	Filter string
+}
+
 func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveCompletionInput) (ResolveCompletionResult, error) {
 	id := stripIDPrefix(in.ID)
 	ref := strings.TrimSpace(in.Ref)
@@ -79,6 +97,53 @@ func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveComplet
 		return ResolveCompletionResult{}, errors.New("task complete requires --id or a reference")
 	}
 	return ResolveCompletionResult{Mode: "single", ID: id, IDs: []string{id}}, nil
+}
+
+func (s Service) ResolveMoveTargets(ctx context.Context, in ResolveMoveInput) (ResolveMoveResult, error) {
+	id := stripIDPrefix(in.ID)
+	ref := strings.TrimSpace(in.Ref)
+	filter := strings.TrimSpace(in.Filter)
+
+	if strings.TrimSpace(in.Project) == "" && strings.TrimSpace(in.Section) == "" && strings.TrimSpace(in.Parent) == "" {
+		return ResolveMoveResult{}, errors.New("at least one of --project, --section, or --parent is required")
+	}
+
+	if filter != "" {
+		if id != "" || ref != "" {
+			return ResolveMoveResult{}, errors.New("--filter cannot be combined with --id or positional task reference")
+		}
+		if !in.Yes && !in.Force {
+			return ResolveMoveResult{}, errors.New("bulk move with --filter requires --yes (or --force)")
+		}
+		if s.Lister == nil {
+			return ResolveMoveResult{}, errors.New("task filter lister is not configured")
+		}
+		tasks, err := s.Lister.ListByFilter(ctx, filter)
+		if err != nil {
+			return ResolveMoveResult{}, err
+		}
+		ids := make([]string, 0, len(tasks))
+		for _, task := range tasks {
+			ids = append(ids, task.ID)
+		}
+		return ResolveMoveResult{Mode: "bulk", IDs: ids, Filter: filter}, nil
+	}
+
+	if id == "" && ref != "" {
+		if s.Resolver == nil {
+			return ResolveMoveResult{}, errors.New("task resolver is not configured")
+		}
+		task, err := s.Resolver.ResolveTaskRef(ctx, ref)
+		if err != nil {
+			return ResolveMoveResult{}, err
+		}
+		id = task.ID
+	}
+	id = stripIDPrefix(id)
+	if id == "" {
+		return ResolveMoveResult{}, errors.New("--id is required (or pass a text reference)")
+	}
+	return ResolveMoveResult{Mode: "single", ID: id, IDs: []string{id}}, nil
 }
 
 func stripIDPrefix(value string) string {

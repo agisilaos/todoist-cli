@@ -34,54 +34,41 @@ func taskMove(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
-	if filter == "" && id == "" && len(fs.Args()) > 0 {
-		ref := strings.Join(fs.Args(), " ")
-		if err := ensureClient(ctx); err != nil {
-			return err
-		}
-		task, err := resolveTaskRef(ctx, ref)
-		if err != nil {
-			return err
-		}
-		id = task.ID
-	}
-	id = stripIDPrefix(id)
-	if filter == "" && id == "" {
-		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id is required (or pass a text reference)")}
-	}
-	if project == "" && section == "" && parent == "" {
-		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("at least one of --project, --section, or --parent is required")}
-	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if filter != "" {
-		if id != "" || len(fs.Args()) > 0 {
-			return &CodeError{Code: exitUsage, Err: errors.New("--filter cannot be combined with --id or positional task reference")}
-		}
-		if !yes && !ctx.Global.Force {
-			return &CodeError{Code: exitUsage, Err: errors.New("bulk move with --filter requires --yes (or --force)")}
-		}
-		tasks, _, err := listTasksByFilter(ctx, filter, "", 200, true)
-		if err != nil {
-			return err
-		}
-		ids := make([]string, 0, len(tasks))
-		for _, t := range tasks {
-			ids = append(ids, t.ID)
-		}
+	ref := ""
+	if len(fs.Args()) > 0 {
+		ref = strings.Join(fs.Args(), " ")
+	}
+	svc := apptasks.Service{
+		Resolver: cliTaskResolver{ctx: ctx},
+		Lister:   cliTaskFilterLister{ctx: ctx},
+	}
+	resolved, err := svc.ResolveMoveTargets(context.Background(), apptasks.ResolveMoveInput{
+		ID:      id,
+		Ref:     ref,
+		Filter:  filter,
+		Yes:     yes,
+		Force:   ctx.Global.Force,
+		Project: project,
+		Section: section,
+		Parent:  parent,
+	})
+	if err != nil {
+		return asUsageIfGeneric(err)
+	}
+	if resolved.Mode == "bulk" {
 		body, err := buildTaskMovePayload(ctx, "", project, "", section, parent)
 		if err != nil {
 			return err
 		}
 		if ctx.Global.DryRun {
-			return writeDryRun(ctx, "task move bulk", map[string]any{"filter": filter, "count": len(ids), "ids": ids, "payload": body})
+			return writeDryRun(ctx, "task move bulk", map[string]any{"filter": resolved.Filter, "count": len(resolved.IDs), "ids": resolved.IDs, "payload": body})
 		}
 		moved := 0
 		failed := 0
-		for _, taskID := range ids {
+		for _, taskID := range resolved.IDs {
 			reqCtx, cancel := requestContext(ctx)
 			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/move", nil, body, nil, true)
 			cancel()
@@ -94,15 +81,16 @@ func taskMove(ctx *Context, args []string) error {
 		}
 		if ctx.Mode == output.ModeJSON {
 			return output.WriteJSON(ctx.Stdout, map[string]any{
-				"filter": filter,
+				"filter": resolved.Filter,
 				"moved":  moved,
 				"failed": failed,
-				"count":  len(ids),
+				"count":  len(resolved.IDs),
 			}, output.Meta{RequestID: ctx.RequestID})
 		}
-		fmt.Fprintf(ctx.Stdout, "bulk move complete: moved=%d failed=%d total=%d\n", moved, failed, len(ids))
+		fmt.Fprintf(ctx.Stdout, "bulk move complete: moved=%d failed=%d total=%d\n", moved, failed, len(resolved.IDs))
 		return nil
 	}
+	id = resolved.ID
 	body, err := buildTaskMovePayload(ctx, "", project, "", section, parent)
 	if err != nil {
 		return err

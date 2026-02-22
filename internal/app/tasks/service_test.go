@@ -94,3 +94,36 @@ func TestResolveCompletionTargetsPropagatesResolverError(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestResolveMoveTargetsSingleFromRef(t *testing.T) {
+	svc := Service{Resolver: fakeResolver{task: api.Task{ID: "t1"}}}
+	out, err := svc.ResolveMoveTargets(context.Background(), ResolveMoveInput{Ref: "Call mom", Project: "Inbox"})
+	if err != nil {
+		t.Fatalf("ResolveMoveTargets: %v", err)
+	}
+	if out.Mode != "single" || out.ID != "t1" {
+		t.Fatalf("unexpected output: %#v", out)
+	}
+}
+
+func TestResolveMoveTargetsBulkRequiresYes(t *testing.T) {
+	svc := Service{Lister: fakeLister{tasks: []api.Task{{ID: "a"}}}}
+	_, err := svc.ResolveMoveTargets(context.Background(), ResolveMoveInput{Filter: "today", Project: "Inbox"})
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if err.Error() != "bulk move with --filter requires --yes (or --force)" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveMoveTargetsRequiresDestination(t *testing.T) {
+	svc := Service{}
+	_, err := svc.ResolveMoveTargets(context.Background(), ResolveMoveInput{ID: "t1"})
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if err.Error() != "at least one of --project, --section, or --parent is required" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
