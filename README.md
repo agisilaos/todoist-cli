@@ -208,6 +208,11 @@ Completed task listing:
 todoist task list --completed [--completed-by completion|due] [--since <date>] [--until <date>]
 ```
 
+Notes:
+- `--since`/`--until` accept `YYYY-MM-DD`, RFC3339, `today`, `yesterday`, weekday names (for example `monday`), and relative forms like `2 weeks ago`.
+- If you pass `--since` without `--until`, `--until` defaults to today.
+- Bulk commands using `--filter` accept Todoist query syntax; plain text is treated as search text.
+
 Table options:
 
 ```

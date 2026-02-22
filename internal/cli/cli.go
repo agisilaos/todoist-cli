@@ -18,8 +18,8 @@ import (
 
 var (
 	Version = "dev"
-	Commit  = "none"
-	Date    = "unknown"
+	Commit  = "local"
+	Date    = "unreleased"
 )
 
 const (

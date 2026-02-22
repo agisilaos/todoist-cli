@@ -186,6 +186,9 @@ Task flags:
 Notes:
   By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
   Aliases: ls=list, show=view, rm/delete=delete.
+  Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
+  If --completed uses --since without --until, --until defaults to today.
+  For bulk actions, plain --filter text is treated as search text when not a Todoist query.
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
   Human output resolves project/section names; --plain uses IDs.
   Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.

@@ -94,6 +94,9 @@ func taskTableConfigFor(ctx *Context, wide bool) taskTableConfig {
 }
 
 func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) error {
+	if tasks == nil {
+		tasks = []api.Task{}
+	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, tasks, output.Meta{RequestID: ctxRequestIDValue(ctx), Count: len(tasks), Cursor: cursor})
 	}
