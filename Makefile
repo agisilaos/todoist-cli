@@ -1,4 +1,4 @@
-.PHONY: build test vet fmt fmt-check coverage-check docs-check release-check release release-dry-run
+.PHONY: build test vet fmt fmt-check coverage-check check-help docs-check release-check release release-dry-run
 
 build:
 	go build -o todoist ./cmd/todoist
@@ -17,6 +17,9 @@ fmt-check:
 
 coverage-check:
 	./scripts/coverage-check.sh
+
+check-help:
+	./scripts/check-help.sh
 
 docs-check:
 	./scripts/docs-check.sh

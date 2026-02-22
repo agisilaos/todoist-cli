@@ -1,0 +1,52 @@
+todoist - Agentic Todoist CLI
+
+Usage:
+  todoist [global flags] <command> [args]
+
+Commands:
+  inbox       Quick-add to Inbox
+  add         Quick add (alias of task add)
+  today       Tasks due today and overdue
+  auth        Authenticate and manage tokens
+  task        Manage tasks
+  filter      Manage filters
+  project     Manage projects
+  workspace   Manage workspaces
+  section     Manage sections
+  label       Manage labels
+  comment     Manage comments
+  agent       Plan and apply agentic actions
+  completion  Shell completion
+  doctor      Run environment and configuration checks
+  schema      Show JSON schemas for outputs
+  planner     Show or set planner command
+  help        Show help for a command
+
+Global flags:
+  -h, --help            Show help
+  --version             Show version
+  -q, --quiet           Suppress non-essential output
+  --quiet-json          Compact single-line JSON errors
+  -v, --verbose         Enable verbose output
+  --json                JSON output
+  --plain               Plain text output (tab-separated)
+  --ndjson              NDJSON output
+  --no-color            Disable color
+  --no-input            Disable prompts
+  --timeout <seconds>   Request timeout (default 10)
+  --config <path>       Config file path
+  --profile <name>      Profile name (default "default")
+  -n, --dry-run         Preview changes without applying
+  -f, --force           Skip confirmation prompts
+  --fuzzy               Enable fuzzy name resolution
+  --no-fuzzy            Disable fuzzy name resolution
+  --progress-jsonl      Emit progress events as JSONL to stderr or file
+  --base-url <url>      Override API base URL
+
+Examples:
+  todoist auth login
+  todoist task list
+  todoist task list --all-projects
+  todoist task add --content "Pay rent" --project Home --due "1st of month"
+  todoist help task
+  todoist inbox add --content "Capture idea"
