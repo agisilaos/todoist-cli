@@ -75,13 +75,6 @@ func inboxAdd(ctx *Context, args []string) error {
 		printInboxHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("--content is required (or pass as positional text)")}
 	}
-	if err := ensureClient(ctx); err != nil {
-		return err
-	}
-	inboxID, err := inboxProjectID(ctx)
-	if err != nil || inboxID == "" {
-		return &CodeError{Code: exitError, Err: errors.New("failed to resolve Inbox project")}
-	}
 
 	// Apply defaults from config when not explicitly set.
 	if len(labels) == 0 && len(ctx.Config.DefaultInboxLabels) > 0 {
@@ -92,8 +85,19 @@ func inboxAdd(ctx *Context, args []string) error {
 	}
 
 	body := map[string]any{
-		"content":    content,
-		"project_id": inboxID,
+		"content": content,
+	}
+	inboxID := ""
+	if !ctx.Global.DryRun || strings.TrimSpace(section) != "" {
+		if err := ensureClient(ctx); err != nil {
+			return err
+		}
+		id, err := inboxProjectID(ctx)
+		if err != nil || id == "" {
+			return &CodeError{Code: exitError, Err: errors.New("failed to resolve Inbox project")}
+		}
+		inboxID = id
+		body["project_id"] = inboxID
 	}
 	if description != "" {
 		body["description"] = description
