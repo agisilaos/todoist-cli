@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	appagent "github.com/agisilaos/todoist-cli/internal/app/agent"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -255,29 +256,30 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 }
 
 func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, hasPlan bool, plan *Plan) error {
+	status := appagent.Service{}.BuildStatus(plannerCmd, plannerSource, planPath, hasPlan)
 	if ctx.Mode == output.ModeJSON {
 		payload := map[string]any{
-			"planner_cmd":      plannerCmd,
-			"planner_source":   plannerSource,
-			"last_plan_path":   planPath,
-			"last_plan_exists": hasPlan,
+			"planner_cmd":      status.PlannerCmd,
+			"planner_source":   status.PlannerSource,
+			"last_plan_path":   status.LastPlanPath,
+			"last_plan_exists": status.LastPlanExists,
 		}
-		if hasPlan && plan != nil {
+		if status.LastPlanExists && plan != nil {
 			payload["plan"] = *plan
 		}
 		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
 	}
-	if plannerCmd == "" {
-		fmt.Fprintf(ctx.Stdout, "Planner: (none) [source: %s]\n", plannerSource)
+	if status.PlannerCmd == "" {
+		fmt.Fprintf(ctx.Stdout, "Planner: (none) [source: %s]\n", status.PlannerSource)
 	} else {
-		fmt.Fprintf(ctx.Stdout, "Planner: %s [source: %s]\n", plannerCmd, plannerSource)
+		fmt.Fprintf(ctx.Stdout, "Planner: %s [source: %s]\n", status.PlannerCmd, status.PlannerSource)
 	}
-	if !hasPlan {
+	if !status.LastPlanExists {
 		fmt.Fprintln(ctx.Stdout, "Last plan: none")
 		return nil
 	}
-	if planPath != "" {
-		fmt.Fprintf(ctx.Stdout, "Last plan file: %s\n", planPath)
+	if status.LastPlanPath != "" {
+		fmt.Fprintf(ctx.Stdout, "Last plan file: %s\n", status.LastPlanPath)
 	}
 	if plan != nil {
 		return writePlanOutput(ctx, *plan)

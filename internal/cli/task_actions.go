@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -137,27 +140,31 @@ func taskComplete(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if filter != "" {
-		if id != "" || len(fs.Args()) > 0 {
-			return &CodeError{Code: exitUsage, Err: errors.New("--filter cannot be combined with --id or positional task reference")}
-		}
-		if !yes && !ctx.Global.Force {
-			return &CodeError{Code: exitUsage, Err: errors.New("bulk complete with --filter requires --yes (or --force)")}
-		}
-		tasks, _, err := listTasksByFilter(ctx, filter, "", 200, true)
-		if err != nil {
-			return err
-		}
-		ids := make([]string, 0, len(tasks))
-		for _, t := range tasks {
-			ids = append(ids, t.ID)
-		}
+	ref := ""
+	if len(fs.Args()) > 0 {
+		ref = strings.Join(fs.Args(), " ")
+	}
+	svc := apptasks.Service{
+		Resolver: cliTaskResolver{ctx: ctx},
+		Lister:   cliTaskFilterLister{ctx: ctx},
+	}
+	resolved, err := svc.ResolveCompletionTargets(context.Background(), apptasks.ResolveCompletionInput{
+		ID:     id,
+		Ref:    ref,
+		Filter: filter,
+		Yes:    yes,
+		Force:  ctx.Global.Force,
+	})
+	if err != nil {
+		return asUsageIfGeneric(err)
+	}
+	if resolved.Mode == "bulk" {
 		if ctx.Global.DryRun {
-			return writeDryRun(ctx, "task complete bulk", map[string]any{"filter": filter, "count": len(ids), "ids": ids})
+			return writeDryRun(ctx, "task complete bulk", map[string]any{"filter": resolved.Filter, "count": len(resolved.IDs), "ids": resolved.IDs})
 		}
 		completed := 0
 		failed := 0
-		for _, taskID := range ids {
+		for _, taskID := range resolved.IDs {
 			reqCtx, cancel := requestContext(ctx)
 			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/close", nil, nil, nil, true)
 			cancel()
@@ -170,24 +177,16 @@ func taskComplete(ctx *Context, args []string) error {
 		}
 		if ctx.Mode == output.ModeJSON {
 			return output.WriteJSON(ctx.Stdout, map[string]any{
-				"filter":    filter,
+				"filter":    resolved.Filter,
 				"completed": completed,
 				"failed":    failed,
-				"count":     len(ids),
+				"count":     len(resolved.IDs),
 			}, output.Meta{RequestID: ctx.RequestID})
 		}
-		fmt.Fprintf(ctx.Stdout, "bulk complete done: completed=%d failed=%d total=%d\n", completed, failed, len(ids))
+		fmt.Fprintf(ctx.Stdout, "bulk complete done: completed=%d failed=%d total=%d\n", completed, failed, len(resolved.IDs))
 		return nil
 	}
-	if id == "" && len(fs.Args()) > 0 {
-		ref := strings.Join(fs.Args(), " ")
-		task, err := resolveTaskRef(ctx, ref)
-		if err != nil {
-			return err
-		}
-		id = task.ID
-	}
-	id = stripIDPrefix(id)
+	id = resolved.ID
 	if id == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("task complete requires --id or a reference")}
@@ -203,6 +202,34 @@ func taskComplete(ctx *Context, args []string) error {
 	}
 	setRequestID(ctx, reqID)
 	return writeSimpleResult(ctx, "completed", id)
+}
+
+type cliTaskResolver struct {
+	ctx *Context
+}
+
+func (r cliTaskResolver) ResolveTaskRef(_ context.Context, ref string) (api.Task, error) {
+	return resolveTaskRef(r.ctx, ref)
+}
+
+type cliTaskFilterLister struct {
+	ctx *Context
+}
+
+func (l cliTaskFilterLister) ListByFilter(_ context.Context, filter string) ([]api.Task, error) {
+	tasks, _, err := listTasksByFilter(l.ctx, filter, "", 200, true)
+	return tasks, err
+}
+
+func asUsageIfGeneric(err error) error {
+	if err == nil {
+		return nil
+	}
+	var codeErr *CodeError
+	if errors.As(err, &codeErr) {
+		return err
+	}
+	return &CodeError{Code: exitUsage, Err: err}
 }
 
 func taskReopen(ctx *Context, args []string) error {
