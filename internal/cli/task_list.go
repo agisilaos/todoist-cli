@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -62,26 +61,29 @@ func taskList(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if completed {
-		return taskListCompleted(ctx, completedBy, filter, project, section, parent, since, until, cursor, limit, all, wide)
+	now := time.Now
+	if ctx != nil && ctx.Now != nil {
+		now = ctx.Now
 	}
-	if filter == "" && preset != "" {
-		switch preset {
-		case "today":
-			filter = "today"
-		case "overdue":
-			filter = "overdue"
-		case "next7":
-			filter = "next 7 days"
-		default:
-			return &CodeError{Code: exitUsage, Err: fmt.Errorf("invalid preset: %s", preset)}
-		}
+	plan, err := apptasks.PlanList(now(), apptasks.ListInput{
+		Filter:      filter,
+		Preset:      preset,
+		Completed:   completed,
+		CompletedBy: completedBy,
+		Since:       since,
+		Until:       until,
+	})
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if truncateWidth > 0 {
 		ctx.Config.TableWidth = truncateWidth
 	}
-	if filter != "" {
-		return taskListFiltered(ctx, filter, cursor, limit, all, wide)
+	if plan.Mode == "completed" {
+		return taskListCompleted(ctx, plan.CompletedBy, plan.Filter, project, section, parent, plan.Since, plan.Until, cursor, limit, all, wide)
+	}
+	if plan.Mode == "filter" {
+		return taskListFiltered(ctx, plan.Filter, cursor, limit, all, wide)
 	}
 	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, sortBy)
 }
