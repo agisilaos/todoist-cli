@@ -79,3 +79,20 @@ func TestParseFlagSetInterspersedUnknownFlag(t *testing.T) {
 		t.Fatalf("expected unknown flag error")
 	}
 }
+
+func TestRequireEntityIDArgAcceptsURL(t *testing.T) {
+	id, err := requireEntityIDArg("project delete", "project", []string{"--id", "https://app.todoist.com/app/project/home-2203306141"})
+	if err != nil {
+		t.Fatalf("requireEntityIDArg: %v", err)
+	}
+	if id != "2203306141" {
+		t.Fatalf("unexpected id: %q", id)
+	}
+}
+
+func TestRequireEntityIDArgRejectsMismatchedURL(t *testing.T) {
+	_, err := requireEntityIDArg("project delete", "project", []string{"--id", "https://app.todoist.com/app/task/call-mom-abc123"})
+	if err == nil {
+		t.Fatalf("expected mismatch error")
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 )
 
 func taskView(ctx *Context, args []string) error {
@@ -44,10 +45,11 @@ func taskView(ctx *Context, args []string) error {
 }
 
 func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
-	original := strings.TrimSpace(ref)
-	explicitID := strings.HasPrefix(strings.ToLower(original), "id:")
-	ref = stripIDPrefix(original)
-	if explicitID || isNumeric(ref) {
+	ref, directID, err := apprefs.NormalizeEntityRef(ref, "task")
+	if err != nil {
+		return api.Task{}, &CodeError{Code: exitUsage, Err: err}
+	}
+	if directID {
 		var task api.Task
 		reqCtx, cancel := requestContext(ctx)
 		reqID, err := ctx.Client.Get(reqCtx, "/tasks/"+ref, nil, &task)

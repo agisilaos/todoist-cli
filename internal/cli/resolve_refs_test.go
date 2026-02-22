@@ -147,6 +147,29 @@ func TestResolveProjectIDReturnsNumericWithoutLookup(t *testing.T) {
 	}
 }
 
+func TestResolveProjectIDFromURLWithoutLookup(t *testing.T) {
+	ctx := &Context{}
+	got, err := resolveProjectID(ctx, "https://app.todoist.com/app/project/personal-2203306141")
+	if err != nil {
+		t.Fatalf("resolveProjectID: %v", err)
+	}
+	if got != "2203306141" {
+		t.Fatalf("expected project id from URL, got %q", got)
+	}
+}
+
+func TestResolveProjectIDRejectsMismatchedURLType(t *testing.T) {
+	ctx := &Context{}
+	_, err := resolveProjectID(ctx, "https://app.todoist.com/app/task/call-mom-abc123")
+	if err == nil {
+		t.Fatalf("expected mismatch error")
+	}
+	var codeErr *CodeError
+	if !errors.As(err, &codeErr) || codeErr.Code != exitUsage {
+		t.Fatalf("expected usage error, got %v", err)
+	}
+}
+
 func TestResolveProjectIDPropagatesLookupErrors(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/projects" {
@@ -165,5 +188,29 @@ func TestResolveProjectIDPropagatesLookupErrors(t *testing.T) {
 	}
 	if _, err := resolveProjectID(ctx, "Home"); err == nil {
 		t.Fatalf("expected resolver error")
+	}
+}
+
+func TestResolveFilterRefFromURL(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/filters" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`[{"id":"f1","name":"Today","query":"today"}]`))
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	filter, err := resolveFilterRef(ctx, "https://app.todoist.com/app/filter/today-f1")
+	if err != nil {
+		t.Fatalf("resolveFilterRef: %v", err)
+	}
+	if filter.ID != "f1" {
+		t.Fatalf("expected filter f1, got %q", filter.ID)
 	}
 }

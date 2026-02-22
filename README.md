@@ -457,6 +457,14 @@ todoist task list --completed --since "yesterday" --json | jq -r '.[].id'
 
 Where supported, name resolution is built-in (e.g., `--project <name>` and `--section <name>` on task commands, `--label <name>`), but task IDs are required for update/complete/delete. Use `id:<id>` to explicitly reference IDs.
 
+Task/project/label/filter references also accept Todoist app URLs, for example:
+
+```bash
+todoist task view https://app.todoist.com/app/task/call-mom-abc123
+todoist project rm --id https://app.todoist.com/app/project/home-2203306141 --dry-run
+todoist filter show https://app.todoist.com/app/filter/today-f1
+```
+
 ## Prompts & Safety
 
 - Destructive commands (delete/archive) prompt when stdin is a TTY; `todoist task delete` requires `--yes` (no prompt). Use `--force` to skip prompts. In non-interactive mode (`--no-input`), destructive commands fail unless `--force` is set.

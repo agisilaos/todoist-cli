@@ -70,6 +70,7 @@ Planner context notes:
 ## References
 
 - Use `id:<id>` to explicitly reference IDs.
+- Task/project/label/filter refs also accept Todoist app URLs (`https://app.todoist.com/app/<entity>/...`).
 - Fuzzy name resolution is opt-in via `--fuzzy` / `TODOIST_FUZZY=1`.
 - Accessibility labels for human task output are opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
 

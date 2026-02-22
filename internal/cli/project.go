@@ -8,6 +8,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	appprojects "github.com/agisilaos/todoist-cli/internal/app/projects"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -222,6 +223,13 @@ func projectUpdate(ctx *Context, args []string) error {
 		printProjectHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: err}
 	}
+	id, directID, err := apprefs.NormalizeEntityRef(id, "project")
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if !directID || id == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("project update requires --id")}
+	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
@@ -240,7 +248,7 @@ func projectUpdate(ctx *Context, args []string) error {
 }
 
 func projectArchive(ctx *Context, args []string) error {
-	id, err := requireIDArg("project archive", args)
+	id, err := requireEntityIDArg("project archive", "project", args)
 	if err != nil {
 		printProjectHelp(ctx.Stderr)
 		return err
@@ -271,7 +279,7 @@ func projectArchive(ctx *Context, args []string) error {
 }
 
 func projectUnarchive(ctx *Context, args []string) error {
-	id, err := requireIDArg("project unarchive", args)
+	id, err := requireEntityIDArg("project unarchive", "project", args)
 	if err != nil {
 		printProjectHelp(ctx.Stderr)
 		return err
@@ -293,7 +301,7 @@ func projectUnarchive(ctx *Context, args []string) error {
 }
 
 func projectDelete(ctx *Context, args []string) error {
-	id, err := requireIDArg("project delete", args)
+	id, err := requireEntityIDArg("project delete", "project", args)
 	if err != nil {
 		printProjectHelp(ctx.Stderr)
 		return err

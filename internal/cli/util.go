@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -57,6 +58,29 @@ func requireIDArg(name string, args []string) (string, error) {
 	return stripIDPrefix(id), nil
 }
 
+func requireEntityIDArg(name, entity string, args []string) (string, error) {
+	fs := newFlagSet(name)
+	var id string
+	fs.StringVar(&id, "id", "", "ID")
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return "", &CodeError{Code: exitUsage, Err: err}
+	}
+	if id == "" {
+		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires --id", name)}
+	}
+	normalized, directID, err := apprefs.NormalizeEntityRef(id, entity)
+	if err != nil {
+		return "", &CodeError{Code: exitUsage, Err: err}
+	}
+	if strings.TrimSpace(normalized) == "" {
+		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires --id", name)}
+	}
+	if !directID {
+		return strings.TrimSpace(id), nil
+	}
+	return normalized, nil
+}
+
 func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 	fs := newFlagSet(name)
 	var id string
@@ -65,7 +89,17 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 		return "", &CodeError{Code: exitUsage, Err: err}
 	}
 	if id != "" {
-		return stripIDPrefix(id), nil
+		normalized, directID, err := apprefs.NormalizeEntityRef(id, "task")
+		if err != nil {
+			return "", &CodeError{Code: exitUsage, Err: err}
+		}
+		if strings.TrimSpace(normalized) == "" {
+			return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires --id or a reference", name)}
+		}
+		if !directID {
+			return strings.TrimSpace(id), nil
+		}
+		return normalized, nil
 	}
 	if len(fs.Args()) == 0 {
 		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("%s requires --id or a reference", name)}

@@ -43,6 +43,17 @@ func TestResolveCompletionTargetsSingleFromID(t *testing.T) {
 	}
 }
 
+func TestResolveCompletionTargetsSingleFromURLID(t *testing.T) {
+	svc := Service{}
+	out, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{ID: "https://app.todoist.com/app/task/call-mom-abc123"})
+	if err != nil {
+		t.Fatalf("ResolveCompletionTargets: %v", err)
+	}
+	if out.Mode != "single" || out.ID != "abc123" {
+		t.Fatalf("unexpected output: %#v", out)
+	}
+}
+
 func TestResolveCompletionTargetsSingleFromRef(t *testing.T) {
 	svc := Service{Resolver: fakeResolver{task: api.Task{ID: "t1"}}}
 	out, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{Ref: "call mom"})
@@ -142,6 +153,14 @@ func TestResolveTaskTargetFromRef(t *testing.T) {
 func TestResolveTaskTargetRequiresValue(t *testing.T) {
 	svc := Service{}
 	if _, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{}); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestResolveTaskTargetRejectsMismatchedURLType(t *testing.T) {
+	svc := Service{}
+	_, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{ID: "https://app.todoist.com/app/project/home-2203306141"})
+	if err == nil {
 		t.Fatalf("expected error")
 	}
 }

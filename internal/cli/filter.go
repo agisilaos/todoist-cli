@@ -7,6 +7,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	appfilters "github.com/agisilaos/todoist-cli/internal/app/filters"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -235,7 +236,11 @@ func filterDelete(ctx *Context, args []string) error {
 }
 
 func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
-	ref = strings.TrimSpace(stripIDPrefix(ref))
+	normalized, directID, err := apprefs.NormalizeEntityRef(ref, "filter")
+	if err != nil {
+		return api.Filter{}, &CodeError{Code: exitUsage, Err: err}
+	}
+	ref = strings.TrimSpace(normalized)
 	filters, reqID, err := listAllFilters(ctx)
 	if err != nil {
 		return api.Filter{}, err
@@ -245,6 +250,9 @@ func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
 		if strings.EqualFold(f.ID, ref) || strings.EqualFold(f.Name, ref) {
 			return f, nil
 		}
+	}
+	if directID {
+		return api.Filter{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("filter %q not found", ref)}
 	}
 	candidates := fuzzyCandidates(ref, filters, func(f api.Filter) string { return f.Name }, func(f api.Filter) string { return f.ID })
 	if len(candidates) == 1 {

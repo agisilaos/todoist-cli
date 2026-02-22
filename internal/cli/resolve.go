@@ -12,7 +12,10 @@ import (
 )
 
 func resolveProjectID(ctx *Context, value string) (string, error) {
-	normalized, directID := apprefs.NormalizeRef(value)
+	normalized, directID, err := apprefs.NormalizeEntityRef(value, "project")
+	if err != nil {
+		return "", &CodeError{Code: exitUsage, Err: err}
+	}
 	if normalized == "" {
 		return "", nil
 	}

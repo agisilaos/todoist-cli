@@ -1,11 +1,13 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	applabels "github.com/agisilaos/todoist-cli/internal/app/labels"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -142,6 +144,13 @@ func labelUpdate(ctx *Context, args []string) error {
 		printLabelHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: err}
 	}
+	id, directID, err := apprefs.NormalizeEntityRef(id, "label")
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if !directID || id == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("label update requires --id")}
+	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
@@ -160,7 +169,7 @@ func labelUpdate(ctx *Context, args []string) error {
 }
 
 func labelDelete(ctx *Context, args []string) error {
-	id, err := requireIDArg("label delete", args)
+	id, err := requireEntityIDArg("label delete", "label", args)
 	if err != nil {
 		printLabelHelp(ctx.Stderr)
 		return err

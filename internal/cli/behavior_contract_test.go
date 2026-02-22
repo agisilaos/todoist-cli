@@ -69,6 +69,20 @@ func TestContractTaskDeleteStripsIDPrefix(t *testing.T) {
 	}
 }
 
+func TestContractTaskDeleteAcceptsTaskURLID(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "delete", "--yes", "--id", "https://app.todoist.com/app/task/call-mom-abc123", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"id": "abc123"`) {
+		t.Fatalf("unexpected task delete dry-run output: %q", stdout.String())
+	}
+}
+
 func TestContractTaskDeleteAliasRm(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "dummy")
 
@@ -93,6 +107,20 @@ func TestContractProjectDeleteAliasRm(t *testing.T) {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
 	if !strings.Contains(stdout.String(), `"action": "project delete"`) {
+		t.Fatalf("unexpected project rm dry-run output: %q", stdout.String())
+	}
+}
+
+func TestContractProjectDeleteAcceptsProjectURLID(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"project", "rm", "--id", "https://app.todoist.com/app/project/home-2203306141", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"id": "2203306141"`) {
 		t.Fatalf("unexpected project rm dry-run output: %q", stdout.String())
 	}
 }

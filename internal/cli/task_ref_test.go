@@ -80,3 +80,30 @@ func TestResolveTaskRefExplicitAlphaNumericID(t *testing.T) {
 		t.Fatalf("unexpected task content: %q", task.Content)
 	}
 }
+
+func TestResolveTaskRefFromTaskURL(t *testing.T) {
+	client := api.NewClient("https://example.com", "token", time.Second)
+	client.HTTP = &http.Client{Transport: testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path != "/tasks/abc123XYZ" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		payload := `{"id":"abc123XYZ","content":"Call mom"}`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte(payload))),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})}
+	ctx := &Context{
+		Client: client,
+		Config: config.Config{TimeoutSeconds: 10},
+	}
+
+	task, err := resolveTaskRef(ctx, "https://app.todoist.com/app/task/call-mom-abc123XYZ")
+	if err != nil {
+		t.Fatalf("resolveTaskRef: %v", err)
+	}
+	if task.ID != "abc123XYZ" {
+		t.Fatalf("unexpected task id: %q", task.ID)
+	}
+}

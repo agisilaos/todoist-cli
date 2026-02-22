@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 )
 
 type TaskResolver interface {
@@ -61,7 +62,10 @@ type ResolveTaskTargetInput struct {
 }
 
 func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveCompletionInput) (ResolveCompletionResult, error) {
-	id := stripIDPrefix(in.ID)
+	id, err := normalizeTaskID(in.ID)
+	if err != nil {
+		return ResolveCompletionResult{}, err
+	}
 	ref := strings.TrimSpace(in.Ref)
 	filter := strings.TrimSpace(in.Filter)
 
@@ -97,7 +101,6 @@ func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveComplet
 		id = task.ID
 	}
 
-	id = stripIDPrefix(id)
 	if id == "" {
 		return ResolveCompletionResult{}, errors.New("task complete requires --id or a reference")
 	}
@@ -105,7 +108,10 @@ func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveComplet
 }
 
 func (s Service) ResolveMoveTargets(ctx context.Context, in ResolveMoveInput) (ResolveMoveResult, error) {
-	id := stripIDPrefix(in.ID)
+	id, err := normalizeTaskID(in.ID)
+	if err != nil {
+		return ResolveMoveResult{}, err
+	}
 	ref := strings.TrimSpace(in.Ref)
 	filter := strings.TrimSpace(in.Filter)
 
@@ -144,7 +150,6 @@ func (s Service) ResolveMoveTargets(ctx context.Context, in ResolveMoveInput) (R
 		}
 		id = task.ID
 	}
-	id = stripIDPrefix(id)
 	if id == "" {
 		return ResolveMoveResult{}, errors.New("--id is required (or pass a text reference)")
 	}
@@ -152,7 +157,10 @@ func (s Service) ResolveMoveTargets(ctx context.Context, in ResolveMoveInput) (R
 }
 
 func (s Service) ResolveTaskTarget(ctx context.Context, in ResolveTaskTargetInput) (string, error) {
-	id := stripIDPrefix(in.ID)
+	id, err := normalizeTaskID(in.ID)
+	if err != nil {
+		return "", err
+	}
 	ref := strings.TrimSpace(in.Ref)
 	if id == "" && ref != "" {
 		if s.Resolver == nil {
@@ -164,19 +172,25 @@ func (s Service) ResolveTaskTarget(ctx context.Context, in ResolveTaskTargetInpu
 		}
 		id = task.ID
 	}
-	id = stripIDPrefix(id)
 	if id == "" {
 		return "", errors.New("task id is required")
 	}
 	return id, nil
 }
 
-func stripIDPrefix(value string) string {
-	value = strings.TrimSpace(value)
-	if strings.HasPrefix(strings.ToLower(value), "id:") {
-		return strings.TrimSpace(value[3:])
+func normalizeTaskID(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
 	}
-	return value
+	normalized, directID, err := apprefs.NormalizeEntityRef(value, "task")
+	if err != nil {
+		return "", err
+	}
+	if !directID {
+		return trimmed, nil
+	}
+	return strings.TrimSpace(normalized), nil
 }
 
 func (r ResolveCompletionResult) Validate() error {
