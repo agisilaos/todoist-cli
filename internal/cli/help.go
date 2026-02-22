@@ -185,6 +185,7 @@ Task flags:
 
 Notes:
   By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
+  --strict belongs to top-level "todoist add", not "todoist task add".
   Aliases: ls=list, show=view, rm/delete=delete.
   Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
   If --completed uses --since without --until, --until defaults to today.

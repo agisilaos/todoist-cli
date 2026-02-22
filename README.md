@@ -212,6 +212,7 @@ Notes:
 - `--since`/`--until` accept `YYYY-MM-DD`, RFC3339, `today`, `yesterday`, weekday names (for example `monday`), and relative forms like `2 weeks ago`.
 - If you pass `--since` without `--until`, `--until` defaults to today.
 - Bulk commands using `--filter` accept Todoist query syntax; plain text is treated as search text.
+- `--strict` is a flag on `todoist add` (quick-add command), not on `todoist task add`.
 
 Table options:
 

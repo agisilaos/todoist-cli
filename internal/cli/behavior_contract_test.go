@@ -261,6 +261,18 @@ func TestContractTaskCompleteStripsIDPrefix(t *testing.T) {
 	}
 }
 
+func TestContractTaskHelpMentionsStrictOnAddCommand(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"help", "task"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `--strict belongs to top-level "todoist add", not "todoist task add".`) {
+		t.Fatalf("expected strict guidance in task help, got %q", stdout.String())
+	}
+}
+
 func TestContractTaskMoveBulkRejectsIDCombination(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "dummy")
 
