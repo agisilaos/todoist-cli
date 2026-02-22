@@ -365,8 +365,9 @@ todoist agent status
 
 - `agent plan` sends context + instruction to an external planner command. Use `--out` to save the plan JSON.
 - `agent apply` executes a plan from `--plan` or re-runs the planner; requires the `--confirm` token from the plan.
-- `agent status` shows planner command and last run status.
+- `agent status` is safe on first run; it reports planner configuration and whether a last plan exists.
 - `--dry-run` with `agent apply` prints the plan without applying actions.
+- In `--dry-run`, no-action plans are allowed (useful for CI/pipeline contract checks).
 - `--on-error=continue` keeps applying actions after a failure and reports statuses.
 - `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
 - `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).

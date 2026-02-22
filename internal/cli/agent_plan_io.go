@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -35,22 +36,38 @@ func writePlanFile(path string, plan Plan) error {
 func readPlanFile(path string, stdin io.Reader) (Plan, error) {
 	var data []byte
 	var err error
+	source := path
 	if path == "-" {
 		if stdin == nil {
-			return Plan{}, errors.New("stdin not available")
+			return Plan{}, &CodeError{Code: exitUsage, Err: errors.New("stdin not available for --plan -")}
 		}
 		data, err = io.ReadAll(stdin)
+		source = "stdin"
 	} else {
 		data, err = os.ReadFile(path)
 	}
 	if err != nil {
+		if path != "-" && errors.Is(err, os.ErrNotExist) {
+			return Plan{}, &CodeError{Code: exitUsage, Err: fmt.Errorf("plan file not found: %s", path)}
+		}
 		return Plan{}, err
 	}
 	var plan Plan
 	if err := json.Unmarshal(data, &plan); err != nil {
-		return Plan{}, err
+		return Plan{}, &CodeError{Code: exitUsage, Err: fmt.Errorf("invalid plan JSON in %s: %w", source, err)}
 	}
 	return plan, nil
+}
+
+func isPlanFileNotFoundError(err error) bool {
+	if errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	var codeErr *CodeError
+	if errors.As(err, &codeErr) {
+		return strings.Contains(codeErr.Error(), "plan file not found:")
+	}
+	return false
 }
 
 func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
@@ -92,7 +109,7 @@ func normalizeAndValidatePlan(plan *Plan, instruction string, now func() time.Ti
 	if plan.Summary == (PlanSummary{}) {
 		plan.Summary = summarizeActions(plan.Actions)
 	}
-	return validatePlan(*plan, expectedVersion)
+	return validatePlan(*plan, expectedVersion, true)
 }
 
 func lastPlanPath(ctx *Context) string {

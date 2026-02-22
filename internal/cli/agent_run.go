@@ -71,7 +71,7 @@ func agentRun(ctx *Context, args []string) error {
 			return err
 		}
 	}
-	if err := validatePlan(plan, opts.ExpectedVersion); err != nil {
+	if err := validatePlan(plan, opts.ExpectedVersion, opts.DryRun); err != nil {
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}

@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func agentCommand(ctx *Context, args []string) error {
@@ -140,7 +142,7 @@ func agentApply(ctx *Context, args []string) error {
 		}
 		plan = p
 	}
-	if err := validatePlan(plan, expectedVersion); err != nil {
+	if err := validatePlan(plan, expectedVersion, ctx.Global.DryRun); err != nil {
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
@@ -186,11 +188,19 @@ func agentApply(ctx *Context, args []string) error {
 }
 
 func agentStatus(ctx *Context) error {
-	plan, err := readPlanFile(lastPlanPath(ctx), nil)
+	path := lastPlanPath(ctx)
+	plannerCmd, plannerSource := resolvePlannerCmd(ctx, "", true)
+	if path == "" {
+		return writeAgentStatus(ctx, plannerCmd, plannerSource, "", false, nil)
+	}
+	plan, err := readPlanFile(path, nil)
 	if err != nil {
+		if isPlanFileNotFoundError(err) {
+			return writeAgentStatus(ctx, plannerCmd, plannerSource, path, false, nil)
+		}
 		return err
 	}
-	return writePlanOutput(ctx, plan)
+	return writeAgentStatus(ctx, plannerCmd, plannerSource, path, true, &plan)
 }
 
 func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVersion int, ctxOpts plannerContextOptions) (Plan, error) {
@@ -199,7 +209,7 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 		plannerCmd, _ = resolvePlannerCmd(ctx, plannerCmd, true)
 	}
 	if plannerCmd == "" {
-		return Plan{}, &CodeError{Code: exitUsage, Err: errors.New("no planner configured; set TODOIST_PLANNER_CMD or --planner")}
+		return Plan{}, &CodeError{Code: exitUsage, Err: errors.New("no planner configured; set TODOIST_PLANNER_CMD, pass --planner, or run `todoist agent planner --set --cmd \"<command>\"`")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return Plan{}, err
@@ -235,11 +245,42 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 	}
 	var plan Plan
 	if err := json.Unmarshal(stdout.Bytes(), &plan); err != nil {
-		return Plan{}, fmt.Errorf("parse planner output: %w", err)
+		return Plan{}, fmt.Errorf("parse planner output: %w (planner must emit `todoist schema --name plan --json`)", err)
 	}
 	if err := normalizeAndValidatePlan(&plan, instruction, ctx.Now, expectedVersion); err != nil {
 		return Plan{}, err
 	}
 	emitProgress(ctx, "agent_planner_complete", map[string]any{"action_count": len(plan.Actions)})
 	return plan, nil
+}
+
+func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, hasPlan bool, plan *Plan) error {
+	if ctx.Mode == output.ModeJSON {
+		payload := map[string]any{
+			"planner_cmd":      plannerCmd,
+			"planner_source":   plannerSource,
+			"last_plan_path":   planPath,
+			"last_plan_exists": hasPlan,
+		}
+		if hasPlan && plan != nil {
+			payload["plan"] = *plan
+		}
+		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+	}
+	if plannerCmd == "" {
+		fmt.Fprintf(ctx.Stdout, "Planner: (none) [source: %s]\n", plannerSource)
+	} else {
+		fmt.Fprintf(ctx.Stdout, "Planner: %s [source: %s]\n", plannerCmd, plannerSource)
+	}
+	if !hasPlan {
+		fmt.Fprintln(ctx.Stdout, "Last plan: none")
+		return nil
+	}
+	if planPath != "" {
+		fmt.Fprintf(ctx.Stdout, "Last plan file: %s\n", planPath)
+	}
+	if plan != nil {
+		return writePlanOutput(ctx, *plan)
+	}
+	return nil
 }

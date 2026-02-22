@@ -284,6 +284,10 @@ Context flags:
   --context-label <name>     Limit planner context to label(s) (repeatable)
   --context-completed <Nd>   Include completed tasks for last N days (e.g. 7d)
   --policy <file>            Enforce policy rules for planned actions
+
+Notes:
+  agent status is safe on first run and reports planner config + whether a last plan exists.
+  agent apply/agent run allow no-action plans in --dry-run mode for pipeline validation.
 `)
 }
 
