@@ -43,9 +43,10 @@ func taskView(ctx *Context, args []string) error {
 }
 
 func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
-	ref = strings.TrimSpace(ref)
-	ref = stripIDPrefix(ref)
-	if isNumeric(ref) {
+	original := strings.TrimSpace(ref)
+	explicitID := strings.HasPrefix(strings.ToLower(original), "id:")
+	ref = stripIDPrefix(original)
+	if explicitID || isNumeric(ref) {
 		var task api.Task
 		reqCtx, cancel := requestContext(ctx)
 		reqID, err := ctx.Client.Get(reqCtx, "/tasks/"+ref, nil, &task)
@@ -63,6 +64,52 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 	if err != nil {
 		return api.Task{}, err
 	}
+
+	var exactMatches []api.Task
+	for _, task := range tasks {
+		if strings.EqualFold(strings.TrimSpace(task.Content), ref) {
+			exactMatches = append(exactMatches, task)
+		}
+	}
+	if len(exactMatches) == 1 {
+		return exactMatches[0], nil
+	}
+	if len(exactMatches) > 1 {
+		candidates := taskCandidates(exactMatches)
+		if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+			return api.Task{}, err
+		} else if ok {
+			for _, task := range exactMatches {
+				if task.ID == chosen {
+					return task, nil
+				}
+			}
+		}
+		return api.Task{}, ambiguousMatchCodeError("task", ref, candidates)
+	}
+
+	contains := matchTasksByContent(tasks, ref)
+	if len(contains) == 1 {
+		return contains[0], nil
+	}
+	if len(contains) > 1 && !useFuzzy(ctx) {
+		candidates := taskCandidates(contains)
+		if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+			return api.Task{}, err
+		} else if ok {
+			for _, task := range contains {
+				if task.ID == chosen {
+					return task, nil
+				}
+			}
+		}
+		return api.Task{}, ambiguousMatchCodeError("task", ref, candidates)
+	}
+
+	if !useFuzzy(ctx) {
+		return api.Task{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("task %q not found", ref)}
+	}
+
 	candidates := fuzzyCandidates(ref, tasks, func(t api.Task) string { return t.Content }, func(t api.Task) string { return t.ID })
 	if len(candidates) == 1 {
 		for _, task := range tasks {
@@ -84,6 +131,20 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 		return api.Task{}, ambiguousMatchCodeError("task", ref, candidates)
 	}
 	return api.Task{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("task %q not found", ref)}
+}
+
+func taskCandidates(tasks []api.Task) []fuzzyCandidate {
+	candidates := make([]fuzzyCandidate, 0, len(tasks))
+	for _, task := range tasks {
+		candidates = append(candidates, fuzzyCandidate{
+			ID:   task.ID,
+			Name: task.Content,
+		})
+	}
+	if len(candidates) > 8 {
+		candidates = candidates[:8]
+	}
+	return candidates
 }
 
 func isLegacyV1IDError(err error) bool {

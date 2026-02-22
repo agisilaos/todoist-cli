@@ -42,6 +42,7 @@ func taskMove(ctx *Context, args []string) error {
 		}
 		id = task.ID
 	}
+	id = stripIDPrefix(id)
 	if filter == "" && id == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("--id is required (or pass a text reference)")}
@@ -186,6 +187,7 @@ func taskComplete(ctx *Context, args []string) error {
 		}
 		id = task.ID
 	}
+	id = stripIDPrefix(id)
 	if id == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("task complete requires --id or a reference")}
@@ -251,6 +253,7 @@ func taskDelete(ctx *Context, args []string) error {
 		}
 		id = task.ID
 	}
+	id = stripIDPrefix(id)
 	if id == "" {
 		printTaskHelp(ctx.Stderr)
 		return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --id or a reference")}

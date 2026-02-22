@@ -55,6 +55,20 @@ func TestContractTaskDeleteSupportsInterspersedFlags(t *testing.T) {
 	}
 }
 
+func TestContractTaskDeleteStripsIDPrefix(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "delete", "--yes", "--id", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"id": "123"`) {
+		t.Fatalf("unexpected task delete dry-run output: %q", stdout.String())
+	}
+}
+
 func TestContractTaskDeleteAliasRm(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "dummy")
 
@@ -230,6 +244,20 @@ func TestContractTaskCompleteBulkRequiresYes(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "requires --yes") {
 		t.Fatalf("expected requires --yes error, got %q", stderr.String())
+	}
+}
+
+func TestContractTaskCompleteStripsIDPrefix(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"task", "complete", "--id", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"id": "123"`) {
+		t.Fatalf("unexpected task complete dry-run output: %q", stdout.String())
 	}
 }
 

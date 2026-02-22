@@ -78,6 +78,31 @@ func TestResolveTaskRefAmbiguous(t *testing.T) {
 	}
 }
 
+func TestResolveTaskRefPrefersExactTextMatch(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/tasks" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"results":[{"id":"t1","content":"Call mom"},{"id":"t2","content":"Sample code docs"}],"next_cursor":""}`))
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+		Global: GlobalOptions{NoInput: true},
+	}
+	task, err := resolveTaskRef(ctx, "call mom")
+	if err != nil {
+		t.Fatalf("resolveTaskRef: %v", err)
+	}
+	if task.ID != "t1" {
+		t.Fatalf("expected t1, got %q", task.ID)
+	}
+}
+
 func TestListAllActiveTasksUsesCache(t *testing.T) {
 	hits := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
