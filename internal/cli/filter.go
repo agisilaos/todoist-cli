@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	appfilters "github.com/agisilaos/todoist-cli/internal/app/filters"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -105,18 +106,17 @@ func filterAdd(ctx *Context, args []string) error {
 		printFilterHelp(ctx.Stdout)
 		return nil
 	}
-	if name == "" || queryStr == "" {
-		return &CodeError{Code: exitUsage, Err: errors.New("--name and --query are required")}
+	body, err := appfilters.BuildAddPayload(appfilters.AddInput{
+		Name:     name,
+		Query:    queryStr,
+		Color:    color,
+		Favorite: favorite,
+	})
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
-	}
-	body := map[string]any{"name": name, "query": queryStr}
-	if color != "" {
-		body["color"] = color
-	}
-	if favorite {
-		body["is_favorite"] = true
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "filter add", body)
@@ -158,30 +158,17 @@ func filterUpdate(ctx *Context, args []string) error {
 	if ref == "" && len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
-	if ref == "" {
-		return &CodeError{Code: exitUsage, Err: errors.New("filter update requires --id or a filter reference")}
-	}
-	if favorite && unfavorite {
-		return &CodeError{Code: exitUsage, Err: errors.New("--favorite and --unfavorite are mutually exclusive")}
-	}
-	body := map[string]any{}
-	if name != "" {
-		body["name"] = name
-	}
-	if queryStr != "" {
-		body["query"] = queryStr
-	}
-	if color != "" {
-		body["color"] = color
-	}
-	if favorite {
-		body["is_favorite"] = true
-	}
-	if unfavorite {
-		body["is_favorite"] = false
-	}
-	if len(body) == 0 {
-		return &CodeError{Code: exitUsage, Err: errors.New("no fields to update")}
+	var err error
+	ref, body, err := appfilters.BuildUpdatePayload(appfilters.UpdateInput{
+		Ref:        ref,
+		Name:       name,
+		Query:      queryStr,
+		Color:      color,
+		Favorite:   favorite,
+		Unfavorite: unfavorite,
+	})
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -222,8 +209,10 @@ func filterDelete(ctx *Context, args []string) error {
 	if ref == "" && len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
-	if ref == "" {
-		return &CodeError{Code: exitUsage, Err: errors.New("filter delete requires --id or a filter reference")}
+	var err error
+	ref, err = appfilters.ValidateDelete(appfilters.DeleteInput{Ref: ref, Yes: yes, Force: ctx.Global.Force})
+	if err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -231,9 +220,6 @@ func filterDelete(ctx *Context, args []string) error {
 	filter, err := resolveFilterRef(ctx, ref)
 	if err != nil {
 		return err
-	}
-	if !yes && !ctx.Global.Force {
-		return &CodeError{Code: exitUsage, Err: errors.New("filter delete requires --yes")}
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "filter delete", map[string]any{"id": filter.ID})
