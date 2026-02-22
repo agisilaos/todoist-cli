@@ -215,6 +215,7 @@ Notes:
 - Bulk commands using `--filter` accept Todoist query syntax; plain text is treated as search text.
 - `--strict` is a flag on `todoist add` (quick-add command), not on `todoist task add`.
 - `task add/update --natural` lets you pass quick-add style tokens in `--content` (for example `#Home @errands p2 due:tomorrow`) and maps them to REST fields.
+- Task references also support due hints for disambiguation: `"call mom today"`, `"call mom tomorrow"`, `"call mom overdue"`.
 
 Table options:
 

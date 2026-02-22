@@ -196,6 +196,7 @@ Notes:
   Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.
   Use --content - to read task content from stdin.
   Use id:<id> to explicitly reference a task ID.
+  Task references can include due hints like "call mom today", "call mom tomorrow", or "call mom overdue".
 
 Examples:
   todoist task list --filter "today"

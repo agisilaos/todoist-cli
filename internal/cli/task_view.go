@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 )
@@ -63,6 +64,26 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 	tasks, err := listAllActiveTasks(ctx)
 	if err != nil {
 		return api.Task{}, err
+	}
+	if contentRef, dueHint, ok := parseNaturalTaskReference(ref); ok {
+		matches := matchTasksByContent(tasks, contentRef)
+		dueMatched := filterTasksByDueHint(matches, dueHint, ctx.Now().UTC())
+		if len(dueMatched) == 1 {
+			return dueMatched[0], nil
+		}
+		if len(dueMatched) > 1 {
+			candidates := taskCandidates(dueMatched)
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+				return api.Task{}, err
+			} else if ok {
+				for _, task := range dueMatched {
+					if task.ID == chosen {
+						return task, nil
+					}
+				}
+			}
+			return api.Task{}, ambiguousMatchCodeError("task", ref, candidates)
+		}
 	}
 
 	var exactMatches []api.Task
@@ -181,4 +202,70 @@ func matchTasksByContent(tasks []api.Task, ref string) []api.Task {
 		}
 	}
 	return matches
+}
+
+func parseNaturalTaskReference(ref string) (content string, dueHint string, ok bool) {
+	trimmed := strings.TrimSpace(ref)
+	if trimmed == "" {
+		return "", "", false
+	}
+	lower := strings.ToLower(trimmed)
+	for _, hint := range []string{"today", "tomorrow", "overdue"} {
+		suffix := " " + hint
+		if !strings.HasSuffix(lower, suffix) {
+			continue
+		}
+		content = strings.TrimSpace(trimmed[:len(trimmed)-len(suffix)])
+		if content == "" {
+			return "", "", false
+		}
+		return content, hint, true
+	}
+	return "", "", false
+}
+
+func filterTasksByDueHint(tasks []api.Task, dueHint string, now time.Time) []api.Task {
+	hint := strings.ToLower(strings.TrimSpace(dueHint))
+	if hint == "" {
+		return tasks
+	}
+	today := now.UTC().Format("2006-01-02")
+	tomorrow := now.UTC().AddDate(0, 0, 1).Format("2006-01-02")
+	out := make([]api.Task, 0, len(tasks))
+	for _, task := range tasks {
+		taskDate := taskDueDate(task)
+		if taskDate == "" {
+			continue
+		}
+		switch hint {
+		case "today":
+			if taskDate == today {
+				out = append(out, task)
+			}
+		case "tomorrow":
+			if taskDate == tomorrow {
+				out = append(out, task)
+			}
+		case "overdue":
+			if taskDate < today {
+				out = append(out, task)
+			}
+		}
+	}
+	return out
+}
+
+func taskDueDate(task api.Task) string {
+	if task.Due == nil {
+		return ""
+	}
+	if len(task.Due.Date) >= 10 {
+		return task.Due.Date[:10]
+	}
+	if task.Due.Datetime != "" {
+		if t, err := time.Parse(time.RFC3339, task.Due.Datetime); err == nil {
+			return t.UTC().Format("2006-01-02")
+		}
+	}
+	return ""
 }
