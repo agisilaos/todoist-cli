@@ -333,6 +333,62 @@ func TestContractCommentUpdateRequiresFields(t *testing.T) {
 	}
 }
 
+func TestContractLabelAddDryRunJSON(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"label", "add", "--name", "urgent", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"action": "label add"`) || !strings.Contains(stdout.String(), `"name": "urgent"`) {
+		t.Fatalf("unexpected label add dry-run output: %q", stdout.String())
+	}
+}
+
+func TestContractLabelUpdateRequiresFields(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"label", "update", "--id", "l1", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "no fields to update") {
+		t.Fatalf("unexpected error: %q", stderr.String())
+	}
+}
+
+func TestContractSectionAddDryRunJSON(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"section", "add", "--name", "Backlog", "--project", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"action": "section add"`) || !strings.Contains(stdout.String(), `"project_id": "123"`) {
+		t.Fatalf("unexpected section add dry-run output: %q", stdout.String())
+	}
+}
+
+func TestContractSectionUpdateRequiresFields(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"section", "update", "--id", "s1", "--json", "--quiet-json"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected exit %d, got %d", exitUsage, code)
+	}
+	if !strings.Contains(stderr.String(), "--id and --name are required") {
+		t.Fatalf("unexpected error: %q", stderr.String())
+	}
+}
+
 func TestContractTaskAddAssigneeIDRefDryRun(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "dummy")
 

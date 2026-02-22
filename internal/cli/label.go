@@ -1,12 +1,11 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	applabels "github.com/agisilaos/todoist-cli/internal/app/labels"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -54,11 +53,7 @@ func labelList(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	query := url.Values{}
-	query.Set("limit", strconv.Itoa(limit))
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
+	query := applabels.BuildListQuery(applabels.ListInput{Limit: limit, Cursor: cursor})
 	allLabels, next, err := fetchPaginated[api.Label](ctx, "/labels", query, all)
 	if err != nil {
 		return err
@@ -85,22 +80,18 @@ func labelAdd(ctx *Context, args []string) error {
 		printLabelHelp(ctx.Stdout)
 		return nil
 	}
-	if name == "" {
+	body, err := applabels.BuildAddPayload(applabels.AddInput{
+		Name:     name,
+		Color:    color,
+		Order:    order,
+		Favorite: favorite,
+	})
+	if err != nil {
 		printLabelHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--name is required")}
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
-	}
-	body := map[string]any{"name": name}
-	if color != "" {
-		body["color"] = color
-	}
-	if order > 0 {
-		body["order"] = order
-	}
-	if favorite {
-		body["is_favorite"] = true
 	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "label add", body)
@@ -139,33 +130,17 @@ func labelUpdate(ctx *Context, args []string) error {
 		printLabelHelp(ctx.Stdout)
 		return nil
 	}
-	if id == "" {
+	id, body, err := applabels.BuildUpdatePayload(applabels.UpdateInput{
+		ID:         id,
+		Name:       name,
+		Color:      color,
+		Order:      order,
+		Favorite:   favorite,
+		Unfavorite: unfavorite,
+	})
+	if err != nil {
 		printLabelHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id is required")}
-	}
-	if favorite && unfavorite {
-		printLabelHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--favorite and --unfavorite are mutually exclusive")}
-	}
-	body := map[string]any{}
-	if name != "" {
-		body["name"] = name
-	}
-	if color != "" {
-		body["color"] = color
-	}
-	if order > 0 {
-		body["order"] = order
-	}
-	if favorite {
-		body["is_favorite"] = true
-	}
-	if unfavorite {
-		body["is_favorite"] = false
-	}
-	if len(body) == 0 {
-		printLabelHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("no fields to update")}
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err

@@ -1,12 +1,11 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	appsections "github.com/agisilaos/todoist-cli/internal/app/sections"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -56,18 +55,19 @@ func sectionList(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	query := url.Values{}
-	query.Set("limit", strconv.Itoa(limit))
+	resolvedProjectID := ""
 	if project != "" {
 		id, err := resolveProjectID(ctx, project)
 		if err != nil {
 			return err
 		}
-		query.Set("project_id", id)
+		resolvedProjectID = id
 	}
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
+	query := appsections.BuildListQuery(appsections.ListInput{
+		Limit:     limit,
+		Cursor:    cursor,
+		ProjectID: resolvedProjectID,
+	})
 	allSections, next, err := fetchPaginated[api.Section](ctx, "/sections", query, all)
 	if err != nil {
 		return err
@@ -90,10 +90,6 @@ func sectionAdd(ctx *Context, args []string) error {
 		printSectionHelp(ctx.Stdout)
 		return nil
 	}
-	if name == "" || project == "" {
-		printSectionHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--name and --project are required")}
-	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
@@ -101,7 +97,11 @@ func sectionAdd(ctx *Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	body := map[string]any{"name": name, "project_id": projectID}
+	body, err := appsections.BuildAddPayload(appsections.AddInput{Name: name, ProjectID: projectID})
+	if err != nil {
+		printSectionHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: err}
+	}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "section add", body)
 	}
@@ -131,14 +131,14 @@ func sectionUpdate(ctx *Context, args []string) error {
 		printSectionHelp(ctx.Stdout)
 		return nil
 	}
-	if id == "" || name == "" {
+	id, body, err := appsections.BuildUpdatePayload(appsections.UpdateInput{ID: id, Name: name})
+	if err != nil {
 		printSectionHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("--id and --name are required")}
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	body := map[string]any{"name": name}
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "section update", body)
 	}
