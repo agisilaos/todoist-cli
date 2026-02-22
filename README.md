@@ -288,6 +288,14 @@ Quick list of tasks due today and overdue.
 todoist today
 ```
 
+### Upcoming
+
+List tasks due in the next N days (default 7).
+
+```
+todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]
+```
+
 ### Projects
 
 Create and manage projects.

@@ -43,6 +43,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = quickAddCommand(ctx, rest)
 	case "today":
 		err = todayCommand(ctx, rest)
+	case "upcoming":
+		err = upcomingCommand(ctx, rest)
 	case "help":
 		err = helpCommand(ctx, rest)
 	default:

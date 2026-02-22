@@ -12,6 +12,7 @@ Commands:
   inbox       Quick-add to Inbox
   add         Quick add (alias of task add)
   today       Tasks due today and overdue
+  upcoming    Tasks due in the next N days
   auth        Authenticate and manage tokens
   task        Manage tasks
   filter      Manage filters
@@ -71,6 +72,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printAddHelp(ctx.Stdout)
 	case "today":
 		printTodayHelp(ctx.Stdout)
+	case "upcoming":
+		printUpcomingHelp(ctx.Stdout)
 	case "task":
 		printTaskHelp(ctx.Stdout)
 	case "filter":
