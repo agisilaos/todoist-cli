@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	appagent "github.com/agisilaos/todoist-cli/internal/app/agent"
 )
 
 type agentRunOptions struct {
@@ -61,7 +63,35 @@ func agentRun(ctx *Context, args []string) error {
 		"command": "agent run",
 	})
 
-	plan, err := loadOrPlan(ctx, opts)
+	plan, err := appagent.PreparePlan(appagent.PrepareInput{
+		PlanPath:        opts.PlanPath,
+		Instruction:     opts.Instruction,
+		Confirm:         opts.Confirm,
+		ExpectedVersion: opts.ExpectedVersion,
+		Force:           opts.Force,
+		DryRun:          opts.DryRun,
+	}, appagent.PrepareDeps{
+		LoadPlan: func(path string) (Plan, error) {
+			return readPlanFile(path, ctx.Stdin)
+		},
+		Plan: func(instruction string) (Plan, error) {
+			ctxOpts, err := parseContextOptions(ctx, opts.ContextProjects, opts.ContextLabels, opts.ContextCompleted)
+			if err != nil {
+				return Plan{}, err
+			}
+			return runPlanner(ctx, opts.Planner, instruction, opts.ExpectedVersion, ctxOpts)
+		},
+		ValidatePlan: func(plan Plan, expectedVersion int, allowEmptyActions bool) error {
+			return validatePlan(plan, expectedVersion, allowEmptyActions)
+		},
+		EnforcePolicy: func(plan Plan) error {
+			policy, err := loadAgentPolicy(ctx, opts.PolicyPath)
+			if err != nil {
+				return err
+			}
+			return enforceAgentPolicy(plan, policy)
+		},
+	})
 	if err != nil {
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
@@ -69,27 +99,6 @@ func agentRun(ctx *Context, args []string) error {
 	if opts.OutPath != "" && opts.OutPath != "-" {
 		if err := writePlanFile(opts.OutPath, plan); err != nil {
 			return err
-		}
-	}
-	if err := validatePlan(plan, opts.ExpectedVersion, opts.DryRun); err != nil {
-		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	policy, err := loadAgentPolicy(ctx, opts.PolicyPath)
-	if err != nil {
-		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	if err := enforceAgentPolicy(plan, policy); err != nil {
-		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	if !opts.Force {
-		if opts.Confirm == "" {
-			return &CodeError{Code: exitUsage, Err: errors.New("--confirm is required (or use --force)")}
-		}
-		if plan.ConfirmToken != "" && opts.Confirm != plan.ConfirmToken {
-			return &CodeError{Code: exitUsage, Err: errors.New("confirmation token does not match plan")}
 		}
 	}
 	if opts.DryRun {
@@ -112,18 +121,4 @@ func agentRun(ctx *Context, args []string) error {
 	}
 	emitProgress(ctx, "agent_run_complete", map[string]any{"action_count": len(plan.Actions)})
 	return writePlanApplyResult(ctx, plan, results, applyErr)
-}
-
-func loadOrPlan(ctx *Context, opts agentRunOptions) (Plan, error) {
-	if opts.PlanPath != "" {
-		return readPlanFile(opts.PlanPath, ctx.Stdin)
-	}
-	if strings.TrimSpace(opts.Instruction) == "" {
-		return Plan{}, &CodeError{Code: exitUsage, Err: errors.New("instruction is required when --plan is not provided")}
-	}
-	ctxOpts, err := parseContextOptions(ctx, opts.ContextProjects, opts.ContextLabels, opts.ContextCompleted)
-	if err != nil {
-		return Plan{}, err
-	}
-	return runPlanner(ctx, opts.Planner, opts.Instruction, opts.ExpectedVersion, ctxOpts)
 }

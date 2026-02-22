@@ -115,56 +115,48 @@ func agentApply(ctx *Context, args []string) error {
 		printAgentHelp(ctx.Stdout)
 		return nil
 	}
+	if onError != "fail" && onError != "continue" {
+		return &CodeError{Code: exitUsage, Err: errors.New("invalid --on-error; must be fail or continue")}
+	}
 	emitProgress(ctx, "agent_apply_start", map[string]any{
 		"command": "agent apply",
 	})
-	var plan Plan
-	if planPath != "" {
-		var err error
-		plan, err = readPlanFile(planPath, ctx.Stdin)
-		if err != nil {
-			emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-			return err
-		}
-	} else {
-		instruction := strings.Join(fs.Args(), " ")
-		if instruction == "" {
-			printAgentHelp(ctx.Stderr)
-			return &CodeError{Code: exitUsage, Err: errors.New("instruction is required when --plan is not provided")}
-		}
-		ctxOpts, err := parseContextOptions(ctx, contextProjects, contextLabels, contextCompleted)
-		if err != nil {
-			emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-			return err
-		}
-		p, err := runPlanner(ctx, planner, instruction, expectedVersion, ctxOpts)
-		if err != nil {
-			return err
-		}
-		plan = p
-	}
-	if err := validatePlan(plan, expectedVersion, ctx.Global.DryRun); err != nil {
-		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	policy, err := loadAgentPolicy(ctx, policyPath)
+	instruction := strings.Join(fs.Args(), " ")
+	plan, err := appagent.PreparePlan(appagent.PrepareInput{
+		PlanPath:        planPath,
+		Instruction:     instruction,
+		Confirm:         confirm,
+		ExpectedVersion: expectedVersion,
+		Force:           ctx.Global.Force,
+		DryRun:          ctx.Global.DryRun,
+	}, appagent.PrepareDeps{
+		LoadPlan: func(path string) (Plan, error) {
+			return readPlanFile(path, ctx.Stdin)
+		},
+		Plan: func(instruction string) (Plan, error) {
+			ctxOpts, err := parseContextOptions(ctx, contextProjects, contextLabels, contextCompleted)
+			if err != nil {
+				return Plan{}, err
+			}
+			return runPlanner(ctx, planner, instruction, expectedVersion, ctxOpts)
+		},
+		ValidatePlan: func(plan Plan, expectedVersion int, allowEmptyActions bool) error {
+			return validatePlan(plan, expectedVersion, allowEmptyActions)
+		},
+		EnforcePolicy: func(plan Plan) error {
+			policy, err := loadAgentPolicy(ctx, policyPath)
+			if err != nil {
+				return err
+			}
+			return enforceAgentPolicy(plan, policy)
+		},
+	})
 	if err != nil {
+		if codeErr, ok := err.(*CodeError); ok && codeErr.Code == exitUsage {
+			printAgentHelp(ctx.Stderr)
+		}
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
-	}
-	if err := enforceAgentPolicy(plan, policy); err != nil {
-		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	if !ctx.Global.Force {
-		if confirm == "" {
-			printAgentHelp(ctx.Stderr)
-			return &CodeError{Code: exitUsage, Err: errors.New("--confirm is required (or use --force)")}
-		}
-		if plan.ConfirmToken != "" && confirm != plan.ConfirmToken {
-			printAgentHelp(ctx.Stderr)
-			return &CodeError{Code: exitUsage, Err: errors.New("confirmation token does not match plan")}
-		}
 	}
 	if ctx.Global.DryRun {
 		emitProgress(ctx, "agent_apply_complete", map[string]any{"dry_run": true, "action_count": len(plan.Actions)})
