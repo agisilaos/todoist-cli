@@ -22,6 +22,7 @@ Commands:
   section     Manage sections
   label       Manage labels
   comment     Manage comments
+  reminder    Manage task reminders
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
@@ -95,6 +96,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printLabelHelp(ctx.Stdout)
 	case "comment":
 		printCommentHelp(ctx.Stdout)
+	case "reminder":
+		printReminderHelp(ctx.Stdout)
 	case "agent":
 		printAgentHelp(ctx.Stdout)
 	case "completion":
@@ -273,6 +276,20 @@ func printCommentHelp(out interface{ Write([]byte) (int, error) }) {
   todoist comment add --content <text> (--task <id> | --project <id>)
   todoist comment update --id <comment_id> --content <text>
   todoist comment delete --id <comment_id>
+`)
+}
+
+func printReminderHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist reminder list [task] [--task <ref>]
+  todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
+  todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
+  todoist reminder delete [id] [--id <id>] [--yes]
+
+Notes:
+  - Task refs support id:<id>, text references, and Todoist task URLs.
+  - --before accepts values like 30m, 1h, 2h15m.
+  - --at accepts RFC3339, YYYY-MM-DD HH:MM, or YYYY-MM-DD.
 `)
 }
 

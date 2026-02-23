@@ -27,6 +27,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = labelCommand(ctx, rest)
 	case "comment":
 		err = commentCommand(ctx, rest)
+	case "reminder":
+		err = reminderCommand(ctx, rest)
 	case "agent":
 		err = agentCommand(ctx, rest)
 	case "completion":

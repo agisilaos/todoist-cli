@@ -48,6 +48,15 @@ todoist filter update <id|name> [--name <name>] [--query <query>]
 todoist filter delete <id|name> --yes
 ```
 
+### Reminder commands
+
+```
+todoist reminder list [task] [--task <ref>]
+todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
+todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
+todoist reminder delete [id] [--id <id>] [--yes]
+```
+
 ### Agent commands
 
 ```

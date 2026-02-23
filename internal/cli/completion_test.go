@@ -196,3 +196,15 @@ func TestCompletionScriptsIncludeCompletedCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestCompletionScriptsIncludeReminderCommand(t *testing.T) {
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		if !strings.Contains(script, "reminder") {
+			t.Fatalf("%s completion missing reminder command", shell)
+		}
+	}
+}

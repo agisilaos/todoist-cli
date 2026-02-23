@@ -17,6 +17,7 @@ Commands:
   section     Manage sections
   label       Manage labels
   comment     Manage comments
+  reminder    Manage task reminders
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks

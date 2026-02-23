@@ -11,7 +11,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment agent completion doctor schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder agent completion doctor schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -120,6 +120,16 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${comment_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
+    reminder)
+      local subs="list ls add update delete rm del"
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
+        return 0
+      fi
+      local reminder_flags="--task --id --before --at --yes"
+      COMPREPLY=( $(compgen -W "${reminder_flags} ${global_flags}" -- "$cur") )
+      return 0
+      ;;
     agent)
       local subs="plan apply run schedule examples planner status"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
@@ -151,7 +161,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment agent completion doctor schema planner help)' \
+  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder agent completion doctor schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -194,6 +204,9 @@ case $words[1] in
   comment)
     _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --project --content --id)'
     ;;
+  reminder)
+    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --id --before --at --yes)'
+    ;;
   agent)
     _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
     ;;
@@ -210,13 +223,13 @@ case $words[1] in
     _arguments '2:shell:(bash zsh fish)'
     ;;
   help)
-    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment agent completion doctor schema planner help)'
+    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment reminder agent completion doctor schema planner help)'
     ;;
 esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment agent completion doctor schema planner help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment reminder agent completion doctor schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -280,6 +293,10 @@ complete -c todoist -n '__fish_seen_subcommand_from label' -l id -l name -l colo
 # comment
 complete -c todoist -n '__fish_seen_subcommand_from comment; and __fish_use_subcommand' -a 'list ls add update delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from comment' -l task -l project -l content -l id
+
+# reminder
+complete -c todoist -n '__fish_seen_subcommand_from reminder; and __fish_use_subcommand' -a 'list ls add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from reminder' -l task -l id -l before -l at -l yes
 
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'
