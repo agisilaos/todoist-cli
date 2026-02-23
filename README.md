@@ -415,6 +415,8 @@ todoist settings update [flags]
 todoist settings themes
 ```
 
+`settings view` prints human-friendly labels (for example `24h`, `DD-MM-YYYY`, theme names) and resolves `start_page` references like `project?id=<id>` to names when possible.
+
 ### Agent
 
 Integrate with an external planner to generate and apply bulk plans.

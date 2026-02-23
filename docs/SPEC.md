@@ -88,6 +88,10 @@ todoist settings update [--timezone <tz>] [--time-format <12|24>] [--date-format
 todoist settings themes
 ```
 
+Notes:
+- `settings view` uses human-friendly labels for time/date/day/theme values.
+- Start-page refs (`project?id=...`, `label?id=...`, `filter?id=...`) are resolved to display names on a best-effort basis.
+
 ### Agent commands
 
 ```

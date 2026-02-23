@@ -42,3 +42,21 @@ func TestHasUpdate(t *testing.T) {
 		t.Fatalf("expected update detection")
 	}
 }
+
+func TestDisplayHelpers(t *testing.T) {
+	if got := TimeFormatLabel(0); got != "24h" {
+		t.Fatalf("unexpected time label: %q", got)
+	}
+	if got := DateFormatLabel(1); got != "MM-DD-YYYY" {
+		t.Fatalf("unexpected date label: %q", got)
+	}
+	if got := DayLabel(1); got != "Monday" {
+		t.Fatalf("unexpected day label: %q", got)
+	}
+	if got := ThemeLabel(6); got != "Blueberry (Pro)" {
+		t.Fatalf("unexpected theme label: %q", got)
+	}
+	if got := AutoReminderLabel(75); got != "1 hr 15 min" {
+		t.Fatalf("unexpected auto reminder label: %q", got)
+	}
+}

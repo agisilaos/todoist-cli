@@ -44,6 +44,11 @@ var timeFormatMap = map[string]int{
 	"24h": 0,
 }
 
+var timeFormatDisplay = map[int]string{
+	0: "24h",
+	1: "12h",
+}
+
 var dateFormatMap = map[string]int{
 	"us":         1,
 	"mm-dd-yyyy": 1,
@@ -51,6 +56,11 @@ var dateFormatMap = map[string]int{
 	"intl":       0,
 	"dd-mm-yyyy": 0,
 	"dmy":        0,
+}
+
+var dateFormatDisplay = map[int]string{
+	0: "DD-MM-YYYY",
+	1: "MM-DD-YYYY",
 }
 
 type UpdateFlags struct {
@@ -191,6 +201,14 @@ func DayName(day int) string {
 	return strconv.Itoa(day)
 }
 
+func DayLabel(day int) string {
+	name := DayName(day)
+	if len(name) == 0 {
+		return ""
+	}
+	return strings.ToUpper(name[:1]) + name[1:]
+}
+
 func ThemeName(themeID int) string {
 	for _, theme := range themes {
 		if theme.ID == themeID {
@@ -198,6 +216,47 @@ func ThemeName(themeID int) string {
 		}
 	}
 	return strconv.Itoa(themeID)
+}
+
+func ThemeLabel(themeID int) string {
+	for _, theme := range themes {
+		if theme.ID == themeID {
+			if theme.Pro {
+				return theme.Label + " (Pro)"
+			}
+			return theme.Label
+		}
+	}
+	return strconv.Itoa(themeID)
+}
+
+func TimeFormatLabel(value int) string {
+	if out, ok := timeFormatDisplay[value]; ok {
+		return out
+	}
+	return strconv.Itoa(value)
+}
+
+func DateFormatLabel(value int) string {
+	if out, ok := dateFormatDisplay[value]; ok {
+		return out
+	}
+	return strconv.Itoa(value)
+}
+
+func AutoReminderLabel(minutes int) string {
+	if minutes <= 0 {
+		return "none"
+	}
+	if minutes < 60 {
+		return fmt.Sprintf("%d min", minutes)
+	}
+	hours := minutes / 60
+	rest := minutes % 60
+	if rest == 0 {
+		return fmt.Sprintf("%d hr", hours)
+	}
+	return fmt.Sprintf("%d hr %d min", hours, rest)
 }
 
 func parseThemeID(value string) (int, error) {

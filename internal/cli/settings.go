@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	appsettings "github.com/agisilaos/todoist-cli/internal/app/settings"
@@ -50,7 +51,8 @@ func settingsView(ctx *Context, args []string) error {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeSettings(ctx, settings)
+	startPageName := resolveStartPageName(ctx, settings.StartPage)
+	return writeSettings(ctx, settings, startPageName)
 }
 
 func settingsUpdate(ctx *Context, args []string) error {
@@ -133,17 +135,20 @@ func settingsThemes(ctx *Context, args []string) error {
 	return output.WriteTable(ctx.Stdout, []string{"Name", "Label", "Pro"}, rows)
 }
 
-func writeSettings(ctx *Context, settings api.UserSettings) error {
+func writeSettings(ctx *Context, settings api.UserSettings, startPageName string) error {
 	if ctx.Mode == output.ModeJSON {
 		view := map[string]any{
 			"timezone":                settings.Timezone,
-			"time_format":             settings.TimeFormat,
-			"date_format":             settings.DateFormat,
+			"time_format":             appsettings.TimeFormatLabel(settings.TimeFormat),
+			"date_format":             appsettings.DateFormatLabel(settings.DateFormat),
 			"start_day":               appsettings.DayName(settings.StartDay),
 			"theme":                   appsettings.ThemeName(settings.Theme),
+			"theme_label":             appsettings.ThemeLabel(settings.Theme),
 			"auto_reminder":           settings.AutoReminder,
+			"auto_reminder_label":     appsettings.AutoReminderLabel(settings.AutoReminder),
 			"next_week":               appsettings.DayName(settings.NextWeek),
 			"start_page":              settings.StartPage,
+			"start_page_name":         startPageName,
 			"reminder_push":           settings.ReminderPush,
 			"reminder_desktop":        settings.ReminderDesktop,
 			"reminder_email":          settings.ReminderEmail,
@@ -157,13 +162,13 @@ func writeSettings(ctx *Context, settings api.UserSettings) error {
 	}
 	rows := [][]string{
 		{"Timezone", settings.Timezone},
-		{"Time format", fmt.Sprintf("%d", settings.TimeFormat)},
-		{"Date format", fmt.Sprintf("%d", settings.DateFormat)},
-		{"Start day", appsettings.DayName(settings.StartDay)},
-		{"Theme", appsettings.ThemeName(settings.Theme)},
-		{"Auto reminder", fmt.Sprintf("%d", settings.AutoReminder)},
-		{"Next week", appsettings.DayName(settings.NextWeek)},
-		{"Start page", settings.StartPage},
+		{"Time format", appsettings.TimeFormatLabel(settings.TimeFormat)},
+		{"Date format", appsettings.DateFormatLabel(settings.DateFormat)},
+		{"Start day", appsettings.DayLabel(settings.StartDay)},
+		{"Theme", appsettings.ThemeLabel(settings.Theme)},
+		{"Auto reminder", appsettings.AutoReminderLabel(settings.AutoReminder)},
+		{"Next week", appsettings.DayLabel(settings.NextWeek)},
+		{"Start page", withResolvedName(settings.StartPage, startPageName)},
 		{"Reminder push", boolOnOff(settings.ReminderPush)},
 		{"Reminder desktop", boolOnOff(settings.ReminderDesktop)},
 		{"Reminder email", boolOnOff(settings.ReminderEmail)},
@@ -173,7 +178,13 @@ func writeSettings(ctx *Context, settings api.UserSettings) error {
 	if ctx.Mode == output.ModePlain {
 		return output.WritePlain(ctx.Stdout, rows)
 	}
-	return output.WriteTable(ctx.Stdout, []string{"Setting", "Value"}, rows)
+	fmt.Fprintln(ctx.Stdout, "General")
+	if err := output.WriteTable(ctx.Stdout, []string{"Setting", "Value"}, rows[:8]); err != nil {
+		return err
+	}
+	fmt.Fprintln(ctx.Stdout)
+	fmt.Fprintln(ctx.Stdout, "Notifications")
+	return output.WriteTable(ctx.Stdout, []string{"Setting", "Value"}, rows[8:])
 }
 
 func boolOnOff(v bool) string {
@@ -181,6 +192,70 @@ func boolOnOff(v bool) string {
 		return "on"
 	}
 	return "off"
+}
+
+func withResolvedName(raw, name string) string {
+	if strings.TrimSpace(name) == "" {
+		return raw
+	}
+	return fmt.Sprintf("%s (%s)", raw, name)
+}
+
+func resolveStartPageName(ctx *Context, startPage string) string {
+	refType, refID := parseStartPageRef(startPage)
+	if refType == "" || refID == "" {
+		return ""
+	}
+	switch refType {
+	case "project":
+		var project api.Project
+		reqCtx, cancel := requestContext(ctx)
+		_, err := ctx.Client.Get(reqCtx, "/projects/"+refID, nil, &project)
+		cancel()
+		if err == nil {
+			return strings.TrimSpace(project.Name)
+		}
+	case "label":
+		var label api.Label
+		reqCtx, cancel := requestContext(ctx)
+		_, err := ctx.Client.Get(reqCtx, "/labels/"+refID, nil, &label)
+		cancel()
+		if err == nil {
+			return strings.TrimSpace(label.Name)
+		}
+	case "filter":
+		filters, _, err := listAllFilters(ctx)
+		if err != nil {
+			return ""
+		}
+		for _, filter := range filters {
+			if filter.ID == refID {
+				return strings.TrimSpace(filter.Name)
+			}
+		}
+	}
+	return ""
+}
+
+func parseStartPageRef(startPage string) (string, string) {
+	pieces := strings.SplitN(strings.TrimSpace(startPage), "?", 2)
+	if len(pieces) != 2 {
+		return "", ""
+	}
+	refType := strings.ToLower(strings.TrimSpace(pieces[0]))
+	if refType != "project" && refType != "label" && refType != "filter" {
+		return "", ""
+	}
+	for _, pair := range strings.Split(pieces[1], "&") {
+		kv := strings.SplitN(pair, "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		if strings.TrimSpace(kv[0]) == "id" {
+			return refType, strings.TrimSpace(kv[1])
+		}
+	}
+	return "", ""
 }
 
 func printSettingsHelp(out interface{ Write([]byte) (int, error) }) {
