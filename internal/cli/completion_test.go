@@ -34,6 +34,47 @@ func TestCompletionInstallWritesFile(t *testing.T) {
 	if !strings.Contains(out.String(), "Installed fish completion") {
 		t.Fatalf("expected install message, got %q", out.String())
 	}
+	if !strings.Contains(out.String(), "Activate now: source") {
+		t.Fatalf("expected activation hint, got %q", out.String())
+	}
+}
+
+func TestCompletionUninstallRemovesPath(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "todoist.fish")
+	if err := os.WriteFile(path, []byte("script"), 0o644); err != nil {
+		t.Fatalf("seed file: %v", err)
+	}
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &out,
+		Mode:   output.ModeHuman,
+	}
+	if err := completionCommand(ctx, []string{"uninstall", "--path", path}); err != nil {
+		t.Fatalf("completion uninstall: %v", err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("expected file removed, stat err=%v", err)
+	}
+	if !strings.Contains(out.String(), "Removed completion script") {
+		t.Fatalf("expected removal output, got %q", out.String())
+	}
+}
+
+func TestCompletionUninstallNoopWhenNothingFound(t *testing.T) {
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &out,
+		Mode:   output.ModeHuman,
+	}
+	if err := completionCommand(ctx, []string{"uninstall", "--path", filepath.Join(t.TempDir(), "missing")}); err != nil {
+		t.Fatalf("completion uninstall: %v", err)
+	}
+	if !strings.Contains(out.String(), "No completion scripts found to remove.") {
+		t.Fatalf("unexpected output: %q", out.String())
+	}
 }
 
 func TestCompletionScriptsIncludeOAuthAuthLoginFlags(t *testing.T) {

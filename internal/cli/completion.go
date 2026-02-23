@@ -22,6 +22,9 @@ func completionCommand(ctx *Context, args []string) error {
 	if args[0] == "install" {
 		return completionInstall(ctx, args[1:])
 	}
+	if args[0] == "uninstall" {
+		return completionUninstall(ctx, args[1:])
+	}
 
 	shell := strings.ToLower(args[0])
 	script, err := completionScript(shell)
@@ -73,11 +76,70 @@ func completionInstall(ctx *Context, args []string) error {
 	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"shell": shell,
-			"path":  path,
+			"shell":      shell,
+			"path":       path,
+			"activation": completionActivationHint(shell, path),
 		}, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "Installed %s completion to %s\n", shell, path)
+	fmt.Fprintln(ctx.Stdout, completionActivationHint(shell, path))
+	return nil
+}
+
+func completionUninstall(ctx *Context, args []string) error {
+	fs := newFlagSet("completion uninstall")
+	var path string
+	var help bool
+	fs.StringVar(&path, "path", "", "Uninstall path override")
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printCompletionHelp(ctx.Stdout)
+		return nil
+	}
+	shell := ""
+	if fs.NArg() > 0 {
+		shell = strings.ToLower(fs.Arg(0))
+	}
+
+	paths, err := completionUninstallPaths(shell, path)
+	if err != nil {
+		return err
+	}
+	if len(paths) == 0 {
+		if ctx.Mode == output.ModeJSON {
+			return output.WriteJSON(ctx.Stdout, map[string]any{
+				"removed": []string{},
+			}, output.Meta{})
+		}
+		fmt.Fprintln(ctx.Stdout, "No completion scripts found to remove.")
+		return nil
+	}
+
+	removed := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if _, statErr := os.Stat(p); statErr != nil {
+			continue
+		}
+		if err := os.Remove(p); err != nil {
+			return fmt.Errorf("remove completion %s: %w", p, err)
+		}
+		removed = append(removed, p)
+	}
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, map[string]any{
+			"removed": removed,
+		}, output.Meta{})
+	}
+	if len(removed) == 0 {
+		fmt.Fprintln(ctx.Stdout, "No completion scripts found to remove.")
+		return nil
+	}
+	for _, p := range removed {
+		fmt.Fprintf(ctx.Stdout, "Removed completion script: %s\n", p)
+	}
 	return nil
 }
 
@@ -128,4 +190,38 @@ func detectShell() string {
 	}
 	parts := strings.Split(shell, "/")
 	return strings.ToLower(parts[len(parts)-1])
+}
+
+func completionActivationHint(shell, path string) string {
+	switch shell {
+	case "bash":
+		return fmt.Sprintf("Activate now: source %s", path)
+	case "zsh":
+		return fmt.Sprintf("Activate now: source %s (ensure its directory is in $fpath, then run: autoload -U compinit && compinit)", path)
+	case "fish":
+		return fmt.Sprintf("Activate now: source %s", path)
+	default:
+		return "Restart your shell to enable completion."
+	}
+}
+
+func completionUninstallPaths(shell, explicitPath string) ([]string, error) {
+	if explicitPath != "" {
+		return []string{explicitPath}, nil
+	}
+	if shell != "" {
+		path := defaultCompletionPath(shell)
+		if path == "" {
+			return nil, &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported shell: %s", shell)}
+		}
+		return []string{path}, nil
+	}
+	paths := make([]string, 0, 3)
+	for _, candidate := range []string{"bash", "zsh", "fish"} {
+		path := defaultCompletionPath(candidate)
+		if path != "" {
+			paths = append(paths, path)
+		}
+	}
+	return paths, nil
 }

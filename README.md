@@ -448,9 +448,16 @@ todoist completion fish > ~/.config/fish/completions/todoist.fish
 
 # Or install to a sensible default location:
 todoist completion install bash
+
+# Auto-detect your shell from $SHELL:
+todoist completion install
+
+# Remove installed scripts:
+todoist completion uninstall
+todoist completion uninstall zsh
 ```
 
-Restart your shell or `source` the generated file to enable completions.
+`completion install` prints an activation hint (`source ...`); for zsh ensure the directory is in `$fpath` and run `autoload -U compinit && compinit`.
 
 ## Finding IDs
 
