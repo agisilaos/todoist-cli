@@ -58,6 +58,7 @@ todoist project browse <id|name>
 todoist project collaborators <id|name>
 todoist project add --name <name> [flags]
 todoist project update --id <id> [flags]
+todoist project move <id|name> (--to-workspace <id|name> | --to-personal) [--visibility restricted|team|public] [--yes]
 todoist project archive --id <id>
 todoist project unarchive --id <id>
 todoist project delete --id <id>

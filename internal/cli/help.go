@@ -247,6 +247,7 @@ func printProjectHelp(out interface{ Write([]byte) (int, error) }) {
   todoist project collaborators <id|name>
   todoist project add --name <name> [flags]
   todoist project update --id <project_id> [flags]
+  todoist project move <id|name> (--to-workspace <id|name> | --to-personal) [--visibility <level>] [--yes]
   todoist project archive --id <project_id>
   todoist project unarchive --id <project_id>
   todoist project delete --id <project_id>

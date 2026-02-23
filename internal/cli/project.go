@@ -36,6 +36,8 @@ func projectCommand(ctx *Context, args []string) error {
 		return projectAdd(ctx, args[1:])
 	case "update":
 		return projectUpdate(ctx, args[1:])
+	case "move":
+		return projectMove(ctx, args[1:])
 	case "archive":
 		return projectArchive(ctx, args[1:])
 	case "unarchive":
@@ -450,6 +452,106 @@ func projectBrowse(ctx *Context, args []string) error {
 	return nil
 }
 
+func projectMove(ctx *Context, args []string) error {
+	fs := newFlagSet("project move")
+	var ref string
+	var toWorkspace string
+	var toPersonal bool
+	var visibility string
+	var yes bool
+	var help bool
+	fs.StringVar(&ref, "id", "", "Project ID or name")
+	fs.StringVar(&toWorkspace, "to-workspace", "", "Target workspace")
+	fs.BoolVar(&toPersonal, "to-personal", false, "Move project to personal")
+	fs.StringVar(&visibility, "visibility", "", "Workspace visibility (restricted|team|public)")
+	fs.BoolVar(&yes, "yes", false, "Confirm move")
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printProjectHelp(ctx.Stdout)
+		return nil
+	}
+	if ref == "" && len(fs.Args()) > 0 {
+		ref = fs.Arg(0)
+	}
+	plan, err := appprojects.BuildMovePlan(appprojects.MoveInput{
+		Ref:         ref,
+		ToWorkspace: toWorkspace,
+		ToPersonal:  toPersonal,
+		Visibility:  visibility,
+	})
+	if err != nil {
+		printProjectHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	projectID, err := resolveProjectID(ctx, plan.Ref)
+	if err != nil {
+		return err
+	}
+	project, err := fetchProjectByID(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	payload := map[string]any{"project_id": project.ID}
+	if plan.ToWorkspace != "" {
+		workspaceID, err := resolveWorkspaceID(ctx, plan.ToWorkspace)
+		if err != nil {
+			return err
+		}
+		payload["workspace_id"] = workspaceID
+		if plan.Visibility != "" {
+			payload["access"] = map[string]any{"visibility": plan.Visibility}
+		}
+		if ctx.Global.DryRun {
+			return writeDryRun(ctx, "project move", payload)
+		}
+		if !yes && !ctx.Global.Force {
+			fmt.Fprintf(ctx.Stdout, "Would move %q to workspace %q\n", project.Name, plan.ToWorkspace)
+			fmt.Fprintln(ctx.Stdout, "Use --yes to confirm.")
+			return nil
+		}
+		reqCtx, cancel := requestContext(ctx)
+		moved, reqID, err := ctx.Client.MoveProjectToWorkspace(reqCtx, api.MoveProjectToWorkspaceInput{
+			ProjectID:   project.ID,
+			WorkspaceID: workspaceID,
+			Visibility:  plan.Visibility,
+		})
+		cancel()
+		if err != nil {
+			return err
+		}
+		setRequestID(ctx, reqID)
+		return writeProjectList(ctx, []api.Project{moved}, "")
+	}
+	if project.WorkspaceID == "" {
+		return &CodeError{Code: exitConflict, Err: fmt.Errorf("project %q is already personal", project.Name)}
+	}
+	if ctx.Global.DryRun {
+		return writeDryRun(ctx, "project move", map[string]any{
+			"project_id": project.ID,
+			"personal":   true,
+		})
+	}
+	if !yes && !ctx.Global.Force {
+		fmt.Fprintf(ctx.Stdout, "Would move %q to personal\n", project.Name)
+		fmt.Fprintln(ctx.Stdout, "Use --yes to confirm.")
+		return nil
+	}
+	reqCtx, cancel := requestContext(ctx)
+	moved, reqID, err := ctx.Client.MoveProjectToPersonal(reqCtx, project.ID)
+	cancel()
+	if err != nil {
+		return err
+	}
+	setRequestID(ctx, reqID)
+	return writeProjectList(ctx, []api.Project{moved}, "")
+}
+
 func fetchProjectByID(ctx *Context, id string) (api.Project, error) {
 	var project api.Project
 	reqCtx, cancel := requestContext(ctx)
@@ -461,6 +563,7 @@ func fetchProjectByID(ctx *Context, id string) (api.Project, error) {
 	setRequestID(ctx, reqID)
 	return project, nil
 }
+
 
 func writeProjectList(ctx *Context, projects []api.Project, cursor string) error {
 	if ctx.Mode == output.ModeJSON {

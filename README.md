@@ -314,6 +314,7 @@ todoist project view <id|name>
 todoist project browse <id|name>
 todoist project add --name <name> [--description <text>] [--parent <id|name>]
 todoist project update --id <project_id> [flags]
+todoist project move <id|name> (--to-workspace <id|name> | --to-personal) [--visibility restricted|team|public] [--yes]
 todoist project archive --id <project_id>
 todoist project unarchive --id <project_id>
 todoist project delete --id <project_id>
@@ -326,6 +327,8 @@ Examples:
 - `todoist project browse "Home"`
 - `todoist project add --name "Side Projects" --description "Weekend hacks"`
 - `todoist project update --id 234 --name "Side Projects (2024)"`
+- `todoist project move "Team Project" --to-personal --yes`
+- `todoist project move "Home" --to-workspace "Acme Corp" --visibility team --yes`
 
 ### Sections
 

@@ -214,3 +214,38 @@ func TestResolveFilterRefFromURL(t *testing.T) {
 		t.Fatalf("expected filter f1, got %q", filter.ID)
 	}
 }
+
+func TestResolveWorkspaceIDReturnsDirectID(t *testing.T) {
+	ctx := &Context{}
+	got, err := resolveWorkspaceID(ctx, "id:w1")
+	if err != nil {
+		t.Fatalf("resolveWorkspaceID: %v", err)
+	}
+	if got != "w1" {
+		t.Fatalf("unexpected workspace id: %q", got)
+	}
+}
+
+func TestResolveWorkspaceIDByName(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"workspaces":[{"id":"w1","name":"Acme Corp"}]}`))
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	got, err := resolveWorkspaceID(ctx, "acme corp")
+	if err != nil {
+		t.Fatalf("resolveWorkspaceID: %v", err)
+	}
+	if got != "w1" {
+		t.Fatalf("unexpected workspace id: %q", got)
+	}
+}

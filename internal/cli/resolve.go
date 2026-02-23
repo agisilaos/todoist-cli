@@ -282,3 +282,58 @@ func sectionNameMap(ctx *Context) map[string]string {
 	}
 	return names
 }
+
+func listAllWorkspaces(ctx *Context) ([]api.Workspace, error) {
+	if cache := ctx.cache(); cache != nil && cache.workspacesLoaded {
+		return cloneSlice(cache.workspaces), nil
+	}
+	if err := ensureClient(ctx); err != nil {
+		return nil, err
+	}
+	reqCtx, cancel := requestContext(ctx)
+	workspaces, reqID, err := ctx.Client.SyncWorkspaces(reqCtx)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+	setRequestID(ctx, reqID)
+	if cache := ctx.cache(); cache != nil {
+		cache.workspaces = cloneSlice(workspaces)
+		cache.workspacesLoaded = true
+	}
+	return workspaces, nil
+}
+
+func resolveWorkspaceID(ctx *Context, value string) (string, error) {
+	normalized, directID := apprefs.NormalizeRef(value)
+	if normalized == "" {
+		return "", &CodeError{Code: exitUsage, Err: errors.New("workspace reference is required")}
+	}
+	if directID {
+		return normalized, nil
+	}
+	workspaces, err := listAllWorkspaces(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, workspace := range workspaces {
+		if strings.EqualFold(workspace.Name, normalized) {
+			return workspace.ID, nil
+		}
+	}
+	if useFuzzy(ctx) {
+		candidates := fuzzyCandidates(normalized, workspaces, func(w api.Workspace) string { return w.Name }, func(w api.Workspace) string { return w.ID })
+		if len(candidates) == 1 {
+			return candidates[0].ID, nil
+		}
+		if len(candidates) > 1 {
+			if chosen, ok, err := promptAmbiguousChoice(ctx, "workspace", normalized, candidates); err != nil {
+				return "", err
+			} else if ok {
+				return chosen, nil
+			}
+			return "", ambiguousMatchCodeError("workspace", normalized, candidates)
+		}
+	}
+	return "", &CodeError{Code: exitNotFound, Err: fmt.Errorf("workspace %q not found", normalized)}
+}

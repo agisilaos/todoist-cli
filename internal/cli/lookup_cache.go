@@ -18,6 +18,9 @@ type lookupCache struct {
 	filters       []api.Filter
 
 	collaboratorsByProject map[string][]api.Collaborator
+
+	workspacesLoaded bool
+	workspaces       []api.Workspace
 }
 
 func (ctx *Context) cache() *lookupCache {
