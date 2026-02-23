@@ -85,3 +85,26 @@ func TestUpdateUserSettingsBuildsCommands(t *testing.T) {
 		t.Fatalf("UpdateUserSettings: %v", err)
 	}
 }
+
+func TestFetchUserSettingsFallsBackWhenNilValues(t *testing.T) {
+	client := NewClient("https://example.com", "token", time.Second)
+	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		payload := `{"user":{"timezone":null,"start_page":null},"user_settings":{}}`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewBufferString(payload)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})}
+
+	out, _, err := client.FetchUserSettings(context.Background())
+	if err != nil {
+		t.Fatalf("FetchUserSettings: %v", err)
+	}
+	if out.Timezone != "UTC" {
+		t.Fatalf("expected timezone fallback UTC, got %q", out.Timezone)
+	}
+	if out.StartPage != "today" {
+		t.Fatalf("expected start_page fallback today, got %q", out.StartPage)
+	}
+}

@@ -76,3 +76,31 @@ func TestActivityListByMeUsesSyncUserID(t *testing.T) {
 		t.Fatalf("expected sync user call")
 	}
 }
+
+func TestActivityListAcceptsNumericIDs(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/activities":
+			_, _ = w.Write([]byte(`{"results":[{"id":123,"event_type":"completed","event_date":"2026-02-23T10:00:00Z","object_type":"item","object_id":456,"parent_project_id":789,"initiator_id":321,"extra_data":{"content":"Done"}}],"next_cursor":""}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if err := activityCommand(ctx, []string{"--limit", "1"}); err != nil {
+		t.Fatalf("activityCommand: %v", err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte(`"id": "123"`)) {
+		t.Fatalf("expected numeric id normalized to string, got %s", out.String())
+	}
+}

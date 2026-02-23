@@ -1,5 +1,8 @@
 package api
 
+import "encoding/json"
+import "strings"
+
 type Paginated[T any] struct {
 	Results    []T    `json:"results"`
 	NextCursor string `json:"next_cursor"`
@@ -104,6 +107,46 @@ type ActivityEvent struct {
 	ParentProjectID string         `json:"parent_project_id"`
 	InitiatorID     string         `json:"initiator_id"`
 	ExtraData       map[string]any `json:"extra_data"`
+}
+
+func (e *ActivityEvent) UnmarshalJSON(data []byte) error {
+	type rawActivityEvent struct {
+		ID              json.RawMessage `json:"id"`
+		EventType       string          `json:"event_type"`
+		EventDate       string          `json:"event_date"`
+		ObjectType      string          `json:"object_type"`
+		ObjectID        json.RawMessage `json:"object_id"`
+		ParentProjectID json.RawMessage `json:"parent_project_id"`
+		InitiatorID     json.RawMessage `json:"initiator_id"`
+		ExtraData       map[string]any  `json:"extra_data"`
+	}
+	var raw rawActivityEvent
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	e.ID = rawJSONScalarToString(raw.ID)
+	e.EventType = raw.EventType
+	e.EventDate = raw.EventDate
+	e.ObjectType = raw.ObjectType
+	e.ObjectID = rawJSONScalarToString(raw.ObjectID)
+	e.ParentProjectID = rawJSONScalarToString(raw.ParentProjectID)
+	e.InitiatorID = rawJSONScalarToString(raw.InitiatorID)
+	e.ExtraData = raw.ExtraData
+	return nil
+}
+
+func rawJSONScalarToString(raw json.RawMessage) string {
+	text := strings.TrimSpace(string(raw))
+	if text == "" || text == "null" {
+		return ""
+	}
+	if strings.HasPrefix(text, `"`) {
+		var value string
+		if err := json.Unmarshal(raw, &value); err == nil {
+			return value
+		}
+	}
+	return text
 }
 
 // Some endpoints return only name arrays (shared labels).

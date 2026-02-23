@@ -50,14 +50,14 @@ func (c *Client) FetchUserSettings(ctx context.Context) (UserSettings, string, e
 	user := mapAny(resp.ExtraData["user"])
 	settings := mapAny(resp.ExtraData["user_settings"])
 	return UserSettings{
-		Timezone:              firstNonEmpty(strings.TrimSpace(fmt.Sprintf("%v", user["timezone"])), "UTC"),
+		Timezone:              firstNonEmpty(strings.TrimSpace(stringifyAny(user["timezone"])), "UTC"),
 		TimeFormat:            intAny(user["time_format"]),
 		DateFormat:            intAny(user["date_format"]),
 		StartDay:              intAny(user["start_day"]),
 		Theme:                 firstNonZero(intAny(user["theme_id"]), intAny(user["theme"])),
 		AutoReminder:          intAny(user["auto_reminder"]),
 		NextWeek:              intAny(user["next_week"]),
-		StartPage:             firstNonEmpty(strings.TrimSpace(fmt.Sprintf("%v", user["start_page"])), "today"),
+		StartPage:             firstNonEmpty(strings.TrimSpace(stringifyAny(user["start_page"])), "today"),
 		ReminderPush:          boolOrDefault(settings["reminder_push"], true),
 		ReminderDesktop:       boolOrDefault(settings["reminder_desktop"], true),
 		ReminderEmail:         boolOrDefault(settings["reminder_email"], false),
