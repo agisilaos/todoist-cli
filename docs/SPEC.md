@@ -75,6 +75,8 @@ todoist activity [--since <date>] [--until <date>] [--type task|comment|project]
 
 ```
 todoist stats
+todoist stats goals [--daily <n>] [--weekly <n>]
+todoist stats vacation (--on | --off)
 ```
 
 ### Agent commands

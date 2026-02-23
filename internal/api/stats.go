@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -45,6 +46,12 @@ type ProductivityStats struct {
 	Goals           StatsGoals      `json:"goals"`
 }
 
+type UpdateGoalsInput struct {
+	DailyGoal    *int
+	WeeklyGoal   *int
+	VacationMode *bool
+}
+
 func (c *Client) FetchProductivityStats(ctx context.Context) (ProductivityStats, string, error) {
 	var raw map[string]any
 	reqID, err := c.Get(ctx, "/tasks/completed/stats", nil, &raw)
@@ -52,6 +59,36 @@ func (c *Client) FetchProductivityStats(ctx context.Context) (ProductivityStats,
 		return ProductivityStats{}, reqID, err
 	}
 	return parseProductivityStats(raw), reqID, nil
+}
+
+func (c *Client) UpdateGoals(ctx context.Context, in UpdateGoalsInput) (string, error) {
+	args := map[string]any{}
+	if in.DailyGoal != nil {
+		args["daily_goal"] = *in.DailyGoal
+	}
+	if in.WeeklyGoal != nil {
+		args["weekly_goal"] = *in.WeeklyGoal
+	}
+	if in.VacationMode != nil {
+		if *in.VacationMode {
+			args["vacation_mode"] = 1
+		} else {
+			args["vacation_mode"] = 0
+		}
+	}
+	if len(args) == 0 {
+		return "", fmt.Errorf("no goals to update")
+	}
+	payload, err := json.Marshal([]map[string]any{{
+		"type": "update_goals",
+		"uuid": NewRequestID(),
+		"args": args,
+	}})
+	if err != nil {
+		return "", err
+	}
+	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	return requestID, err
 }
 
 func parseProductivityStats(raw map[string]any) ProductivityStats {

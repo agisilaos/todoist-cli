@@ -146,6 +146,18 @@ _todoist() {
       return 0
       ;;
     stats)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "goals vacation" -- "$cur") )
+        return 0
+      fi
+      if [[ ${COMP_WORDS[2]} == "goals" ]]; then
+        COMPREPLY=( $(compgen -W "--daily --weekly ${global_flags}" -- "$cur") )
+        return 0
+      fi
+      if [[ ${COMP_WORDS[2]} == "vacation" ]]; then
+        COMPREPLY=( $(compgen -W "--on --off ${global_flags}" -- "$cur") )
+        return 0
+      fi
       COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -233,7 +245,7 @@ case $words[1] in
     _arguments '*:flags:(--since --until --type --event --project --by --limit --cursor --all)'
     ;;
   stats)
-    _arguments
+    _arguments '2:subcommand:(goals vacation)' '*:flags:(--daily --weekly --on --off)'
     ;;
   agent)
     _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
@@ -335,6 +347,9 @@ complete -c todoist -n '__fish_seen_subcommand_from activity' -l since -l until 
 
 # stats
 complete -c todoist -n '__fish_seen_subcommand_from stats'
+complete -c todoist -n '__fish_seen_subcommand_from stats; and __fish_use_subcommand' -a 'goals vacation'
+complete -c todoist -n '__fish_seen_subcommand_from stats; and contains goals (commandline -opc)' -l daily -l weekly
+complete -c todoist -n '__fish_seen_subcommand_from stats; and contains vacation (commandline -opc)' -l on -l off
 
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'

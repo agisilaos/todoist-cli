@@ -43,3 +43,30 @@ func TestTrendArrow(t *testing.T) {
 		t.Fatalf("expected empty for flat, got %q", got)
 	}
 }
+
+func TestParseGoalValue(t *testing.T) {
+	got, err := ParseGoalValue("12")
+	if err != nil || got == nil || *got != 12 {
+		t.Fatalf("unexpected parse result: got=%v err=%v", got, err)
+	}
+	none, err := ParseGoalValue(" ")
+	if err != nil || none != nil {
+		t.Fatalf("expected nil for empty input, got=%v err=%v", none, err)
+	}
+	if _, err := ParseGoalValue("-1"); err == nil {
+		t.Fatalf("expected error for negative goal")
+	}
+}
+
+func TestResolveVacationMode(t *testing.T) {
+	value, err := ResolveVacationMode(true, false)
+	if err != nil || value == nil || !*value {
+		t.Fatalf("unexpected vacation mode result: value=%v err=%v", value, err)
+	}
+	if _, err := ResolveVacationMode(true, true); err == nil {
+		t.Fatalf("expected mutually exclusive error")
+	}
+	if _, err := ResolveVacationMode(false, false); err == nil {
+		t.Fatalf("expected missing flag error")
+	}
+}

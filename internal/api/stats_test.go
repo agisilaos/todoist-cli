@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -56,5 +58,34 @@ func TestFetchProductivityStats(t *testing.T) {
 	}
 	if len(out.WeekItems) != 1 || out.WeekItems[0].TotalCompleted != 19 {
 		t.Fatalf("unexpected week_items: %#v", out.WeekItems)
+	}
+}
+
+func TestUpdateGoalsBuildsSyncCommand(t *testing.T) {
+	client := NewClient("https://example.com", "token", time.Second)
+	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path != "/sync" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		body, _ := io.ReadAll(r.Body)
+		values, _ := url.ParseQuery(string(body))
+		commands := values.Get("commands")
+		if !strings.Contains(commands, `"type":"update_goals"`) {
+			t.Fatalf("unexpected commands payload: %s", commands)
+		}
+		if !strings.Contains(commands, `"daily_goal":7`) || !strings.Contains(commands, `"vacation_mode":1`) {
+			t.Fatalf("missing goals args: %s", commands)
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewBufferString(`{}`)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})}
+
+	daily := 7
+	on := true
+	if _, err := client.UpdateGoals(context.Background(), UpdateGoalsInput{DailyGoal: &daily, VacationMode: &on}); err != nil {
+		t.Fatalf("UpdateGoals: %v", err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -83,5 +84,47 @@ func TestStatsCommandHumanVacation(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "Karma: 50") {
 		t.Fatalf("expected karma line, got %q", out.String())
+	}
+}
+
+func TestStatsGoalsDryRun(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"stats", "goals", "--daily", "5", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d stderr=%q", exitOK, code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"action": "stats goals"`) {
+		t.Fatalf("expected dry-run action, got %s", stdout.String())
+	}
+}
+
+func TestStatsVacationUpdatesGoals(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		body := new(bytes.Buffer)
+		_, _ = body.ReadFrom(r.Body)
+		values, _ := url.ParseQuery(body.String())
+		commands := values.Get("commands")
+		if !strings.Contains(commands, `"type":"update_goals"`) || !strings.Contains(commands, `"vacation_mode":1`) {
+			t.Fatalf("unexpected sync payload: %s", commands)
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+		Now:    time.Now,
+	}
+	if err := statsCommand(ctx, []string{"vacation", "--on"}); err != nil {
+		t.Fatalf("statsCommand vacation: %v", err)
 	}
 }

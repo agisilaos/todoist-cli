@@ -1,6 +1,9 @@
 package stats
 
 import (
+	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,4 +61,34 @@ func TrendArrow(trend string) string {
 	default:
 		return ""
 	}
+}
+
+func ParseGoalValue(raw string) (*int, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return nil, nil
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 {
+		return nil, fmt.Errorf("goal must be a non-negative integer")
+	}
+	return &n, nil
+}
+
+func ValidateGoalsUpdate(daily, weekly *int) error {
+	if daily == nil && weekly == nil {
+		return errors.New("stats goals requires --daily and/or --weekly")
+	}
+	return nil
+}
+
+func ResolveVacationMode(on, off bool) (*bool, error) {
+	if on && off {
+		return nil, errors.New("cannot use both --on and --off")
+	}
+	if !on && !off {
+		return nil, errors.New("stats vacation requires --on or --off")
+	}
+	value := on
+	return &value, nil
 }

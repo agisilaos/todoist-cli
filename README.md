@@ -400,6 +400,8 @@ View productivity stats and completion progress.
 
 ```
 todoist stats
+todoist stats goals [--daily <n>] [--weekly <n>]
+todoist stats vacation (--on | --off)
 ```
 
 ### Agent
