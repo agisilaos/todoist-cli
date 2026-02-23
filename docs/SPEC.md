@@ -49,6 +49,19 @@ todoist filter update <id|name> [--name <name>] [--query <query>]
 todoist filter delete <id|name> --yes
 ```
 
+### Project commands
+
+```
+todoist project list [--archived]
+todoist project view <id|name>
+todoist project collaborators <id|name>
+todoist project add --name <name> [flags]
+todoist project update --id <id> [flags]
+todoist project archive --id <id>
+todoist project unarchive --id <id>
+todoist project delete --id <id>
+```
+
 ### Reminder commands
 
 ```

@@ -18,13 +18,16 @@ func projectCommand(ctx *Context, args []string) error {
 		return nil
 	}
 	sub := canonicalSubcommand(args[0], map[string]string{
-		"ls":  "list",
-		"rm":  "delete",
-		"del": "delete",
+		"ls":   "list",
+		"show": "view",
+		"rm":   "delete",
+		"del":  "delete",
 	})
 	switch sub {
 	case "list":
 		return projectList(ctx, args[1:])
+	case "view":
+		return projectView(ctx, args[1:])
 	case "collaborators":
 		return projectCollaborators(ctx, args[1:])
 	case "add":
@@ -40,6 +43,63 @@ func projectCommand(ctx *Context, args []string) error {
 	default:
 		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown project subcommand: %s", args[0])}
 	}
+}
+
+func projectView(ctx *Context, args []string) error {
+	fs := newFlagSet("project view")
+	var id string
+	var help bool
+	fs.StringVar(&id, "id", "", "Project ID or name")
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printProjectHelp(ctx.Stdout)
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		id = fs.Arg(0)
+	}
+	if id == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("project view requires --id or a project reference")}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	resolvedID, err := resolveProjectID(ctx, id)
+	if err != nil {
+		return err
+	}
+	var project api.Project
+	reqCtx, cancel := requestContext(ctx)
+	reqID, err := ctx.Client.Get(reqCtx, "/projects/"+resolvedID, nil, &project)
+	cancel()
+	if err != nil {
+		return err
+	}
+	setRequestID(ctx, reqID)
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, project, output.Meta{RequestID: ctx.RequestID})
+	}
+	if ctx.Mode == output.ModeNDJSON {
+		return output.WriteNDJSONSlice(ctx.Stdout, []api.Project{project})
+	}
+	rows := [][]string{
+		{"ID", project.ID},
+		{"Name", project.Name},
+		{"Description", project.Description},
+		{"Parent", project.ParentID},
+		{"Workspace", project.WorkspaceID},
+		{"View", project.ViewStyle},
+		{"Archived", strconv.FormatBool(project.IsArchived)},
+		{"Shared", strconv.FormatBool(project.IsShared)},
+		{"Favorite", strconv.FormatBool(project.IsFavorite)},
+	}
+	if ctx.Mode == output.ModePlain {
+		return output.WritePlain(ctx.Stdout, rows)
+	}
+	return output.WriteTable(ctx.Stdout, []string{"Field", "Value"}, rows)
 }
 
 func projectCollaborators(ctx *Context, args []string) error {

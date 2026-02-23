@@ -115,7 +115,7 @@ func TestResolveViewTargetProjectURL(t *testing.T) {
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	project, err := resolveViewTarget("https://app.todoist.com/app/project/home-2203306141", ctx)
-	if err != nil || project.Command != "task" || project.Args[0] != "list" {
+	if err != nil || project.Command != "project" || project.Args[0] != "view" {
 		t.Fatalf("unexpected project target: %#v err=%v", project, err)
 	}
 }

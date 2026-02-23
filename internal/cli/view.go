@@ -41,6 +41,8 @@ func dispatchViewTarget(ctx *Context, target viewTarget) error {
 	switch target.Command {
 	case "task":
 		return taskCommand(ctx, target.Args)
+	case "project":
+		return projectCommand(ctx, target.Args)
 	case "filter":
 		return filterCommand(ctx, target.Args)
 	case "today":
@@ -68,7 +70,7 @@ func resolveViewTarget(raw string, ctx *Context) (viewTarget, error) {
 			if err != nil {
 				return viewTarget{}, err
 			}
-			return viewTarget{Command: "task", Args: []string{"list", "--project", ref}}, nil
+			return viewTarget{Command: "project", Args: []string{"view", ref}}, nil
 		case "filter":
 			return viewTarget{Command: "filter", Args: []string{"show", "id:" + parsed.ID}}, nil
 		case "label":

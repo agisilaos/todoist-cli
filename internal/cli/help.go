@@ -242,6 +242,7 @@ Examples:
 func printProjectHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist project list [--archived]
+  todoist project view <id|name>
   todoist project collaborators <id|name>
   todoist project add --name <name> [flags]
   todoist project update --id <project_id> [flags]

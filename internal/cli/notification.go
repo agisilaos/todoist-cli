@@ -111,19 +111,33 @@ func notificationView(ctx *Context, args []string) error {
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, n, output.Meta{RequestID: ctx.RequestID})
 	}
-	rows := [][]string{
-		{"ID", n.ID},
-		{"Type", n.Type},
-		{"Status", map[bool]string{true: "unread", false: "read"}[n.IsUnread]},
-		{"Created", n.CreatedAt},
-		{"Project", n.ProjectName},
-		{"Task", n.TaskContent},
-		{"From", n.FromUserName},
-	}
 	if ctx.Mode == output.ModePlain {
+		rows := [][]string{
+			{n.ID, n.Type, map[bool]string{true: "unread", false: "read"}[n.IsUnread], n.CreatedAt, n.ProjectName, n.TaskContent, n.FromUserName},
+		}
 		return output.WritePlain(ctx.Stdout, rows)
 	}
-	return output.WriteTable(ctx.Stdout, []string{"Field", "Value"}, rows)
+	fmt.Fprintf(ctx.Stdout, "Type:       %s\n", n.Type)
+	if strings.TrimSpace(n.FromUserName) != "" {
+		fmt.Fprintf(ctx.Stdout, "From:       %s\n", n.FromUserName)
+	}
+	if strings.TrimSpace(n.ProjectName) != "" {
+		fmt.Fprintf(ctx.Stdout, "Project:    %s\n", n.ProjectName)
+	}
+	if strings.TrimSpace(n.TaskContent) != "" {
+		fmt.Fprintf(ctx.Stdout, "Task:       %s\n", n.TaskContent)
+	}
+	fmt.Fprintf(ctx.Stdout, "Received:   %s\n", n.CreatedAt)
+	fmt.Fprintf(ctx.Stdout, "Status:     %s\n", map[bool]string{true: "Unread", false: "Read"}[n.IsUnread])
+	fmt.Fprintln(ctx.Stdout)
+	fmt.Fprintln(ctx.Stdout, notificationSummary(n))
+	if n.Type == "share_invitation_sent" {
+		fmt.Fprintln(ctx.Stdout)
+		fmt.Fprintln(ctx.Stdout, "Actions:")
+		fmt.Fprintf(ctx.Stdout, "  todoist notification accept id:%s\n", n.ID)
+		fmt.Fprintf(ctx.Stdout, "  todoist notification reject id:%s\n", n.ID)
+	}
+	return nil
 }
 
 func notificationAccept(ctx *Context, args []string) error {
@@ -184,6 +198,15 @@ func notificationInvitationAction(ctx *Context, args []string, action string) er
 	cancel()
 	if err != nil {
 		return err
+	}
+	readCtx, readCancel := requestContext(ctx)
+	readReqID, err := ctx.Client.MarkNotificationsRead(readCtx, []string{id})
+	readCancel()
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(readReqID) != "" {
+		reqID = readReqID
 	}
 	setRequestID(ctx, reqID)
 	return writeSimpleResult(ctx, action+"ed", id)
@@ -339,4 +362,22 @@ func nextOffsetCursor(out appnotifications.ListResult) string {
 		return ""
 	}
 	return strconv.Itoa(out.Offset + out.Limit)
+}
+
+func notificationSummary(n api.Notification) string {
+	switch n.Type {
+	case "share_invitation_sent":
+		if strings.TrimSpace(n.ProjectName) != "" && strings.TrimSpace(n.FromUserName) != "" {
+			return fmt.Sprintf("%s invited you to \"%s\"", n.FromUserName, n.ProjectName)
+		}
+	case "item_assigned":
+		if strings.TrimSpace(n.TaskContent) != "" {
+			return fmt.Sprintf("Assigned task: %s", n.TaskContent)
+		}
+	case "item_completed":
+		if strings.TrimSpace(n.TaskContent) != "" {
+			return fmt.Sprintf("Task completed: %s", n.TaskContent)
+		}
+	}
+	return n.Type
 }

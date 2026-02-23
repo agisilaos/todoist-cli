@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -148,5 +149,77 @@ func TestNotificationAcceptDryRun(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), `"action": "notification accept"`) {
 		t.Fatalf("unexpected dry-run output: %s", out.String())
+	}
+}
+
+func TestNotificationAcceptMarksRead(t *testing.T) {
+	call := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			http.NotFound(w, r)
+			return
+		}
+		call++
+		body := new(bytes.Buffer)
+		_, _ = body.ReadFrom(r.Body)
+		values, _ := url.ParseQuery(body.String())
+		commands := values.Get("commands")
+		switch call {
+		case 1:
+			_, _ = w.Write([]byte(`{"live_notifications":[{"id":"n1","notification_type":"share_invitation_sent","invitation_id":"123","invitation_secret":"sec","is_unread":true,"is_deleted":false,"created_at":"2026-02-23T10:00:00Z"}]}`))
+			return
+		case 2:
+			if !strings.Contains(commands, `"type":"accept_invitation"`) {
+				t.Fatalf("expected accept_invitation command, got %s", commands)
+			}
+		case 3:
+			if !strings.Contains(commands, `"type":"live_notifications_mark_read"`) {
+				t.Fatalf("expected live_notifications_mark_read command, got %s", commands)
+			}
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer ts.Close()
+
+	ctx := &Context{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if err := notificationAccept(ctx, []string{"--id", "n1"}); err != nil {
+		t.Fatalf("notificationAccept: %v", err)
+	}
+	if call != 3 {
+		t.Fatalf("expected 3 sync calls, got %d", call)
+	}
+}
+
+func TestNotificationViewHumanShowsActionHints(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"live_notifications":[{"id":"n1","notification_type":"share_invitation_sent","project_name":"Project A","from_user":{"name":"Alice"},"is_unread":true,"is_deleted":false,"created_at":"2026-02-23T10:00:00Z"}]}`))
+	}))
+	defer ts.Close()
+
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeHuman,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if err := notificationView(ctx, []string{"--id", "n1"}); err != nil {
+		t.Fatalf("notificationView: %v", err)
+	}
+	if !strings.Contains(out.String(), "Actions:") || !strings.Contains(out.String(), "notification accept") {
+		t.Fatalf("expected action hints, got %q", out.String())
 	}
 }
