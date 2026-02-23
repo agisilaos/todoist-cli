@@ -394,6 +394,14 @@ View account/project activity logs.
 todoist activity [--since <date>] [--until <date>] [--type task|comment|project] [--event <type>] [--project <id|name>] [--by <id|me>] [--limit <n>] [--cursor <cursor>] [--all]
 ```
 
+### Stats
+
+View productivity stats and completion progress.
+
+```
+todoist stats
+```
+
 ### Agent
 
 Integrate with an external planner to generate and apply bulk plans.
@@ -631,7 +639,7 @@ Release scripts:
 
 - This CLI uses Todoist REST API v1 endpoints under `https://api.todoist.com/api/v1`.
 - Keychain integration is not implemented; tokens are stored in a local credentials file.
-- Some Todoist surfaces (for example stats/settings/skill/view/update) are not implemented yet.
+- Some Todoist surfaces (for example settings/skill/view/update) are not implemented yet.
 - Todoist is a trademark of Doist; this project is an independent, unofficial CLI.
 - Shell completions are bundled via `todoist completion`.
 

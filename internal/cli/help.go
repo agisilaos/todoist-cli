@@ -25,6 +25,7 @@ Commands:
   reminder    Manage task reminders
   notification Manage notifications
   activity    View activity logs
+  stats       View productivity stats
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
@@ -104,6 +105,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printNotificationHelp(ctx.Stdout)
 	case "activity":
 		printActivityHelp(ctx.Stdout)
+	case "stats":
+		printStatsHelp(ctx.Stdout)
 	case "agent":
 		printAgentHelp(ctx.Stdout)
 	case "completion":

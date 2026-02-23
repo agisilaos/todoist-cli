@@ -71,6 +71,12 @@ todoist notification unread [id] [--id <id>]
 todoist activity [--since <date>] [--until <date>] [--type task|comment|project] [--event <type>] [--project <id|name>] [--by <id|me>] [--limit <n>] [--cursor <cursor>] [--all]
 ```
 
+### Stats command
+
+```
+todoist stats
+```
+
 ### Agent commands
 
 ```

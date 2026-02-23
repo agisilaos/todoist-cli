@@ -33,6 +33,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = notificationCommand(ctx, rest)
 	case "activity":
 		err = activityCommand(ctx, rest)
+	case "stats":
+		err = statsCommand(ctx, rest)
 	case "agent":
 		err = agentCommand(ctx, rest)
 	case "completion":

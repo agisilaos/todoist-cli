@@ -232,3 +232,15 @@ func TestCompletionScriptsIncludeActivityCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestCompletionScriptsIncludeStatsCommand(t *testing.T) {
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		if !strings.Contains(script, "stats") {
+			t.Fatalf("%s completion missing stats command", shell)
+		}
+	}
+}
