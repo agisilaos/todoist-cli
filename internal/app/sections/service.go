@@ -23,6 +23,12 @@ type UpdateInput struct {
 	Name string
 }
 
+type DeleteInput struct {
+	ID     string
+	Force  bool
+	DryRun bool
+}
+
 func BuildListQuery(in ListInput) url.Values {
 	query := url.Values{}
 	limit := in.Limit
@@ -55,4 +61,13 @@ func BuildUpdatePayload(in UpdateInput) (string, map[string]any, error) {
 		return "", nil, errors.New("--id and --name are required")
 	}
 	return id, map[string]any{"name": name}, nil
+}
+
+func BuildDeletePlan(in DeleteInput) (string, bool, error) {
+	id := strings.TrimSpace(in.ID)
+	if id == "" {
+		return "", false, errors.New("--id is required")
+	}
+	requiresConfirm := !in.Force && !in.DryRun
+	return id, requiresConfirm, nil
 }

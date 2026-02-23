@@ -27,3 +27,66 @@ func TestValidateDeleteRequiresYesOrForce(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 }
+
+func TestResolveReferenceExactByName(t *testing.T) {
+	got, err := ResolveReference(ResolveReferenceInput{
+		Ref: "Today",
+		References: []Reference{
+			{ID: "f1", Name: "Today"},
+			{ID: "f2", Name: "Next"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveReference: %v", err)
+	}
+	if got.ResolvedID != "f1" || got.NotFound || len(got.Ambiguous) != 0 {
+		t.Fatalf("unexpected result: %#v", got)
+	}
+}
+
+func TestResolveReferenceFromURL(t *testing.T) {
+	got, err := ResolveReference(ResolveReferenceInput{
+		Ref: "https://app.todoist.com/app/filter/today-f1",
+		References: []Reference{
+			{ID: "f1", Name: "Today"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveReference: %v", err)
+	}
+	if got.ResolvedID != "f1" || !got.DirectID {
+		t.Fatalf("unexpected result: %#v", got)
+	}
+}
+
+func TestResolveReferenceFuzzyAmbiguous(t *testing.T) {
+	got, err := ResolveReference(ResolveReferenceInput{
+		Ref:         "tod",
+		EnableFuzzy: true,
+		References: []Reference{
+			{ID: "f1", Name: "Today"},
+			{ID: "f2", Name: "Today Focus"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveReference: %v", err)
+	}
+	if len(got.Ambiguous) != 2 || got.NotFound || got.ResolvedID != "" {
+		t.Fatalf("unexpected result: %#v", got)
+	}
+}
+
+func TestResolveReferenceNotFoundDirectID(t *testing.T) {
+	got, err := ResolveReference(ResolveReferenceInput{
+		Ref: "id:f9",
+		References: []Reference{
+			{ID: "f1", Name: "Today"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveReference: %v", err)
+	}
+	if !got.NotFound || !got.DirectID {
+		t.Fatalf("unexpected result: %#v", got)
+	}
+}

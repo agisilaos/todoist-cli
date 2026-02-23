@@ -3,6 +3,8 @@ package filters
 import (
 	"errors"
 	"strings"
+
+	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 )
 
 type AddInput struct {
@@ -25,6 +27,25 @@ type DeleteInput struct {
 	Ref   string
 	Yes   bool
 	Force bool
+}
+
+type Reference struct {
+	ID   string
+	Name string
+}
+
+type ResolveReferenceInput struct {
+	Ref         string
+	References  []Reference
+	EnableFuzzy bool
+}
+
+type ResolveReferenceResult struct {
+	ResolvedID string
+	Normalized string
+	DirectID   bool
+	NotFound   bool
+	Ambiguous  []apprefs.Candidate
 }
 
 func BuildAddPayload(in AddInput) (map[string]any, error) {
@@ -82,4 +103,58 @@ func ValidateDelete(in DeleteInput) (string, error) {
 		return "", errors.New("filter delete requires --yes")
 	}
 	return ref, nil
+}
+
+func ResolveReference(in ResolveReferenceInput) (ResolveReferenceResult, error) {
+	normalized, directID, err := apprefs.NormalizeEntityRef(in.Ref, "filter")
+	if err != nil {
+		return ResolveReferenceResult{}, err
+	}
+	ref := strings.TrimSpace(normalized)
+	if ref == "" {
+		return ResolveReferenceResult{}, errors.New("filter reference is required")
+	}
+	for _, candidate := range in.References {
+		if strings.EqualFold(candidate.ID, ref) || strings.EqualFold(candidate.Name, ref) {
+			return ResolveReferenceResult{
+				ResolvedID: candidate.ID,
+				Normalized: ref,
+				DirectID:   directID,
+			}, nil
+		}
+	}
+	if directID {
+		return ResolveReferenceResult{
+			Normalized: ref,
+			DirectID:   true,
+			NotFound:   true,
+		}, nil
+	}
+	if !in.EnableFuzzy {
+		return ResolveReferenceResult{
+			Normalized: ref,
+			DirectID:   false,
+			NotFound:   true,
+		}, nil
+	}
+	candidates := apprefs.FuzzyCandidates(ref, in.References, func(v Reference) string { return v.Name }, func(v Reference) string { return v.ID })
+	if len(candidates) == 1 {
+		return ResolveReferenceResult{
+			ResolvedID: candidates[0].ID,
+			Normalized: ref,
+			DirectID:   false,
+		}, nil
+	}
+	if len(candidates) > 1 {
+		return ResolveReferenceResult{
+			Normalized: ref,
+			DirectID:   false,
+			Ambiguous:  candidates,
+		}, nil
+	}
+	return ResolveReferenceResult{
+		Normalized: ref,
+		DirectID:   false,
+		NotFound:   true,
+	}, nil
 }

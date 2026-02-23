@@ -31,9 +31,9 @@ Todoist API v1
 
 - `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, and task mutation payload builders.
 - `internal/app/projects`: add/update/move validation plus project URL planning for browse flows.
-- `internal/app/filters`: add/update/delete validation and payload construction.
+- `internal/app/filters`: add/update/delete validation, payload construction, and filter reference resolution rules (exact/direct/fuzzy/ambiguous).
 - `internal/app/comments`: comment list/add/update validation and payload construction.
 - `internal/app/labels`: label list query planning and add/update payload validation.
-- `internal/app/sections`: section list query planning and add/update payload validation.
+- `internal/app/sections`: section list query planning, add/update payload validation, and delete confirmation planning.
 - `internal/app/agent`: status payload composition and agent action-to-API request planning for `agent apply/run`.
 - `internal/agent`: plan/action types, action validation, and summary derivation.

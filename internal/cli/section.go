@@ -159,10 +159,19 @@ func sectionDelete(ctx *Context, args []string) error {
 		printSectionHelp(ctx.Stderr)
 		return err
 	}
+	id, requiresConfirm, err := appsections.BuildDeletePlan(appsections.DeleteInput{
+		ID:     id,
+		Force:  ctx.Global.Force,
+		DryRun: ctx.Global.DryRun,
+	})
+	if err != nil {
+		printSectionHelp(ctx.Stderr)
+		return &CodeError{Code: exitUsage, Err: err}
+	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if !ctx.Global.Force && !ctx.Global.DryRun {
+	if requiresConfirm {
 		ok, err := confirm(ctx, fmt.Sprintf("Delete section %s?", id))
 		if err != nil {
 			return err

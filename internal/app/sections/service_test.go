@@ -24,3 +24,29 @@ func TestBuildUpdatePayload(t *testing.T) {
 		t.Fatalf("unexpected output id=%q body=%#v", id, body)
 	}
 }
+
+func TestBuildDeletePlan(t *testing.T) {
+	id, requiresConfirm, err := BuildDeletePlan(DeleteInput{ID: "s1"})
+	if err != nil {
+		t.Fatalf("BuildDeletePlan: %v", err)
+	}
+	if id != "s1" || !requiresConfirm {
+		t.Fatalf("unexpected output: id=%q requiresConfirm=%v", id, requiresConfirm)
+	}
+}
+
+func TestBuildDeletePlanDryRunSkipsConfirm(t *testing.T) {
+	_, requiresConfirm, err := BuildDeletePlan(DeleteInput{ID: "s1", DryRun: true})
+	if err != nil {
+		t.Fatalf("BuildDeletePlan: %v", err)
+	}
+	if requiresConfirm {
+		t.Fatalf("expected no confirm in dry-run")
+	}
+}
+
+func TestBuildDeletePlanRequiresID(t *testing.T) {
+	if _, _, err := BuildDeletePlan(DeleteInput{}); err == nil {
+		t.Fatalf("expected error")
+	}
+}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	appfilters "github.com/agisilaos/todoist-cli/internal/app/filters"
-	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -236,45 +235,41 @@ func filterDelete(ctx *Context, args []string) error {
 }
 
 func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
-	normalized, directID, err := apprefs.NormalizeEntityRef(ref, "filter")
-	if err != nil {
-		return api.Filter{}, &CodeError{Code: exitUsage, Err: err}
-	}
-	ref = strings.TrimSpace(normalized)
 	filters, reqID, err := listAllFilters(ctx)
 	if err != nil {
 		return api.Filter{}, err
 	}
 	setRequestID(ctx, reqID)
-	for _, f := range filters {
-		if strings.EqualFold(f.ID, ref) || strings.EqualFold(f.Name, ref) {
-			return f, nil
+	references := make([]appfilters.Reference, 0, len(filters))
+	filterByID := make(map[string]api.Filter, len(filters))
+	for _, filter := range filters {
+		references = append(references, appfilters.Reference{ID: filter.ID, Name: filter.Name})
+		filterByID[filter.ID] = filter
+	}
+	result, err := appfilters.ResolveReference(appfilters.ResolveReferenceInput{
+		Ref:         ref,
+		References:  references,
+		EnableFuzzy: true,
+	})
+	if err != nil {
+		return api.Filter{}, &CodeError{Code: exitUsage, Err: err}
+	}
+	if result.ResolvedID != "" {
+		if filter, ok := filterByID[result.ResolvedID]; ok {
+			return filter, nil
 		}
 	}
-	if directID {
-		return api.Filter{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("filter %q not found", ref)}
-	}
-	candidates := fuzzyCandidates(ref, filters, func(f api.Filter) string { return f.Name }, func(f api.Filter) string { return f.ID })
-	if len(candidates) == 1 {
-		for _, f := range filters {
-			if f.ID == candidates[0].ID {
-				return f, nil
-			}
-		}
-	}
-	if len(candidates) > 1 {
-		if chosen, ok, err := promptAmbiguousChoice(ctx, "filter", ref, candidates); err != nil {
+	if len(result.Ambiguous) > 1 {
+		if chosen, ok, err := promptAmbiguousChoice(ctx, "filter", result.Normalized, result.Ambiguous); err != nil {
 			return api.Filter{}, err
 		} else if ok {
-			for _, f := range filters {
-				if f.ID == chosen {
-					return f, nil
-				}
+			if filter, ok := filterByID[chosen]; ok {
+				return filter, nil
 			}
 		}
-		return api.Filter{}, ambiguousMatchCodeError("filter", ref, candidates)
+		return api.Filter{}, ambiguousMatchCodeError("filter", result.Normalized, result.Ambiguous)
 	}
-	return api.Filter{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("filter %q not found", ref)}
+	return api.Filter{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("filter %q not found", result.Normalized)}
 }
 
 func listAllFilters(ctx *Context) ([]api.Filter, string, error) {
