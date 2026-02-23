@@ -417,6 +417,20 @@ todoist settings themes
 
 `settings view` prints human-friendly labels (for example `24h`, `DD-MM-YYYY`, theme names) and resolves `start_page` references like `project?id=<id>` to names when possible.
 
+### View
+
+Open Todoist web URLs with equivalent CLI commands.
+
+```
+todoist view <url>
+```
+
+Examples:
+
+- `todoist view https://app.todoist.com/app/task/call-mom-6f3qg8mgqp99mFVJ`
+- `todoist view https://app.todoist.com/app/project/home-2203306141`
+- `todoist view https://app.todoist.com/app/settings`
+
 ### Agent
 
 Integrate with an external planner to generate and apply bulk plans.
@@ -654,7 +668,7 @@ Release scripts:
 
 - This CLI uses Todoist REST API v1 endpoints under `https://api.todoist.com/api/v1`.
 - Keychain integration is not implemented; tokens are stored in a local credentials file.
-- Some Todoist surfaces (for example skill/view/update) are not implemented yet.
+- Some Todoist surfaces (for example skill/update) are not implemented yet.
 - Todoist is a trademark of Doist; this project is an independent, unofficial CLI.
 - Shell completions are bundled via `todoist completion`.
 

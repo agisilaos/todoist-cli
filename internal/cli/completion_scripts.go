@@ -11,7 +11,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings agent completion doctor schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -174,6 +174,10 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
       return 0
       ;;
+    view)
+      COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
+      return 0
+      ;;
     agent)
       local subs="plan apply run schedule examples planner status"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
@@ -205,7 +209,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings agent completion doctor schema planner help)' \
+  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -263,6 +267,9 @@ case $words[1] in
   settings)
     _arguments '2:subcommand:(view update themes)' '*:flags:(--timezone --time-format --date-format --start-day --theme --auto-reminder --next-week --start-page --reminder-push --reminder-desktop --reminder-email --completed-sound-desktop --completed-sound-mobile)'
     ;;
+  view)
+    _arguments
+    ;;
   agent)
     _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
     ;;
@@ -279,13 +286,13 @@ case $words[1] in
     _arguments '2:shell:(bash zsh fish)'
     ;;
   help)
-    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment reminder notification activity stats settings agent completion doctor schema planner help)'
+    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment reminder notification activity stats settings view agent completion doctor schema planner help)'
     ;;
 esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings agent completion doctor schema planner help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"

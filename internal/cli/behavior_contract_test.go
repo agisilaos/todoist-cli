@@ -219,6 +219,9 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 	if !strings.Contains(got, "settings") {
 		t.Fatalf("expected settings command in root help, got %q", got)
 	}
+	if !strings.Contains(got, "view") {
+		t.Fatalf("expected view command in root help, got %q", got)
+	}
 	if !strings.Contains(got, "--fuzzy") || !strings.Contains(got, "--no-fuzzy") || !strings.Contains(got, "--accessible") {
 		t.Fatalf("expected global accessibility/fuzzy flags in help, got %q", got)
 	}

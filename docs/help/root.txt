@@ -22,6 +22,7 @@ Commands:
   activity    View activity logs
   stats       View productivity stats
   settings    Manage user settings
+  view        Open Todoist web URLs in CLI
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks

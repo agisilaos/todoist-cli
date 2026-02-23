@@ -27,6 +27,7 @@ Commands:
   activity    View activity logs
   stats       View productivity stats
   settings    Manage user settings
+  view        Open Todoist web URLs in CLI
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
@@ -110,6 +111,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printStatsHelp(ctx.Stdout)
 	case "settings":
 		printSettingsHelp(ctx.Stdout)
+	case "view":
+		printViewHelp(ctx.Stdout)
 	case "agent":
 		printAgentHelp(ctx.Stdout)
 	case "completion":

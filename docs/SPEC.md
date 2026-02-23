@@ -26,6 +26,7 @@ Pattern: `todoist <resource> <action> [args]`
 - `todoist upcoming [days]` — list tasks due from today through the next N days
 - `todoist planner` — show/set planner command alias (same behavior as `todoist agent planner`)
 - `todoist doctor` — run local environment/auth/API health checks
+- `todoist view <url>` — open Todoist web URLs with equivalent CLI commands
 
 ### Task commands
 
@@ -91,6 +92,16 @@ todoist settings themes
 Notes:
 - `settings view` uses human-friendly labels for time/date/day/theme values.
 - Start-page refs (`project?id=...`, `label?id=...`, `filter?id=...`) are resolved to display names on a best-effort basis.
+
+### View command
+
+```
+todoist view <url>
+```
+
+Notes:
+- Supports Todoist entity URLs for task/project/label/filter.
+- Supports page URLs like `/app/inbox`, `/app/today`, `/app/upcoming`, `/app/completed`, `/app/settings`, `/app/activity`.
 
 ### Agent commands
 
