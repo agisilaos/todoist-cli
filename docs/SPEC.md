@@ -57,6 +57,14 @@ todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
 todoist reminder delete [id] [--id <id>] [--yes]
 ```
 
+### Notification commands
+
+```
+todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>]
+todoist notification read [id] [--id <id>] [--all --yes]
+todoist notification unread [id] [--id <id>]
+```
+
 ### Agent commands
 
 ```

@@ -23,6 +23,7 @@ Commands:
   label       Manage labels
   comment     Manage comments
   reminder    Manage task reminders
+  notification  Manage notifications
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
@@ -98,6 +99,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printCommentHelp(ctx.Stdout)
 	case "reminder":
 		printReminderHelp(ctx.Stdout)
+	case "notification":
+		printNotificationHelp(ctx.Stdout)
 	case "agent":
 		printAgentHelp(ctx.Stdout)
 	case "completion":
@@ -290,6 +293,18 @@ Notes:
   - Task refs support id:<id>, text references, and Todoist task URLs.
   - --before accepts values like 30m, 1h, 2h15m.
   - --at accepts RFC3339, YYYY-MM-DD HH:MM, or YYYY-MM-DD.
+`)
+}
+
+func printNotificationHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>]
+  todoist notification read [id] [--id <id>] [--all --yes]
+  todoist notification unread [id] [--id <id>]
+
+Notes:
+  - --type accepts a comma-separated list (for example: item_assigned,note_added).
+  - "read --all" requires --yes unless --force is set.
 `)
 }
 

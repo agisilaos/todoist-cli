@@ -169,10 +169,15 @@ func (c *Client) syncRequest(ctx context.Context, formValues map[string]string) 
 	if resp.StatusCode >= 400 {
 		return reminderSyncResponse{}, requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(data)), RequestID: requestID}
 	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return reminderSyncResponse{}, requestID, fmt.Errorf("decode sync response: %w", err)
+	}
 	var payload reminderSyncResponse
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return reminderSyncResponse{}, requestID, fmt.Errorf("decode sync response: %w", err)
 	}
+	payload.ExtraData = raw
 	if payload.Error != "" {
 		msg := payload.Error
 		if payload.ErrorTag != "" {
