@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
+## [v0.7.0] - 2026-02-23
+
+### Added
+
+- Added project command expansion with `project create`, `project move`, and `project browse`.
+- Added settings command family for viewing/updating settings and managing themes.
+- Added stats command expansion, including productivity summary, goals, and vacation subcommands.
+- Added activity, reminders, and notifications command families with list/action coverage.
+- Added `upcoming` and top-level `completed` shortcuts for planning/review workflows.
+- Added Todoist URL-to-command routing and URL reference support for task/project/label/filter references.
+- Added natural task-reference improvements, including due-aware lookup and shorthand add/update input mode.
+- Added accessible output mode for human task views.
+
+### Changed
+
+- Improved project URL handling and invitation/notification UX parity.
+- Improved top-level help guidance for AI/LLM-agent usage and completion install/uninstall ergonomics.
+- Continued CLI/app-layer refactor to centralize validation, resolution, planning, and command wiring.
+- Expanded test/CI coverage for retry policies, resolver edge cases, formatter output, and release checks.
+- Standardized release-check/help-snapshot/docs workflow contracts and repository docs structure.
+
+### Fixed
+
+- Hardened settings/activity decoding against live API payload variations.
+- Improved dry-run inbox behavior to work without requiring inbox lookup.
+- Smoothed human task filtering, completed-date UX, and task text/ID completion resolution.
+- Removed non-portable `rg` dependency from release checks.
+
 ## [v0.6.0] - 2026-02-14
 
 - feat(cli): add doctor command and cached, ranked reference resolution (da4663c)
