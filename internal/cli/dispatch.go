@@ -31,6 +31,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = reminderCommand(ctx, rest)
 	case "notification":
 		err = notificationCommand(ctx, rest)
+	case "activity":
+		err = activityCommand(ctx, rest)
 	case "agent":
 		err = agentCommand(ctx, rest)
 	case "completion":

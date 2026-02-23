@@ -95,5 +95,16 @@ type Filter struct {
 	IsFavorite bool   `json:"is_favorite"`
 }
 
+type ActivityEvent struct {
+	ID              string         `json:"id"`
+	EventType       string         `json:"event_type"`
+	EventDate       string         `json:"event_date"`
+	ObjectType      string         `json:"object_type"`
+	ObjectID        string         `json:"object_id"`
+	ParentProjectID string         `json:"parent_project_id"`
+	InitiatorID     string         `json:"initiator_id"`
+	ExtraData       map[string]any `json:"extra_data"`
+}
+
 // Some endpoints return only name arrays (shared labels).
 type SharedLabel string

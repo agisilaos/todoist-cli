@@ -65,6 +65,12 @@ todoist notification read [id] [--id <id>] [--all --yes]
 todoist notification unread [id] [--id <id>]
 ```
 
+### Activity command
+
+```
+todoist activity [--since <date>] [--until <date>] [--type task|comment|project] [--event <type>] [--project <id|name>] [--by <id|me>] [--limit <n>] [--cursor <cursor>] [--all]
+```
+
 ### Agent commands
 
 ```
