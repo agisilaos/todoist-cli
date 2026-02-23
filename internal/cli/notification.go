@@ -22,6 +22,12 @@ func notificationCommand(ctx *Context, args []string) error {
 	switch sub {
 	case "list":
 		return notificationList(ctx, args[1:])
+	case "view":
+		return notificationView(ctx, args[1:])
+	case "accept":
+		return notificationAccept(ctx, args[1:])
+	case "reject":
+		return notificationReject(ctx, args[1:])
 	case "read":
 		return notificationRead(ctx, args[1:])
 	case "unread":
@@ -73,6 +79,130 @@ func notificationList(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	return writeNotificationList(ctx, out)
+}
+
+func notificationView(ctx *Context, args []string) error {
+	fs := newFlagSet("notification view")
+	var id string
+	var help bool
+	fs.StringVar(&id, "id", "", "Notification ID")
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printNotificationHelp(ctx.Stdout)
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		id = fs.Arg(0)
+	}
+	id = stripIDPrefix(id)
+	if strings.TrimSpace(id) == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("notification view requires --id or positional id")}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	n, err := findNotificationByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, n, output.Meta{RequestID: ctx.RequestID})
+	}
+	rows := [][]string{
+		{"ID", n.ID},
+		{"Type", n.Type},
+		{"Status", map[bool]string{true: "unread", false: "read"}[n.IsUnread]},
+		{"Created", n.CreatedAt},
+		{"Project", n.ProjectName},
+		{"Task", n.TaskContent},
+		{"From", n.FromUserName},
+	}
+	if ctx.Mode == output.ModePlain {
+		return output.WritePlain(ctx.Stdout, rows)
+	}
+	return output.WriteTable(ctx.Stdout, []string{"Field", "Value"}, rows)
+}
+
+func notificationAccept(ctx *Context, args []string) error {
+	return notificationInvitationAction(ctx, args, "accept")
+}
+
+func notificationReject(ctx *Context, args []string) error {
+	return notificationInvitationAction(ctx, args, "reject")
+}
+
+func notificationInvitationAction(ctx *Context, args []string, action string) error {
+	fs := newFlagSet("notification " + action)
+	var id string
+	var help bool
+	fs.StringVar(&id, "id", "", "Notification ID")
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printNotificationHelp(ctx.Stdout)
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		id = fs.Arg(0)
+	}
+	id = stripIDPrefix(id)
+	if strings.TrimSpace(id) == "" {
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("notification %s requires --id or positional id", action)}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	n, err := findNotificationByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if n.Type != "share_invitation_sent" {
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("notification %s only supports share_invitation_sent (got %s)", action, n.Type)}
+	}
+	if strings.TrimSpace(n.InvitationID) == "" || strings.TrimSpace(n.InvitationSecret) == "" {
+		return &CodeError{Code: exitError, Err: errors.New("notification is missing invitation_id/invitation_secret")}
+	}
+	if ctx.Global.DryRun {
+		return writeDryRun(ctx, "notification "+action, map[string]any{"id": id, "invitation_id": n.InvitationID})
+	}
+	reqCtx, cancel := requestContext(ctx)
+	var reqID string
+	switch action {
+	case "accept":
+		reqID, err = ctx.Client.AcceptInvitation(reqCtx, n.InvitationID, n.InvitationSecret)
+	case "reject":
+		reqID, err = ctx.Client.RejectInvitation(reqCtx, n.InvitationID, n.InvitationSecret)
+	default:
+		cancel()
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported invitation action: %s", action)}
+	}
+	cancel()
+	if err != nil {
+		return err
+	}
+	setRequestID(ctx, reqID)
+	return writeSimpleResult(ctx, action+"ed", id)
+}
+
+func findNotificationByID(ctx *Context, id string) (api.Notification, error) {
+	reqCtx, cancel := requestContext(ctx)
+	items, reqID, err := ctx.Client.FetchLiveNotifications(reqCtx)
+	cancel()
+	if err != nil {
+		return api.Notification{}, err
+	}
+	setRequestID(ctx, reqID)
+	for _, item := range items {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+	return api.Notification{}, &CodeError{Code: exitNotFound, Err: fmt.Errorf("notification %q not found", id)}
 }
 
 func notificationRead(ctx *Context, args []string) error {

@@ -317,15 +317,22 @@ Examples:
 func printNotificationHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>]
+  todoist notification view [id] [--id <id>]
+  todoist notification accept [id] [--id <id>]
+  todoist notification reject [id] [--id <id>]
   todoist notification read [id] [--id <id>] [--all --yes]
   todoist notification unread [id] [--id <id>]
 
 Notes:
   - --type accepts a comma-separated list (for example: item_assigned,note_added).
+  - accept/reject require share_invitation_sent notifications.
   - "read --all" requires --yes unless --force is set.
 
 Examples:
   todoist notification list --unread
+  todoist notification view id:n1
+  todoist notification accept id:n1
+  todoist notification reject id:n1
   todoist notification list --type item_assigned,note_added --limit 20
   todoist notification read id:n1
   todoist notification read --all --yes

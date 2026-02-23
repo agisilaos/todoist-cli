@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -118,6 +119,56 @@ func (c *Client) MarkAllNotificationsRead(ctx context.Context) (string, error) {
 		"type": "live_notifications_mark_read_all",
 		"uuid": NewRequestID(),
 		"args": map[string]any{},
+	}})
+	if err != nil {
+		return "", err
+	}
+	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	return requestID, err
+}
+
+func (c *Client) AcceptInvitation(ctx context.Context, invitationID, invitationSecret string) (string, error) {
+	invitationID = strings.TrimSpace(invitationID)
+	invitationSecret = strings.TrimSpace(invitationSecret)
+	if invitationID == "" || invitationSecret == "" {
+		return "", fmt.Errorf("invitation_id and invitation_secret are required")
+	}
+	invitationArg := any(invitationID)
+	if n, err := strconv.ParseInt(invitationID, 10, 64); err == nil {
+		invitationArg = n
+	}
+	payload, err := json.Marshal([]map[string]any{{
+		"type": "accept_invitation",
+		"uuid": NewRequestID(),
+		"args": map[string]any{
+			"invitation_id":     invitationArg,
+			"invitation_secret": invitationSecret,
+		},
+	}})
+	if err != nil {
+		return "", err
+	}
+	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	return requestID, err
+}
+
+func (c *Client) RejectInvitation(ctx context.Context, invitationID, invitationSecret string) (string, error) {
+	invitationID = strings.TrimSpace(invitationID)
+	invitationSecret = strings.TrimSpace(invitationSecret)
+	if invitationID == "" || invitationSecret == "" {
+		return "", fmt.Errorf("invitation_id and invitation_secret are required")
+	}
+	invitationArg := any(invitationID)
+	if n, err := strconv.ParseInt(invitationID, 10, 64); err == nil {
+		invitationArg = n
+	}
+	payload, err := json.Marshal([]map[string]any{{
+		"type": "reject_invitation",
+		"uuid": NewRequestID(),
+		"args": map[string]any{
+			"invitation_id":     invitationArg,
+			"invitation_secret": invitationSecret,
+		},
 	}})
 	if err != nil {
 		return "", err

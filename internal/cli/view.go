@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
+	"github.com/agisilaos/todoist-cli/internal/api"
 	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 )
 
@@ -62,7 +64,11 @@ func resolveViewTarget(raw string, ctx *Context) (viewTarget, error) {
 		case "task":
 			return viewTarget{Command: "task", Args: []string{"view", "id:" + parsed.ID}}, nil
 		case "project":
-			return viewTarget{Command: "task", Args: []string{"list", "--project", "id:" + parsed.ID}}, nil
+			ref, err := resolveProjectRefFromURL(ctx, raw, parsed.ID)
+			if err != nil {
+				return viewTarget{}, err
+			}
+			return viewTarget{Command: "task", Args: []string{"list", "--project", ref}}, nil
 		case "filter":
 			return viewTarget{Command: "filter", Args: []string{"show", "id:" + parsed.ID}}, nil
 		case "label":
@@ -100,6 +106,77 @@ func resolveViewTarget(raw string, ctx *Context) (viewTarget, error) {
 	default:
 		return viewTarget{}, fmt.Errorf("unsupported Todoist URL path: %s", u.Path)
 	}
+}
+
+var trailingDigitsRE = regexp.MustCompile(`-(\d+)$`)
+
+func resolveProjectRefFromURL(ctx *Context, rawURL, parsedID string) (string, error) {
+	if err := ensureClient(ctx); err != nil {
+		return "", err
+	}
+	projects, err := listAllProjects(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, project := range projects {
+		if project.ID == parsedID {
+			return "id:" + project.ID, nil
+		}
+	}
+
+	segment := projectURLSegment(rawURL)
+	if segment == "" {
+		return "id:" + parsedID, nil
+	}
+	slug := strings.ToLower(strings.TrimSpace(segment))
+	if match := trailingDigitsRE.FindStringSubmatch(slug); len(match) > 0 {
+		slug = strings.TrimSuffix(slug, match[0])
+	}
+	slug = strings.Trim(slug, "-")
+	if slug == "" {
+		return "id:" + parsedID, nil
+	}
+
+	candidates := make([]api.Project, 0, len(projects))
+	for _, project := range projects {
+		if slugifyProjectName(project.Name) == slug {
+			candidates = append(candidates, project)
+		}
+	}
+	if len(candidates) == 1 {
+		return candidates[0].Name, nil
+	}
+	return "id:" + parsedID, nil
+}
+
+func projectURLSegment(rawURL string) string {
+	u, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(parts) >= 3 && parts[0] == "app" && parts[1] == "project" {
+		return parts[2]
+	}
+	return ""
+}
+
+func slugifyProjectName(name string) string {
+	name = strings.ToLower(strings.TrimSpace(name))
+	var b strings.Builder
+	lastDash := false
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			b.WriteByte('-')
+			lastDash = true
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }
 
 func resolveLabelNameByID(ctx *Context, id string) (string, error) {

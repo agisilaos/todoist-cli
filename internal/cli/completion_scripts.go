@@ -131,7 +131,7 @@ _todoist() {
       return 0
       ;;
     notification)
-      local subs="list read unread"
+      local subs="list view accept reject read unread"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -256,7 +256,7 @@ case $words[1] in
     _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --id --before --at --yes)'
     ;;
   notification)
-    _arguments '2:subcommand:(list read unread)' '*:flags:(--type --unread --read --limit --offset --id --all --yes)'
+    _arguments '2:subcommand:(list view accept reject read unread)' '*:flags:(--type --unread --read --limit --offset --id --all --yes)'
     ;;
   activity)
     _arguments '*:flags:(--since --until --type --event --project --by --limit --cursor --all)'
@@ -362,7 +362,7 @@ complete -c todoist -n '__fish_seen_subcommand_from reminder; and __fish_use_sub
 complete -c todoist -n '__fish_seen_subcommand_from reminder' -l task -l id -l before -l at -l yes
 
 # notification
-complete -c todoist -n '__fish_seen_subcommand_from notification; and __fish_use_subcommand' -a 'list read unread'
+complete -c todoist -n '__fish_seen_subcommand_from notification; and __fish_use_subcommand' -a 'list view accept reject read unread'
 complete -c todoist -n '__fish_seen_subcommand_from notification' -l type -l unread -l read -l limit -l offset -l id -l all -l yes
 
 # activity

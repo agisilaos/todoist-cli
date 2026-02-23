@@ -382,9 +382,14 @@ Manage live notifications (Sync API).
 
 ```
 todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>]
+todoist notification view [id] [--id <id>]
+todoist notification accept [id] [--id <id>]
+todoist notification reject [id] [--id <id>]
 todoist notification read [id] [--id <id>] [--all --yes]
 todoist notification unread [id] [--id <id>]
 ```
+
+`accept`/`reject` work for `share_invitation_sent` notifications.
 
 ### Activity
 
@@ -430,6 +435,8 @@ Examples:
 - `todoist view https://app.todoist.com/app/task/call-mom-6f3qg8mgqp99mFVJ`
 - `todoist view https://app.todoist.com/app/project/home-2203306141`
 - `todoist view https://app.todoist.com/app/settings`
+
+For project URLs with deprecated legacy IDs, `view` attempts a slug/name fallback before using the URL ID directly.
 
 ### Agent
 

@@ -62,6 +62,9 @@ todoist reminder delete [id] [--id <id>] [--yes]
 
 ```
 todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>]
+todoist notification view [id] [--id <id>]
+todoist notification accept [id] [--id <id>]
+todoist notification reject [id] [--id <id>]
 todoist notification read [id] [--id <id>] [--all --yes]
 todoist notification unread [id] [--id <id>]
 ```
@@ -102,6 +105,7 @@ todoist view <url>
 Notes:
 - Supports Todoist entity URLs for task/project/label/filter.
 - Supports page URLs like `/app/inbox`, `/app/today`, `/app/upcoming`, `/app/completed`, `/app/settings`, `/app/activity`.
+- Project URLs use best-effort slug/name fallback when legacy URL IDs are rejected by API v1.
 
 ### Agent commands
 

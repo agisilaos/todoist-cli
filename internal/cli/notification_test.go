@@ -95,3 +95,58 @@ func TestNotificationListHumanEmptyState(t *testing.T) {
 		t.Fatalf("expected empty state, got %q", out.String())
 	}
 }
+
+func TestNotificationViewJSON(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"live_notifications":[{"id":"n1","notification_type":"item_assigned","is_unread":true,"is_deleted":false,"created_at":"2026-02-23T10:00:00Z"}]}`))
+	}))
+	defer ts.Close()
+
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if err := notificationView(ctx, []string{"--id", "n1"}); err != nil {
+		t.Fatalf("notificationView: %v", err)
+	}
+	if !strings.Contains(out.String(), `"id": "n1"`) {
+		t.Fatalf("unexpected output: %s", out.String())
+	}
+}
+
+func TestNotificationAcceptDryRun(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"live_notifications":[{"id":"n1","notification_type":"share_invitation_sent","invitation_id":"123","invitation_secret":"sec","is_unread":true,"is_deleted":false,"created_at":"2026-02-23T10:00:00Z"}]}`))
+	}))
+	defer ts.Close()
+
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeJSON,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+		Global: GlobalOptions{DryRun: true},
+	}
+	if err := notificationAccept(ctx, []string{"--id", "n1"}); err != nil {
+		t.Fatalf("notificationAccept: %v", err)
+	}
+	if !strings.Contains(out.String(), `"action": "notification accept"`) {
+		t.Fatalf("unexpected dry-run output: %s", out.String())
+	}
+}
