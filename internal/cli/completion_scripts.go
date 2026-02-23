@@ -72,7 +72,7 @@ _todoist() {
       return 0
       ;;
     project)
-      local subs="list ls view show browse collaborators add update move archive unarchive delete rm del"
+      local subs="list ls view show browse collaborators add create update move archive unarchive delete rm del"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -238,7 +238,7 @@ case $words[1] in
     _arguments '2:subcommand:(list ls show add update delete rm del)' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
     ;;
   project)
-    _arguments '2:subcommand:(list ls view show browse collaborators add update move archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
+    _arguments '2:subcommand:(list ls view show browse collaborators add create update move archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
     ;;
   workspace)
     _arguments '2:subcommand:(list ls)'
@@ -335,7 +335,7 @@ complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcomm
 complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes
 
 # project
-complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list ls view show browse collaborators add update move archive unarchive delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list ls view show browse collaborators add create update move archive unarchive delete rm del'
 complete -c todoist -n '__fish_seen_subcommand_from project' -l archived -l id -l name -l description -l parent -l color -l favorite -l view -l cursor -l limit -l all -l to-workspace -l to-personal -l visibility -l yes
 
 # workspace

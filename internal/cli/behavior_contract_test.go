@@ -125,6 +125,21 @@ func TestContractProjectDeleteAcceptsProjectURLID(t *testing.T) {
 	}
 }
 
+func TestContractProjectCreateAliasUsesAddFlow(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "dummy")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Execute([]string{"project", "create", "--name", "Home", "--dry-run", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
+	}
+	got := stdout.String()
+	if !strings.Contains(got, `"action": "project add"`) || !strings.Contains(got, `"name": "Home"`) {
+		t.Fatalf("unexpected project create dry-run output: %q", got)
+	}
+}
+
 func TestContractSchemaWritesCleanStdout(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

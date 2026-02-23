@@ -20,6 +20,7 @@ func projectCommand(ctx *Context, args []string) error {
 	sub := canonicalSubcommand(args[0], map[string]string{
 		"ls":   "list",
 		"show": "view",
+		"create": "add",
 		"rm":   "delete",
 		"del":  "delete",
 	})
