@@ -28,6 +28,8 @@ func projectCommand(ctx *Context, args []string) error {
 		return projectList(ctx, args[1:])
 	case "view":
 		return projectView(ctx, args[1:])
+	case "browse":
+		return projectBrowse(ctx, args[1:])
 	case "collaborators":
 		return projectCollaborators(ctx, args[1:])
 	case "add":
@@ -44,6 +46,8 @@ func projectCommand(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown project subcommand: %s", args[0])}
 	}
 }
+
+var openProjectBrowserFn = openOAuthBrowser
 
 func projectView(ctx *Context, args []string) error {
 	fs := newFlagSet("project view")
@@ -389,6 +393,73 @@ func projectDelete(ctx *Context, args []string) error {
 	}
 	setRequestID(ctx, reqID)
 	return writeSimpleResult(ctx, "deleted", id)
+}
+
+func projectBrowse(ctx *Context, args []string) error {
+	fs := newFlagSet("project browse")
+	var id string
+	var help bool
+	fs.StringVar(&id, "id", "", "Project ID or name")
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
+		printProjectHelp(ctx.Stdout)
+		return nil
+	}
+	if id == "" && len(fs.Args()) > 0 {
+		id = fs.Arg(0)
+	}
+	if id == "" {
+		return &CodeError{Code: exitUsage, Err: errors.New("project browse requires --id or a project reference")}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
+	}
+	resolvedID, err := resolveProjectID(ctx, id)
+	if err != nil {
+		return err
+	}
+	project, err := fetchProjectByID(ctx, resolvedID)
+	if err != nil {
+		return err
+	}
+	browseURL, err := appprojects.BuildBrowseURL(appprojects.BrowseURLInput{ID: project.ID, Name: project.Name})
+	if err != nil {
+		return err
+	}
+	if ctx.Global.DryRun {
+		return writeDryRun(ctx, "project browse", map[string]any{"id": project.ID, "url": browseURL})
+	}
+	if err := openProjectBrowserFn(browseURL); err != nil {
+		return fmt.Errorf("open browser: %w", err)
+	}
+	if ctx.Mode == output.ModeJSON {
+		return output.WriteJSON(ctx.Stdout, map[string]any{
+			"id":     project.ID,
+			"name":   project.Name,
+			"url":    browseURL,
+			"opened": true,
+		}, output.Meta{RequestID: ctx.RequestID})
+	}
+	if ctx.Mode == output.ModePlain {
+		return output.WritePlain(ctx.Stdout, [][]string{{project.ID, project.Name, browseURL}})
+	}
+	fmt.Fprintf(ctx.Stdout, "opened %s\n", browseURL)
+	return nil
+}
+
+func fetchProjectByID(ctx *Context, id string) (api.Project, error) {
+	var project api.Project
+	reqCtx, cancel := requestContext(ctx)
+	reqID, err := ctx.Client.Get(reqCtx, "/projects/"+id, nil, &project)
+	cancel()
+	if err != nil {
+		return api.Project{}, err
+	}
+	setRequestID(ctx, reqID)
+	return project, nil
 }
 
 func writeProjectList(ctx *Context, projects []api.Project, cursor string) error {

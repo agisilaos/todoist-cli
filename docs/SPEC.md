@@ -54,6 +54,7 @@ todoist filter delete <id|name> --yes
 ```
 todoist project list [--archived]
 todoist project view <id|name>
+todoist project browse <id|name>
 todoist project collaborators <id|name>
 todoist project add --name <name> [flags]
 todoist project update --id <id> [flags]

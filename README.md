@@ -311,6 +311,7 @@ Create and manage projects.
 ```
 todoist project list [--archived]
 todoist project view <id|name>
+todoist project browse <id|name>
 todoist project add --name <name> [--description <text>] [--parent <id|name>]
 todoist project update --id <project_id> [flags]
 todoist project archive --id <project_id>
@@ -322,6 +323,7 @@ Examples:
 
 - `todoist project list --archived --json`
 - `todoist project view "Home"`
+- `todoist project browse "Home"`
 - `todoist project add --name "Side Projects" --description "Weekend hacks"`
 - `todoist project update --id 234 --name "Side Projects (2024)"`
 
