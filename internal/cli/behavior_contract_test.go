@@ -204,6 +204,9 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 	if !strings.Contains(got, "--fuzzy") || !strings.Contains(got, "--no-fuzzy") || !strings.Contains(got, "--accessible") {
 		t.Fatalf("expected global accessibility/fuzzy flags in help, got %q", got)
 	}
+	if !strings.Contains(got, "Note for AI/LLM agents:") || !strings.Contains(got, "--quiet-json") {
+		t.Fatalf("expected agent guidance note in root help, got %q", got)
+	}
 }
 
 func TestContractNestedHelpAuthLogin(t *testing.T) {

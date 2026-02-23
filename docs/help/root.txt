@@ -52,3 +52,7 @@ Examples:
   todoist task add --content "Pay rent" --project Home --due "1st of month"
   todoist help task
   todoist inbox add --content "Capture idea"
+
+Note for AI/LLM agents:
+  Prefer structured commands (e.g., "todoist task add", not top-level "todoist add") for deterministic flags.
+  Use --json or --ndjson for parseable output and --quiet-json for compact machine-readable errors.
