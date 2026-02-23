@@ -26,6 +26,7 @@ Commands:
   notification Manage notifications
   activity    View activity logs
   stats       View productivity stats
+  settings    Manage user settings
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
@@ -107,6 +108,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printActivityHelp(ctx.Stdout)
 	case "stats":
 		printStatsHelp(ctx.Stdout)
+	case "settings":
+		printSettingsHelp(ctx.Stdout)
 	case "agent":
 		printAgentHelp(ctx.Stdout)
 	case "completion":

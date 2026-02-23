@@ -79,6 +79,15 @@ todoist stats goals [--daily <n>] [--weekly <n>]
 todoist stats vacation (--on | --off)
 ```
 
+### Settings command
+
+```
+todoist settings
+todoist settings view
+todoist settings update [--timezone <tz>] [--time-format <12|24>] [--date-format <us|intl>] [--start-day <day>] [--theme <name>] [--auto-reminder <minutes>] [--next-week <day>] [--start-page <page>] [--reminder-push <on|off>] [--reminder-desktop <on|off>] [--reminder-email <on|off>] [--completed-sound-desktop <on|off>] [--completed-sound-mobile <on|off>]
+todoist settings themes
+```
+
 ### Agent commands
 
 ```

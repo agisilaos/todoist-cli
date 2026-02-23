@@ -11,7 +11,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats agent completion doctor schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings agent completion doctor schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -161,6 +161,19 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
       return 0
       ;;
+    settings)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "view update themes" -- "$cur") )
+        return 0
+      fi
+      if [[ ${COMP_WORDS[2]} == "update" ]]; then
+        local settings_flags="--timezone --time-format --date-format --start-day --theme --auto-reminder --next-week --start-page --reminder-push --reminder-desktop --reminder-email --completed-sound-desktop --completed-sound-mobile"
+        COMPREPLY=( $(compgen -W "${settings_flags} ${global_flags}" -- "$cur") )
+        return 0
+      fi
+      COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
+      return 0
+      ;;
     agent)
       local subs="plan apply run schedule examples planner status"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
@@ -192,7 +205,7 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
-  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats agent completion doctor schema planner help)' \
+  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings agent completion doctor schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
@@ -247,6 +260,9 @@ case $words[1] in
   stats)
     _arguments '2:subcommand:(goals vacation)' '*:flags:(--daily --weekly --on --off)'
     ;;
+  settings)
+    _arguments '2:subcommand:(view update themes)' '*:flags:(--timezone --time-format --date-format --start-day --theme --auto-reminder --next-week --start-page --reminder-push --reminder-desktop --reminder-email --completed-sound-desktop --completed-sound-mobile)'
+    ;;
   agent)
     _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
     ;;
@@ -263,13 +279,13 @@ case $words[1] in
     _arguments '2:shell:(bash zsh fish)'
     ;;
   help)
-    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment reminder notification activity stats agent completion doctor schema planner help)'
+    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment reminder notification activity stats settings agent completion doctor schema planner help)'
     ;;
 esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats agent completion doctor schema planner help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings agent completion doctor schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -350,6 +366,10 @@ complete -c todoist -n '__fish_seen_subcommand_from stats'
 complete -c todoist -n '__fish_seen_subcommand_from stats; and __fish_use_subcommand' -a 'goals vacation'
 complete -c todoist -n '__fish_seen_subcommand_from stats; and contains goals (commandline -opc)' -l daily -l weekly
 complete -c todoist -n '__fish_seen_subcommand_from stats; and contains vacation (commandline -opc)' -l on -l off
+
+# settings
+complete -c todoist -n '__fish_seen_subcommand_from settings; and __fish_use_subcommand' -a 'view update themes'
+complete -c todoist -n '__fish_seen_subcommand_from settings; and contains update (commandline -opc)' -l timezone -l time-format -l date-format -l start-day -l theme -l auto-reminder -l next-week -l start-page -l reminder-push -l reminder-desktop -l reminder-email -l completed-sound-desktop -l completed-sound-mobile
 
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'

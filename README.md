@@ -404,6 +404,17 @@ todoist stats goals [--daily <n>] [--weekly <n>]
 todoist stats vacation (--on | --off)
 ```
 
+### Settings
+
+Manage account settings and notification preferences.
+
+```
+todoist settings
+todoist settings view
+todoist settings update [flags]
+todoist settings themes
+```
+
 ### Agent
 
 Integrate with an external planner to generate and apply bulk plans.
@@ -641,7 +652,7 @@ Release scripts:
 
 - This CLI uses Todoist REST API v1 endpoints under `https://api.todoist.com/api/v1`.
 - Keychain integration is not implemented; tokens are stored in a local credentials file.
-- Some Todoist surfaces (for example settings/skill/view/update) are not implemented yet.
+- Some Todoist surfaces (for example skill/view/update) are not implemented yet.
 - Todoist is a trademark of Doist; this project is an independent, unofficial CLI.
 - Shell completions are bundled via `todoist completion`.
 
