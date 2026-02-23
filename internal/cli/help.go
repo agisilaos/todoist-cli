@@ -23,7 +23,7 @@ Commands:
   label       Manage labels
   comment     Manage comments
   reminder    Manage task reminders
-  notification  Manage notifications
+  notification Manage notifications
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
@@ -293,6 +293,12 @@ Notes:
   - Task refs support id:<id>, text references, and Todoist task URLs.
   - --before accepts values like 30m, 1h, 2h15m.
   - --at accepts RFC3339, YYYY-MM-DD HH:MM, or YYYY-MM-DD.
+
+Examples:
+  todoist reminder list "Call mom"
+  todoist reminder add "Call mom" --before 30m
+  todoist reminder update id:r1 --at "2026-02-24 10:00"
+  todoist reminder delete id:r1 --yes
 `)
 }
 
@@ -305,6 +311,13 @@ func printNotificationHelp(out interface{ Write([]byte) (int, error) }) {
 Notes:
   - --type accepts a comma-separated list (for example: item_assigned,note_added).
   - "read --all" requires --yes unless --force is set.
+
+Examples:
+  todoist notification list --unread
+  todoist notification list --type item_assigned,note_added --limit 20
+  todoist notification read id:n1
+  todoist notification read --all --yes
+  todoist notification unread id:n1
 `)
 }
 

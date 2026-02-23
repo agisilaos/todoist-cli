@@ -55,3 +55,33 @@ func TestReminderUpdateDryRun(t *testing.T) {
 		t.Fatalf("unexpected dry-run output: %q", stdout.String())
 	}
 }
+
+func TestReminderListHumanEmptyState(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/tasks/t1":
+			_, _ = w.Write([]byte(`{"id":"t1","content":"Call mom"}`))
+		case "/sync":
+			_, _ = w.Write([]byte(`{"reminders":[]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeHuman,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if err := reminderList(ctx, []string{"id:t1"}); err != nil {
+		t.Fatalf("reminderList: %v", err)
+	}
+	if !strings.Contains(out.String(), "No reminders.") {
+		t.Fatalf("expected empty state, got %q", out.String())
+	}
+}

@@ -178,6 +178,12 @@ func writeNotificationList(ctx *Context, out appnotifications.ListResult) error 
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSONSlice(ctx.Stdout, items)
 	}
+	if len(items) == 0 {
+		if ctx.Mode == output.ModeHuman {
+			fmt.Fprintln(ctx.Stdout, "No notifications.")
+		}
+		return nil
+	}
 	rows := make([][]string, 0, len(items))
 	for _, item := range items {
 		status := "read"

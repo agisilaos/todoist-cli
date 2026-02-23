@@ -68,3 +68,30 @@ func TestNotificationUnreadDryRun(t *testing.T) {
 		t.Fatalf("unexpected dry-run output: %q", stdout.String())
 	}
 }
+
+func TestNotificationListHumanEmptyState(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sync" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"live_notifications":[]}`))
+	}))
+	defer ts.Close()
+
+	var out bytes.Buffer
+	ctx := &Context{
+		Stdout: &out,
+		Stderr: &bytes.Buffer{},
+		Mode:   output.ModeHuman,
+		Token:  "token",
+		Client: api.NewClient(ts.URL, "token", time.Second),
+		Config: config.Config{TimeoutSeconds: 2},
+	}
+	if err := notificationList(ctx, nil); err != nil {
+		t.Fatalf("notificationList: %v", err)
+	}
+	if !strings.Contains(out.String(), "No notifications.") {
+		t.Fatalf("expected empty state, got %q", out.String())
+	}
+}

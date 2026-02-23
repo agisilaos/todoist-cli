@@ -246,6 +246,12 @@ func writeReminderList(ctx *Context, reminders []api.Reminder) error {
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSONSlice(ctx.Stdout, reminders)
 	}
+	if len(reminders) == 0 {
+		if ctx.Mode == output.ModeHuman {
+			fmt.Fprintln(ctx.Stdout, "No reminders.")
+		}
+		return nil
+	}
 	rows := make([][]string, 0, len(reminders))
 	for _, reminder := range reminders {
 		when := ""

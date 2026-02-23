@@ -115,5 +115,5 @@ func filterUpcomingTasks(tasks []api.Task, now time.Time, days int) []api.Task {
 }
 
 func printUpcomingHelp(out interface{ Write([]byte) (int, error) }) {
-	fmt.Fprint(out, "Usage:\n  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]\n\nNotes:\n  - Shows tasks due from today through the next N days (default 7).\n  - Includes tasks with due dates/datetimes only (tasks without due are excluded).\n")
+	fmt.Fprint(out, "Usage:\n  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]\n\nNotes:\n  - Shows tasks due from today through the next N days (default 7).\n  - Includes tasks with due dates/datetimes only (tasks without due are excluded).\n\nExamples:\n  todoist upcoming\n  todoist upcoming 14 --project Learning\n  todoist upcoming --label reading --sort priority\n")
 }
