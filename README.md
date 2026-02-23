@@ -481,6 +481,8 @@ todoist agent status
 - Planner context now includes active tasks (capped) in addition to projects/sections/labels/completed tasks.
 - `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).
 - `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default).
+  Key lifecycle events include `agent_plan_loaded`, `agent_action_validated`, `agent_action_dispatched`,
+  `agent_action_succeeded`/`agent_action_failed`, and `agent_apply_summary`.
 - Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token.
 
 Planner contract checklist:

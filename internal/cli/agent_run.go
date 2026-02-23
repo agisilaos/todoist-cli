@@ -96,12 +96,18 @@ func agentRun(ctx *Context, args []string) error {
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}
+	source := "planner"
+	if strings.TrimSpace(opts.PlanPath) != "" {
+		source = "plan_file"
+	}
+	emitAgentPlanLoaded(ctx, "agent run", len(plan.Actions), source)
 	if opts.OutPath != "" && opts.OutPath != "-" {
 		if err := writePlanFile(opts.OutPath, plan); err != nil {
 			return err
 		}
 	}
 	if opts.DryRun {
+		emitAgentApplySummary(ctx, "agent run", nil, true, nil)
 		emitProgress(ctx, "agent_run_complete", map[string]any{"dry_run": true, "action_count": len(plan.Actions)})
 		return writePlanPreview(ctx, plan, true)
 	}
@@ -111,14 +117,17 @@ func agentRun(ctx *Context, args []string) error {
 	}
 	results, applyErr := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, opts.OnError)
 	if applyErr != nil && opts.OnError == "fail" {
+		emitAgentApplySummary(ctx, "agent run", results, false, applyErr)
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": applyErr.Error()})
 		return applyErr
 	}
 	plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
 	if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
+		emitAgentApplySummary(ctx, "agent run", results, false, err)
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
 	}
+	emitAgentApplySummary(ctx, "agent run", results, false, applyErr)
 	emitProgress(ctx, "agent_run_complete", map[string]any{"action_count": len(plan.Actions)})
 	return writePlanApplyResult(ctx, plan, results, applyErr)
 }

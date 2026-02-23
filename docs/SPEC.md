@@ -158,6 +158,9 @@ Planner context notes:
 - `--quiet-json` emits compact single-line JSON errors (useful for agents and log pipelines).
 - `todoist schema` is the output contract source of truth (for example: `task_list` and `task_item_ndjson`).
 - `--progress-jsonl[=path]` emits agent progress events as JSONL (stderr or file).
+  Event stream includes planner/apply lifecycle markers such as `agent_plan_loaded`,
+  `agent_action_validated`, `agent_action_dispatched`, `agent_action_succeeded`,
+  `agent_action_failed`, and `agent_apply_summary`.
 - In human mode, `--accessible` adds explicit `due:` and `p<priority>` task markers.
 
 ## Parsing Rules

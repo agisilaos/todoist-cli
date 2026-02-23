@@ -13,16 +13,19 @@ func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, o
 	results := make([]applyResult, 0, len(actions))
 	for idx, action := range actions {
 		emitProgress(ctx, "agent_action_start", map[string]any{"index": idx, "action_type": action.Type})
+		emitProgress(ctx, "agent_action_validated", map[string]any{"index": idx, "action_type": action.Type})
 		replayKey := makeReplayKey(confirmToken, idx, action)
 		if _, ok := journal.Applied[replayKey]; ok {
 			results = append(results, applyResult{Action: action, SkippedReplay: true})
 			emitProgress(ctx, "agent_action_skipped_replay", map[string]any{"index": idx, "action_type": action.Type})
 			continue
 		}
+		emitProgress(ctx, "agent_action_dispatched", map[string]any{"index": idx, "action_type": action.Type})
 		err := applyAction(ctx, action)
 		results = append(results, applyResult{Action: action, Error: err})
 		if err != nil {
 			emitProgress(ctx, "agent_action_error", map[string]any{"index": idx, "action_type": action.Type, "error": err.Error()})
+			emitProgress(ctx, "agent_action_failed", map[string]any{"index": idx, "action_type": action.Type, "error": err.Error()})
 		} else {
 			nowFn := time.Now
 			if ctx != nil && ctx.Now != nil {
@@ -30,6 +33,7 @@ func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, o
 			}
 			markReplayApplied(&journal, replayKey, nowFn())
 			emitProgress(ctx, "agent_action_complete", map[string]any{"index": idx, "action_type": action.Type})
+			emitProgress(ctx, "agent_action_succeeded", map[string]any{"index": idx, "action_type": action.Type})
 		}
 		if err != nil && onError == "fail" {
 			_ = saveReplayJournal(journalPath, journal)
