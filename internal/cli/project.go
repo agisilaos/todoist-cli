@@ -18,11 +18,11 @@ func projectCommand(ctx *Context, args []string) error {
 		return nil
 	}
 	sub := canonicalSubcommand(args[0], map[string]string{
-		"ls":   "list",
-		"show": "view",
+		"ls":     "list",
+		"show":   "view",
 		"create": "add",
-		"rm":   "delete",
-		"del":  "delete",
+		"rm":     "delete",
+		"del":    "delete",
 	})
 	switch sub {
 	case "list":
@@ -564,7 +564,6 @@ func fetchProjectByID(ctx *Context, id string) (api.Project, error) {
 	setRequestID(ctx, reqID)
 	return project, nil
 }
-
 
 func writeProjectList(ctx *Context, projects []api.Project, cursor string) error {
 	if ctx.Mode == output.ModeJSON {
