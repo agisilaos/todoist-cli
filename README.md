@@ -288,6 +288,14 @@ Quick list of tasks due today and overdue.
 todoist today
 ```
 
+### Completed
+
+Shortcut for listing completed tasks.
+
+```
+todoist completed [--completed-by completion|due] [--since <date>] [--until <date>] [--project <id|name>] [--section <id|name>] [--filter <query>]
+```
+
 ### Upcoming
 
 List tasks due in the next N days (default 7).

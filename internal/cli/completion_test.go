@@ -184,3 +184,15 @@ func TestCompletionScriptsIncludeUpcomingCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestCompletionScriptsIncludeCompletedCommand(t *testing.T) {
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		script, err := completionScript(shell)
+		if err != nil {
+			t.Fatalf("completionScript(%s): %v", shell, err)
+		}
+		if !strings.Contains(script, "completed") {
+			t.Fatalf("%s completion missing completed command", shell)
+		}
+	}
+}

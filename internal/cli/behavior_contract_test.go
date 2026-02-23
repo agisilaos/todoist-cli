@@ -201,6 +201,9 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 	if !strings.Contains(got, "Agentic Todoist CLI") {
 		t.Fatalf("expected root help output, got %q", got)
 	}
+	if !strings.Contains(got, "completed") {
+		t.Fatalf("expected completed command in root help, got %q", got)
+	}
 	if !strings.Contains(got, "--fuzzy") || !strings.Contains(got, "--no-fuzzy") || !strings.Contains(got, "--accessible") {
 		t.Fatalf("expected global accessibility/fuzzy flags in help, got %q", got)
 	}

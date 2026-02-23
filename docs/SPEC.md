@@ -22,6 +22,7 @@ Pattern: `todoist <resource> <action> [args]`
 - `todoist add "text"` — Todoist quick add endpoint (full natural language; use `--strict` for REST add semantics)
 - `todoist inbox` — list Inbox tasks
 - `todoist today` — list tasks due today + overdue
+- `todoist completed` — shortcut for completed task history (`task list --completed`)
 - `todoist upcoming [days]` — list tasks due from today through the next N days
 - `todoist planner` — show/set planner command alias (same behavior as `todoist agent planner`)
 - `todoist doctor` — run local environment/auth/API health checks
