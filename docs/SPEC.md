@@ -161,6 +161,8 @@ Planner context notes:
   Event stream includes planner/apply lifecycle markers such as `agent_plan_loaded`,
   `agent_action_validated`, `agent_action_dispatched`, `agent_action_succeeded`,
   `agent_action_failed`, and `agent_apply_summary`.
+- Human agent apply/run output includes a compact summary block with success/failure/replay counts,
+  destructive-action count, per-action-type totals, and final outcome.
 - In human mode, `--accessible` adds explicit `due:` and `p<priority>` task markers.
 
 ## Parsing Rules

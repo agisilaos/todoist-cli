@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -166,6 +167,29 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 		return output.WriteJSON(ctx.Stdout, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
 	}
 	fmt.Fprintf(ctx.Stdout, "Applied plan: %s\n", plan.Instruction)
+	okCount, failedCount, skippedReplay := summarizeApplyResults(results)
+	destructive := 0
+	byType := map[string]int{}
+	for _, result := range results {
+		byType[result.Action.Type]++
+		if isDestructiveActionType(result.Action.Type) {
+			destructive++
+		}
+	}
+	fmt.Fprintf(ctx.Stdout, "Summary: actions=%d ok=%d failed=%d skipped_replay=%d\n", len(results), okCount, failedCount, skippedReplay)
+	fmt.Fprintf(ctx.Stdout, "Risk: destructive_actions=%d\n", destructive)
+	if len(byType) > 0 {
+		keys := make([]string, 0, len(byType))
+		for key := range byType {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		fmt.Fprintln(ctx.Stdout, "By action type:")
+		for _, key := range keys {
+			fmt.Fprintf(ctx.Stdout, "  - %s: %d\n", key, byType[key])
+		}
+	}
+	fmt.Fprintln(ctx.Stdout, "Results:")
 	for i, r := range results {
 		status := "ok"
 		if r.SkippedReplay {
@@ -175,6 +199,11 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 			status = "error: " + r.Error.Error()
 		}
 		fmt.Fprintf(ctx.Stdout, "%d. %s [%s]\n", i+1, r.Action.Type, status)
+	}
+	if applyErr != nil {
+		fmt.Fprintf(ctx.Stdout, "Outcome: completed with error: %v\n", applyErr)
+	} else {
+		fmt.Fprintln(ctx.Stdout, "Outcome: success")
 	}
 	return applyErr
 }
