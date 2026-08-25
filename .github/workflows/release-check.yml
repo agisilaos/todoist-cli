@@ -16,7 +16,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          # Go 1.22 binaries lack LC_UUID and abort on macOS 26 runners.
+          # The Linux CI job retains Go 1.22 compatibility coverage.
+          go-version: "1.26.x"
 
       # Intentionally no extra dependency install step (brew/apt).
       # release-check scripts must rely on stock runner tooling.
