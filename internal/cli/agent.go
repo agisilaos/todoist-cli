@@ -172,8 +172,9 @@ func agentApply(ctx *Context, args []string) error {
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
-	results, err := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, onError)
-	if err != nil && onError == "fail" {
+	applyMode := applyErrorMode(onError)
+	results, err := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, applyMode)
+	if shouldAbortApply(applyMode, err) {
 		emitAgentApplySummary(ctx, "agent apply", results, false, err)
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err

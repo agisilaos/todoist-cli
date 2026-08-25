@@ -4,52 +4,132 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"time"
 )
 
+var errReplayPathUnavailable = errors.New("replay journal path unavailable")
+
+type replayStore interface {
+	Contains(key string) bool
+	RecordApplied(key string, at time.Time) error
+}
+
 type replayJournal struct {
 	Applied map[string]string `json:"applied"`
 }
 
-func loadReplayJournal(ctx *Context) (replayJournal, string, error) {
+type fileReplayStore struct {
+	path    string
+	journal replayJournal
+	persist func(string, replayJournal) error
+}
+
+func replayJournalPath(ctx *Context) string {
 	if ctx == nil || ctx.ConfigPath == "" {
-		return replayJournal{Applied: map[string]string{}}, "", nil
+		return ""
 	}
-	path := filepath.Join(filepath.Dir(ctx.ConfigPath), "agent_replay.json")
+	return filepath.Join(filepath.Dir(ctx.ConfigPath), "agent_replay.json")
+}
+
+func loadReplayStore(ctx *Context) (*fileReplayStore, error) {
+	path := replayJournalPath(ctx)
+	if path == "" {
+		return nil, errReplayPathUnavailable
+	}
+	journal, err := readReplayJournal(path)
+	if err != nil {
+		return nil, err
+	}
+	return &fileReplayStore{
+		path:    path,
+		journal: journal,
+		persist: persistReplayJournal,
+	}, nil
+}
+
+func readReplayJournal(path string) (replayJournal, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return replayJournal{Applied: map[string]string{}}, path, nil
+			return emptyReplayJournal(), nil
 		}
-		return replayJournal{}, path, err
+		return replayJournal{}, err
 	}
-	var j replayJournal
-	if err := json.Unmarshal(data, &j); err != nil {
-		return replayJournal{}, path, err
+	var journal replayJournal
+	if err := json.Unmarshal(data, &journal); err != nil {
+		return replayJournal{}, err
 	}
-	if j.Applied == nil {
-		j.Applied = map[string]string{}
+	if journal.Applied == nil {
+		journal.Applied = map[string]string{}
 	}
-	return j, path, nil
+	return journal, nil
 }
 
-func saveReplayJournal(path string, j replayJournal) error {
-	if path == "" {
+func emptyReplayJournal() replayJournal {
+	return replayJournal{Applied: map[string]string{}}
+}
+
+func (s *fileReplayStore) Contains(key string) bool {
+	_, ok := s.journal.Applied[key]
+	return ok
+}
+
+func (s *fileReplayStore) RecordApplied(key string, at time.Time) error {
+	if s.Contains(key) {
 		return nil
 	}
-	if j.Applied == nil {
-		j.Applied = map[string]string{}
+	candidate := replayJournal{Applied: make(map[string]string, len(s.journal.Applied)+1)}
+	for existingKey, appliedAt := range s.journal.Applied {
+		candidate.Applied[existingKey] = appliedAt
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	candidate.Applied[key] = at.UTC().Format(time.RFC3339)
+	if err := s.persist(s.path, candidate); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(j, "", "  ")
+	s.journal = candidate
+	return nil
+}
+
+func (s *fileReplayStore) Len() int {
+	return len(s.journal.Applied)
+}
+
+func persistReplayJournal(path string, journal replayJournal) error {
+	if path == "" {
+		return errReplayPathUnavailable
+	}
+	if journal.Applied == nil {
+		journal.Applied = map[string]string{}
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(journal, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o600)
+	tmp, err := os.CreateTemp(dir, ".agent_replay-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }
 
 func makeReplayKey(confirmToken string, actionIndex int, action Action) string {
@@ -65,14 +145,4 @@ func makeReplayKey(confirmToken string, actionIndex int, action Action) string {
 	data, _ := json.Marshal(payload)
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
-}
-
-func markReplayApplied(j *replayJournal, key string, at time.Time) {
-	if j == nil {
-		return
-	}
-	if j.Applied == nil {
-		j.Applied = map[string]string{}
-	}
-	j.Applied[key] = at.UTC().Format(time.RFC3339)
 }
