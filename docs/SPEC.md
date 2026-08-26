@@ -161,6 +161,9 @@ Planner context notes:
   Event stream includes planner/apply lifecycle markers such as `agent_plan_loaded`,
   `agent_action_validated`, `agent_action_dispatched`, `agent_action_succeeded`,
   `agent_action_failed`, and `agent_apply_summary`.
+- An agent action succeeds only after the Todoist mutation and its replay record both succeed. `agent_action_complete` and `agent_action_succeeded` are emitted only after durable recording.
+- A replay-record failure emits `agent_action_error` and `agent_action_failed` with `stage: "replay_record"` and `remote_succeeded: true`, then terminates application even under `--on-error=continue`.
+- Successful Todoist mutations are recorded immediately by replacing `agent_replay.json`; replay skips, action failures, and duplicate records do not write the file. Interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded and make a rerun duplicate it. The journal is unbounded, assumes a single applying process, and delegates replacement visibility to the underlying OS and filesystem; it does not promise OS- or storage-power-loss durability.
 - Human agent apply/run output includes a compact summary block with success/failure/replay counts,
   destructive-action count, per-action-type totals, and final outcome.
 - In human mode, `--accessible` adds explicit `due:` and `p<priority>` task markers.

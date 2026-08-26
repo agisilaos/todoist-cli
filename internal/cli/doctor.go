@@ -210,19 +210,21 @@ func checkPolicyFile(ctx *Context) doctorCheck {
 
 func checkReplayJournal(ctx *Context) doctorCheck {
 	check := doctorCheck{Name: "replay", Status: "ok", Message: "replay journal readable", Details: map[string]any{}}
-	journal, path, err := loadReplayJournal(ctx)
+	path := replayJournalPath(ctx)
 	check.Details["path"] = path
+	if path == "" {
+		check.Status = "warn"
+		check.Message = "replay path unavailable"
+		return check
+	}
+	store, err := loadReplayStore(ctx)
 	if err != nil {
 		check.Status = "fail"
 		check.Message = "replay journal parse failed"
 		check.Details["error"] = err.Error()
 		return check
 	}
-	check.Details["entries"] = len(journal.Applied)
-	if path == "" {
-		check.Status = "warn"
-		check.Message = "replay path unavailable"
-	}
+	check.Details["entries"] = store.Len()
 	return check
 }
 

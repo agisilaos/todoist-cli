@@ -153,3 +153,18 @@ func TestCheckPolicyFileParseFailure(t *testing.T) {
 		t.Fatalf("expected parse failed message, got %#v", check)
 	}
 }
+
+func TestCheckReplayJournalParseFailure(t *testing.T) {
+	dir := t.TempDir()
+	ctx := &Context{ConfigPath: filepath.Join(dir, "config.json")}
+	if err := os.WriteFile(replayJournalPath(ctx), []byte("{bad json"), 0o600); err != nil {
+		t.Fatalf("write replay journal: %v", err)
+	}
+	check := checkReplayJournal(ctx)
+	if check.Status != "fail" {
+		t.Fatalf("expected fail status, got %#v", check)
+	}
+	if !strings.Contains(check.Message, "parse failed") {
+		t.Fatalf("expected parse failure message, got %#v", check)
+	}
+}

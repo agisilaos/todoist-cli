@@ -472,7 +472,7 @@ todoist agent status
 - `agent status` is safe on first run; it reports planner configuration and whether a last plan exists.
 - `--dry-run` with `agent apply` prints the plan without applying actions.
 - In `--dry-run`, no-action plans are allowed (useful for CI/pipeline contract checks).
-- `--on-error=continue` keeps applying actions after a failure and reports statuses.
+- `--on-error=continue` keeps applying after an individual action failure and reports statuses. A replay-store load or record failure always stops application because continuing would make later reruns unsafe.
 - Human apply/run output includes a summary block (ok/failed/skipped replay), destructive-action count, per-action-type counts, and final outcome.
 - `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
 - `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).
@@ -484,7 +484,10 @@ todoist agent status
 - `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default).
   Key lifecycle events include `agent_plan_loaded`, `agent_action_validated`, `agent_action_dispatched`,
   `agent_action_succeeded`/`agent_action_failed`, and `agent_apply_summary`.
-- Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token.
+- Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token. An action is reported as successful only after its Todoist mutation and replay record both succeed.
+- Each successful Todoist mutation replaces the replay journal before success is emitted. Skipped and failed actions do not write it; recording cost therefore grows with the journal, which is intentionally not pruned because replay keys have no safe expiry policy.
+- Interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded, so rerunning may duplicate it.
+- Replay recording assumes one applying CLI process at a time. Same-directory replacement avoids writing partially encoded JSON into the journal, but replacement visibility follows the underlying OS and filesystem; it does not coordinate concurrent writers or promise survival from an OS or storage power loss.
 
 Planner contract checklist:
 - Emit valid JSON to stdout matching `todoist schema --name plan`.
