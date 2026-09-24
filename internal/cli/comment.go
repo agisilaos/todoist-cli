@@ -56,7 +56,9 @@ func commentList(ctx *Context, args []string) error {
 		return nil
 	}
 	if err := appcomments.ValidateList(appcomments.ListInput{TaskID: task, ProjectID: project}); err != nil {
-		printCommentHelp(ctx.Stderr)
+		if ctx.Mode != output.ModeIDsOnly {
+			printCommentHelp(ctx.Stderr)
+		}
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if err := ensureClient(ctx); err != nil {
@@ -207,6 +209,9 @@ func commentDelete(ctx *Context, args []string) error {
 }
 
 func writeCommentList(ctx *Context, comments []api.Comment, cursor string) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		return writeIDs(ctx, comments, func(item api.Comment) string { return item.ID }, cursor)
+	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, comments, output.Meta{RequestID: ctx.RequestID, Count: len(comments), Cursor: cursor})
 	}

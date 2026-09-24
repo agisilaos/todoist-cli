@@ -321,6 +321,16 @@ func notificationUnread(ctx *Context, args []string) error {
 }
 
 func writeNotificationList(ctx *Context, out appnotifications.ListResult) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		if err := writeIDs(ctx, out.Items, func(item api.Notification) string { return item.ID }, ""); err != nil {
+			return err
+		}
+		if out.HasMore {
+			_, err := fmt.Fprintf(ctx.Stderr, "More available. Use --offset %d\n", out.Offset+out.Limit)
+			return err
+		}
+		return nil
+	}
 	items := out.Items
 	if items == nil {
 		items = []api.Notification{}

@@ -49,6 +49,9 @@ func workspaceList(ctx *Context, args []string) error {
 }
 
 func writeWorkspaceList(ctx *Context, workspaces []api.Workspace) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		return writeIDs(ctx, workspaces, func(item api.Workspace) string { return item.ID }, "")
+	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, workspaces, output.Meta{RequestID: ctx.RequestID, Count: len(workspaces)})
 	}

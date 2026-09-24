@@ -32,7 +32,7 @@ func TestDetectMode(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			mode, err := DetectMode(tc.jsonFlag, tc.plainFlag, tc.ndjsonFlag, tc.stdoutTTY)
+			mode, err := DetectMode(tc.jsonFlag, tc.plainFlag, tc.ndjsonFlag, false, tc.stdoutTTY)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -82,7 +82,7 @@ func TestWriteNDJSONSlice(t *testing.T) {
 }
 
 func TestDetectModePlainAndNDJSONConflict(t *testing.T) {
-	if _, err := DetectMode(false, true, true, true); err == nil {
+	if _, err := DetectMode(false, true, true, false, true); err == nil {
 		t.Fatalf("expected conflict error")
 	}
 }

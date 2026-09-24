@@ -63,7 +63,7 @@ func dispatch(ctx *Context, args []string) int {
 		err = helpCommand(ctx, rest)
 	default:
 		err = &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown command: %s", cmd)}
-		if ctx.Mode == output.ModeJSON {
+		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeIDsOnly {
 			writeError(ctx, err)
 			return exitUsage
 		}

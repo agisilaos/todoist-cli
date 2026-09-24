@@ -12,10 +12,11 @@ import (
 type Mode string
 
 const (
-	ModeHuman  Mode = "human"
-	ModePlain  Mode = "plain"
-	ModeJSON   Mode = "json"
-	ModeNDJSON Mode = "ndjson"
+	ModeHuman   Mode = "human"
+	ModePlain   Mode = "plain"
+	ModeJSON    Mode = "json"
+	ModeNDJSON  Mode = "ndjson"
+	ModeIDsOnly Mode = "ids-only"
 )
 
 type Meta struct {
@@ -29,7 +30,13 @@ type Envelope struct {
 	Meta Meta `json:"meta"`
 }
 
-func DetectMode(jsonFlag, plainFlag, ndjsonFlag bool, stdoutIsTTY bool) (Mode, error) {
+func DetectMode(jsonFlag, plainFlag, ndjsonFlag, idsOnlyFlag bool, stdoutIsTTY bool) (Mode, error) {
+	if idsOnlyFlag {
+		if jsonFlag || plainFlag || ndjsonFlag {
+			return "", fmt.Errorf("--ids-only, --json, --plain, and --ndjson are mutually exclusive")
+		}
+		return ModeIDsOnly, nil
+	}
 	if (jsonFlag && plainFlag) || (jsonFlag && ndjsonFlag) || (plainFlag && ndjsonFlag) {
 		return "", fmt.Errorf("--json, --plain, and --ndjson are mutually exclusive")
 	}

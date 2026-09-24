@@ -291,6 +291,9 @@ func listAllFilters(ctx *Context) ([]api.Filter, string, error) {
 }
 
 func writeFilterList(ctx *Context, filters []api.Filter) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		return writeIDs(ctx, filters, func(item api.Filter) string { return item.ID }, "")
+	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, filters, output.Meta{RequestID: ctx.RequestID, Count: len(filters)})
 	}

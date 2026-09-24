@@ -83,6 +83,9 @@ func activityCommand(ctx *Context, args []string) error {
 }
 
 func writeActivityList(ctx *Context, events []api.ActivityEvent, cursor string) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		return writeIDs(ctx, events, func(item api.ActivityEvent) string { return item.ID }, cursor)
+	}
 	if events == nil {
 		events = []api.ActivityEvent{}
 	}
@@ -150,7 +153,7 @@ func activityContent(event api.ActivityEvent) string {
 
 func printActivityHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist activity [--since <date>] [--until <date>] [--type task|comment|project] [--event <type>] [--project <id|name>] [--by <id|me>] [--limit <n>] [--cursor <cursor>] [--all]
+  todoist activity [--since <date>] [--until <date>] [--type task|comment|project] [--event <type>] [--project <id|name>] [--by <id|me>] [--limit <n>] [--cursor <cursor>] [--all] [--ids-only]
 
 Notes:
   - Queries Todoist activity logs endpoint with cursor pagination.
