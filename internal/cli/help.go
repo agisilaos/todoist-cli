@@ -1,6 +1,10 @@
 package cli
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/agisilaos/todoist-cli/internal/output"
+)
 
 func printRootHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `todoist - Agentic Todoist CLI
@@ -31,7 +35,7 @@ Commands:
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
-  schema      Show JSON schemas for outputs
+  schema      Show output schemas and wire-format contracts
   planner     Show or set planner command
   help        Show help for a command
 
@@ -45,6 +49,7 @@ Global flags:
   --json                JSON output
   --plain               Plain text output (tab-separated)
   --ndjson              NDJSON output
+  --ids-only            One raw ID per line (supported lists only)
   --no-color            Disable color
   --no-input            Disable prompts
   --timeout <seconds>   Request timeout (default 10)
@@ -68,6 +73,12 @@ Examples:
 Note for AI/LLM agents:
   Prefer structured commands (e.g., "todoist task add", not top-level "todoist add") for deterministic flags.
   Use --json or --ndjson for parseable output and --quiet-json for compact machine-readable errors.
+  --ids-only emits no stdout for empty results; pagination notices go to stderr.
+  It conflicts with --json, --plain, and --ndjson (exit 2, JSON error on stderr).
+  Supported: task/project/section/label/comment/filter/workspace/reminder/notification list,
+  project collaborators, activity, completed, today, upcoming, bare inbox, and filter show.
+  Existing ls aliases work. Other commands reject --ids-only; help/version remain available.
+  See: todoist schema --name ids_only
 `)
 }
 
@@ -126,6 +137,9 @@ func helpCommand(ctx *Context, args []string) error {
 	case "examples":
 		_ = agentExamples(ctx)
 	default:
+		if ctx.Mode == output.ModeIDsOnly && args[0] != "help" {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown command: %s", args[0])}
+		}
 		printRootHelp(ctx.Stdout)
 	}
 	return nil
@@ -221,6 +235,7 @@ Notes:
   If --completed uses --since without --until, --until defaults to today.
   For bulk actions, plain --filter text is treated as search text when not a Todoist query.
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
+  --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
   Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.
   Use --content - to read task content from stdin.
@@ -241,10 +256,10 @@ Examples:
 
 func printProjectHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist project list [--archived]
+  todoist project list [--archived] [--ids-only]
   todoist project view <id|name>
   todoist project browse <id|name>
-  todoist project collaborators <id|name>
+  todoist project collaborators <id|name> [--ids-only]
   todoist project add --name <name> [flags]
   todoist project create --name <name> [flags]
   todoist project update --id <project_id> [flags]
@@ -257,8 +272,8 @@ func printProjectHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printFilterHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist filter list
-  todoist filter show <id|name>
+  todoist filter list [--ids-only]
+  todoist filter show <id|name> [--ids-only]
   todoist filter add --name <name> --query <query> [--color <color>] [--favorite]
   todoist filter update <id|name> [--name <name>] [--query <query>] [--color <color>] [--favorite|--unfavorite]
   todoist filter delete <id|name> --yes
@@ -267,13 +282,13 @@ func printFilterHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printWorkspaceHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist workspace list
+  todoist workspace list [--ids-only]
 `)
 }
 
 func printSectionHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist section list [--project <id|name>]
+  todoist section list [--project <id|name>] [--ids-only]
   todoist section add --name <name> --project <id|name>
   todoist section update --id <section_id> --name <name>
   todoist section delete --id <section_id>
@@ -282,7 +297,7 @@ func printSectionHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printLabelHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist label list
+  todoist label list [--ids-only]
   todoist label add --name <name> [--color <color>] [--favorite]
   todoist label update --id <label_id> [flags]
   todoist label delete --id <label_id>
@@ -291,7 +306,7 @@ func printLabelHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printCommentHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist comment list --task <id> | --project <id>
+  todoist comment list (--task <id> | --project <id>) [--ids-only]
   todoist comment add --content <text> (--task <id> | --project <id>)
   todoist comment update --id <comment_id> --content <text>
   todoist comment delete --id <comment_id>
@@ -300,7 +315,7 @@ func printCommentHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printReminderHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist reminder list [task] [--task <ref>]
+  todoist reminder list [task] [--task <ref>] [--ids-only]
   todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
   todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
   todoist reminder delete [id] [--id <id>] [--yes]
@@ -320,7 +335,7 @@ Examples:
 
 func printNotificationHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>]
+  todoist notification list [--type <types>] [--unread|--read] [--limit <n>] [--offset <n>] [--ids-only]
   todoist notification view [id] [--id <id>]
   todoist notification accept [id] [--id <id>]
   todoist notification reject [id] [--id <id>]
@@ -411,6 +426,7 @@ Notes:
 }
 func printInboxHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
+  todoist inbox [--ids-only]
   todoist inbox add --content <text> [flags]
 
 Flags:

@@ -237,6 +237,9 @@ func reminderDelete(ctx *Context, args []string) error {
 }
 
 func writeReminderList(ctx *Context, reminders []api.Reminder) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		return writeIDs(ctx, reminders, func(item api.Reminder) string { return item.ID }, "")
+	}
 	if reminders == nil {
 		reminders = []api.Reminder{}
 	}

@@ -163,7 +163,7 @@ func writeError(ctx *Context, err error) {
 			meta.RequestID = apiErr.RequestID
 		}
 	}
-	if ctx.Mode == output.ModeJSON {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeIDsOnly {
 		details := map[string]any(nil)
 		var ambiguousErr *AmbiguousMatchError
 		if errors.As(err, &ambiguousErr) {

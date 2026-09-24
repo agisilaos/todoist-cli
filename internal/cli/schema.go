@@ -16,6 +16,25 @@ type schemaDef struct {
 
 var schemas = []schemaDef{
 	{
+		Name:        "ids_only",
+		Description: "Wire-format descriptor for --ids-only (not a JSON Schema)",
+		Schema: map[string]any{
+			"kind":        "wire_format",
+			"encoding":    "raw_id_lines",
+			"stdout":      "One opaque ID followed by LF per result; no quoting, headings, metadata, or empty-state text. Empty results emit zero bytes.",
+			"ordering":    "Preserves the command's result order and duplicates.",
+			"validation":  "All fetched IDs are validated before output; empty IDs or IDs containing whitespace/control characters fail with exit 1.",
+			"commands":    []string{"task list", "project list", "project collaborators", "section list", "label list", "comment list", "filter list", "workspace list", "reminder list", "notification list", "activity", "completed", "today", "upcoming", "inbox", "filter show"},
+			"aliases":     "Existing ls aliases are supported.",
+			"identity":    "Collaborators emit user IDs; activity emits event IDs, not object IDs.",
+			"flags":       "Global placement before or after the command; parsing stops at --. Mutually exclusive with --json, --plain, and --ndjson.",
+			"pagination":  "Existing fetching defaults and --all behavior; continuation notices with the next cursor or notification offset go only to stderr.",
+			"errors":      map[string]any{"schema": "error", "stream": "stderr", "usage_exit": 2, "runtime_exits": []int{1, 3, 4, 5}, "quiet_json": "Compact JSON errors"},
+			"unsupported": "Other commands are rejected before side effects, including mutations, single-object views, and view URL.",
+			"exceptions":  "Version takes precedence over output conflicts; conflicts precede help. Root and command help remain available.",
+		},
+	},
+	{
 		Name:        "task_list",
 		Description: "JSON response shape for `todoist task list --json` (array of tasks)",
 		Schema: map[string]any{

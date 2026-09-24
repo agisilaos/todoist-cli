@@ -145,6 +145,20 @@ func TestCompletionScriptsIncludeFuzzyGlobalFlags(t *testing.T) {
 	}
 }
 
+func TestZshIDsOnlySupportedContexts(t *testing.T) {
+	script, err := completionScript("zsh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{"inbox", "today", "upcoming", "completed", "task", "project", "filter", "workspace", "section", "label", "comment", "reminder", "notification", "activity"} {
+		_, tail, found := strings.Cut(script, "\n  "+command+")\n")
+		block, _, _ := strings.Cut(tail, ";;")
+		if !found || !strings.Contains(block, "--ids-only") {
+			t.Errorf("zsh %s context missing --ids-only", command)
+		}
+	}
+}
+
 func TestCompletionScriptsIncludeAgentPolicyFlag(t *testing.T) {
 	for _, shell := range []string{"bash", "zsh", "fish"} {
 		script, err := completionScript(shell)

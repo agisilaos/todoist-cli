@@ -26,7 +26,7 @@ Commands:
   agent       Plan and apply agentic actions
   completion  Shell completion
   doctor      Run environment and configuration checks
-  schema      Show JSON schemas for outputs
+  schema      Show output schemas and wire-format contracts
   planner     Show or set planner command
   help        Show help for a command
 
@@ -40,6 +40,7 @@ Global flags:
   --json                JSON output
   --plain               Plain text output (tab-separated)
   --ndjson              NDJSON output
+  --ids-only            One raw ID per line (supported lists only)
   --no-color            Disable color
   --no-input            Disable prompts
   --timeout <seconds>   Request timeout (default 10)
@@ -63,3 +64,9 @@ Examples:
 Note for AI/LLM agents:
   Prefer structured commands (e.g., "todoist task add", not top-level "todoist add") for deterministic flags.
   Use --json or --ndjson for parseable output and --quiet-json for compact machine-readable errors.
+  --ids-only emits no stdout for empty results; pagination notices go to stderr.
+  It conflicts with --json, --plain, and --ndjson (exit 2, JSON error on stderr).
+  Supported: task/project/section/label/comment/filter/workspace/reminder/notification list,
+  project collaborators, activity, completed, today, upcoming, bare inbox, and filter show.
+  Existing ls aliases work. Other commands reject --ids-only; help/version remain available.
+  See: todoist schema --name ids_only

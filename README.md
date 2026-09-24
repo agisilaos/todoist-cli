@@ -5,7 +5,7 @@ Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports ta
 ## Why this CLI
 
 - Fast capture and triage without leaving the terminal.
-- Scriptable output (`--json`/`--plain`/`--ndjson`) for automation and integrations.
+- Scriptable output (`--json`/`--plain`/`--ndjson`/`--ids-only`) for automation and integrations.
 - Agent workflows for bulk plans with safe previews and confirmations.
 
 See `docs/SPEC.md` for the CLI contract and `docs/ROADMAP.md` for planned features.
@@ -109,7 +109,7 @@ Environment variables:
 todoist [global flags] <command> [args]
 ```
 
-Global flags apply to every command:
+Global flags can appear before or after commands; `--ids-only` is restricted to supported lists:
 
 ```
 -h, --help           Show help
@@ -121,6 +121,7 @@ Global flags apply to every command:
 --json               JSON output
 --plain              Plain text output
 --ndjson             NDJSON output
+--ids-only           One raw ID per line (supported lists only)
 --no-color           Disable color
 --no-input           Disable prompts
 --timeout <seconds>  Request timeout (default 10)
@@ -527,10 +528,10 @@ todoist doctor --strict
 
 ### Schema
 
-Output JSON schemas (use `--json`):
+Output JSON schemas and wire-format descriptors (always emitted as JSON):
 
 ```
-todoist schema [--name task_list|task_item_ndjson|error|plan|plan_preview|planner_request] [--json]
+todoist schema [--name task_list|task_item_ndjson|ids_only|error|plan|plan_preview|planner_request] [--json]
 ```
 
 ## Shell Completions
@@ -588,6 +589,7 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope).
 - `--ndjson` outputs one JSON object per line (streaming friendly) across task/project/section/label/comment lists.
+- `--ids-only` outputs one raw ID followed by a newline per result. Empty results emit no stdout.
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
 - `--accessible` (or `TODOIST_ACCESSIBLE=1`) adds explicit text markers for task due/priority values in human output.
@@ -602,6 +604,44 @@ Plain output columns:
 - `label list`: `id, name, color, is_favorite`
 - `comment list`: `id, content, posted_at`
 
+### IDs for machine clients
+
+`--ids-only` extends the machine output contract. It supports `task list`, `project list`,
+`project collaborators`, `section list`, `label list`, `comment list`, `filter list`,
+`workspace list`, `reminder list`, `notification list`, and `activity`, plus existing
+`ls` aliases and the task-list shortcuts `completed`, `today`, `upcoming`, bare
+`inbox`, and `filter show`. Collaborators emit user IDs; activity emits event IDs,
+not related-object IDs. Other commands reject the flag before side effects,
+including mutations, single-object views, resources without stable IDs, and `view URL`.
+
+```sh
+todoist --ids-only task list --all-projects
+todoist project list --all --ids-only
+todoist task list --ids-only > task-ids.txt
+```
+
+IDs are opaque and unquoted, without headings or metadata. Result order and duplicates
+are preserved, including the command's existing sorting. Missing IDs or IDs containing
+whitespace/control characters fail with exit `1` before any IDs are emitted.
+
+Fetching defaults and `--all` behavior are unchanged. If another page remains,
+stderr receives `More available. Use --cursor "<cursor>"` (quoted with escapes),
+or `More available. Use --offset N` for notifications. Pagination never enters stdout,
+even for an empty page. Exhausted results emit no continuation notice.
+
+`--ids-only`, `--json`, `--plain`, and `--ndjson` are mutually exclusive.
+Conflicts and unsupported uses of `--ids-only` return usage exit `2`, empty stdout,
+and the existing JSON error envelope on stderr. ID-mode runtime errors also use
+that envelope and retain existing exit codes; `--quiet-json` makes errors compact.
+Existing output modes and their error behavior are unchanged.
+
+The flag follows existing global parsing: it works before or after the command,
+uses the exact `--ids-only` spelling (not `--ids-only=true`), and is not consumed
+after `--`. Version takes precedence over output conflicts; conflicts precede help.
+Explicit help and implicit root/command help may print normal help with this flag.
+`todoist schema --name ids_only` describes the wire format; it is not a JSON payload
+schema, and existing JSON schemas remain unchanged.
+
 ## Exit Codes
 
 - `0` success
@@ -610,7 +650,7 @@ Plain output columns:
 - `3` auth error
 - `4` not found
 - `5` conflict
-- Errors return human-readable messages; `--json` errors include `{"error": "...", "meta": {"request_id": "..."}}`.
+- Errors return human-readable messages; `--json` and `--ids-only` errors include `{"error": "...", "meta": {"request_id": "..."}}`.
 
 ## Agent Planner Integration
 

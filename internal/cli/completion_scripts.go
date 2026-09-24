@@ -8,7 +8,7 @@ _todoist() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]}"
 
-  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
+  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --ids-only --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help ${global_flags}" -- "$cur") )
@@ -209,21 +209,22 @@ complete -F _todoist todoist
 
 const zshCompletion = `#compdef todoist
 _arguments -C \
+  '--ids-only[One raw ID per line (supported lists only)]' \
   '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
   inbox)
-    _arguments '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
     ;;
   today)
-    _arguments
+    _arguments '--ids-only[One raw ID per line (supported lists only)]'
     ;;
   upcoming)
-    _arguments '*:flags:(--days --project --label --wide --sort --truncate-width)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--days --project --label --wide --sort --truncate-width)'
     ;;
   completed)
-    _arguments '*:flags:(--completed-by --since --until --project --section --filter --cursor --limit --all --wide)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--completed-by --since --until --project --section --filter --cursor --limit --all --wide)'
     ;;
   add)
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
@@ -232,34 +233,34 @@ case $words[1] in
     _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env --oauth --oauth-device --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
+    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
     ;;
   filter)
-    _arguments '2:subcommand:(list ls show add update delete rm del)' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls show add update delete rm del)' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
     ;;
   project)
-    _arguments '2:subcommand:(list ls view show browse collaborators add create update move archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls view show browse collaborators add create update move archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
     ;;
   workspace)
-    _arguments '2:subcommand:(list ls)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls)'
     ;;
   section)
-    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--project --name --id)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--project --name --id)'
     ;;
   label)
-    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--id --name --color --favorite --unfavorite)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--id --name --color --favorite --unfavorite)'
     ;;
   comment)
-    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --project --content --id)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --project --content --id)'
     ;;
   reminder)
-    _arguments '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --id --before --at --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --id --before --at --yes)'
     ;;
   notification)
-    _arguments '2:subcommand:(list view accept reject read unread)' '*:flags:(--type --unread --read --limit --offset --id --all --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list view accept reject read unread)' '*:flags:(--type --unread --read --limit --offset --id --all --yes)'
     ;;
   activity)
-    _arguments '*:flags:(--since --until --type --event --project --by --limit --cursor --all)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--since --until --type --event --project --by --limit --cursor --all)'
     ;;
   stats)
     _arguments '2:subcommand:(goals vacation)' '*:flags:(--daily --weekly --on --off)'
@@ -304,6 +305,7 @@ complete -c todoist -l accessible -d "Add screen-reader-friendly labels in human
 complete -c todoist -l json -d "JSON output"
 complete -c todoist -l plain -d "Plain output"
 complete -c todoist -l ndjson -d "NDJSON output"
+complete -c todoist -l ids-only -d "One raw ID per line (supported lists only)"
 complete -c todoist -l no-color -d "Disable color"
 complete -c todoist -l no-input -d "Disable prompts"
 complete -c todoist -l timeout -d "Request timeout"

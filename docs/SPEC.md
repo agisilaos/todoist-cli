@@ -155,6 +155,12 @@ Planner context notes:
 
 - Human default for TTY; `--plain` (tab-separated) for stable text.
 - `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
+- `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
+- Supported commands: `task list`, `project list`, `project collaborators`, `section list`, `label list`, `comment list`, `filter list`, `workspace list`, `reminder list`, `notification list`, `activity`, `completed`, `today`, `upcoming`, bare `inbox`, and `filter show`, including existing `ls` aliases. Collaborators emit user IDs; activity emits event IDs, not object IDs.
+- Preserve command result order (including existing sorting), duplicates, fetching defaults, and `--all` behavior. Validate the whole fetched collection before output: missing IDs or IDs containing whitespace/control characters fail with exit 1.
+- In ID mode only, remaining pages produce stderr notices: `More available. Use --cursor "<cursor>"` (quoted with escapes) or `More available. Use --offset N` for notifications. Empty pages may have notices; exhausted collections do not. Pagination never appears on stdout.
+- `--ids-only` conflicts with `--json`, `--plain`, and `--ndjson`. Conflicts and unsupported commands fail before side effects with usage exit 2, empty stdout, and the existing JSON error envelope on stderr. Mutations, single-object views, resources without stable IDs, and `view URL` are unsupported.
+- `todoist schema --name ids_only` returns a wire-format descriptor, not a JSON payload schema. Existing payload schemas and existing output modes remain unchanged.
 - `--quiet-json` emits compact single-line JSON errors (useful for agents and log pipelines).
 - `todoist schema` is the output contract source of truth (for example: `task_list` and `task_item_ndjson`).
 - `--progress-jsonl[=path]` emits agent progress events as JSONL (stderr or file).
@@ -171,6 +177,8 @@ Planner context notes:
 ## Parsing Rules
 
 - Global flags may appear before or after commands/subcommands.
+- `--ids-only` is parsed globally and validated against command eligibility. Like existing boolean global flags, it accepts the exact spelling, not `--ids-only=true`; global parsing stops at `--`.
+- Existing informational precedence applies: version wins over output conflicts, conflicts precede help, and root/command help remains available with `--ids-only` (an exception to ID-only stdout).
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
 - Common aliases: `ls=list`, `rm/delete=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
@@ -179,6 +187,7 @@ Planner context notes:
 
 - Human errors include `request_id` when available.
 - JSON errors: `{"error":"...", "meta":{"request_id":"..."}}`
+- ID-mode errors use the same JSON envelope on stderr, including global parsing, output conflicts, unsupported commands, and runtime failures. `--quiet-json` compacts the envelope; existing runtime exit codes remain 1 (generic), 3 (auth), 4 (not found), and 5 (conflict). Usage errors return 2. Invocations without `--ids-only` retain their existing error behavior.
 
 ## Config
 

@@ -15,7 +15,7 @@ func TestParseGlobalFlagsConflicts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
-	if _, err := output.DetectMode(opts.JSON, opts.Plain, false, true); err == nil {
+	if _, err := output.DetectMode(opts.JSON, opts.Plain, false, false, true); err == nil {
 		t.Fatalf("expected error for --json and --plain")
 	}
 	_, _, err = parseGlobalFlags([]string{"-q", "-v"}, nil)

@@ -194,6 +194,9 @@ func sectionDelete(ctx *Context, args []string) error {
 }
 
 func writeSectionList(ctx *Context, sections []api.Section, cursor string) error {
+	if ctx.Mode == output.ModeIDsOnly {
+		return writeIDs(ctx, sections, func(item api.Section) string { return item.ID }, cursor)
+	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, sections, output.Meta{RequestID: ctx.RequestID, Count: len(sections), Cursor: cursor})
 	}

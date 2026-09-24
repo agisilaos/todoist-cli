@@ -41,6 +41,7 @@ type GlobalOptions struct {
 	JSON          bool
 	Plain         bool
 	NDJSON        bool
+	IDsOnly       bool
 	NoColor       bool
 	NoInput       bool
 	TimeoutSec    int
@@ -80,6 +81,10 @@ type Context struct {
 func Execute(args []string, stdout, stderr io.Writer) int {
 	opts, rest, err := parseGlobalFlags(args, stderr)
 	if err != nil {
+		if opts.IDsOnly {
+			writeError(&Context{Stderr: stderr, Global: opts, Mode: output.ModeIDsOnly}, err)
+			return exitUsage
+		}
 		fmt.Fprintln(stderr, err)
 		printRootHelp(stderr)
 		return exitUsage
@@ -88,8 +93,12 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "todoist %s (%s) %s\n", Version, Commit, Date)
 		return exitOK
 	}
-	mode, err := output.DetectMode(opts.JSON, opts.Plain, opts.NDJSON, isTTYFile(stdout))
+	mode, err := output.DetectMode(opts.JSON, opts.Plain, opts.NDJSON, opts.IDsOnly, isTTYFile(stdout))
 	if err != nil {
+		if opts.IDsOnly {
+			writeError(&Context{Stderr: stderr, Global: opts, Mode: output.ModeIDsOnly}, err)
+			return exitUsage
+		}
 		fmt.Fprintln(stderr, err)
 		return exitUsage
 	}
@@ -102,12 +111,20 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		Mode:   mode,
 		Now:    time.Now,
 	}
+	if opts.IDsOnly && !idsOnlyEligible(rest, opts.Help) {
+		writeError(ctx, fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')"))
+		return exitUsage
+	}
 	if sink, err := newProgressSink(opts.ProgressJSONL, stderr); err == nil {
 		ctx.Progress = sink
 		defer sink.Close()
 	}
 	if err := loadConfig(ctx); err != nil {
-		fmt.Fprintln(stderr, err)
+		if opts.IDsOnly {
+			writeError(ctx, err)
+		} else {
+			fmt.Fprintln(stderr, err)
+		}
 		return exitError
 	}
 	if len(rest) == 0 {
@@ -115,6 +132,13 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 	if opts.Help {
+		if opts.IDsOnly {
+			// Route informational requests directly, including for commands whose
+			// handlers otherwise ignore --help (such as auth logout).
+			err := helpCommand(ctx, rest[:1])
+			writeError(ctx, err)
+			return toExitCode(err)
+		}
 		rest = append(rest, "--help")
 	}
 
@@ -124,6 +148,13 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 
 func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string, error) {
 	var opts GlobalOptions
+	var parseErr error
+	// Finish scanning so trailing output flags still control error formatting.
+	recordError := func(err error) {
+		if parseErr == nil {
+			parseErr = err
+		}
+	}
 	_ = stderr
 	rest := make([]string, 0, len(args))
 	for i := 0; i < len(args); i++ {
@@ -151,6 +182,8 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			opts.Plain = true
 		case arg == "--ndjson":
 			opts.NDJSON = true
+		case arg == "--ids-only":
+			opts.IDsOnly = true
 		case arg == "--no-color":
 			opts.NoColor = true
 		case arg == "--no-input":
@@ -167,24 +200,28 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			val := strings.TrimPrefix(arg, "--timeout=")
 			timeout, err := strconv.Atoi(val)
 			if err != nil {
-				return opts, nil, fmt.Errorf("invalid value for --timeout: %s", val)
+				recordError(fmt.Errorf("invalid value for --timeout: %s", val))
+				continue
 			}
 			opts.TimeoutSec = timeout
 		case arg == "--timeout":
 			if i+1 >= len(args) {
-				return opts, nil, errors.New("flag needs an argument: --timeout")
+				recordError(errors.New("flag needs an argument: --timeout"))
+				continue
 			}
 			i++
 			timeout, err := strconv.Atoi(args[i])
 			if err != nil {
-				return opts, nil, fmt.Errorf("invalid value for --timeout: %s", args[i])
+				recordError(fmt.Errorf("invalid value for --timeout: %s", args[i]))
+				continue
 			}
 			opts.TimeoutSec = timeout
 		case strings.HasPrefix(arg, "--config="):
 			opts.ConfigPath = strings.TrimPrefix(arg, "--config=")
 		case arg == "--config":
 			if i+1 >= len(args) {
-				return opts, nil, errors.New("flag needs an argument: --config")
+				recordError(errors.New("flag needs an argument: --config"))
+				continue
 			}
 			i++
 			opts.ConfigPath = args[i]
@@ -192,7 +229,8 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			opts.Profile = strings.TrimPrefix(arg, "--profile=")
 		case arg == "--profile":
 			if i+1 >= len(args) {
-				return opts, nil, errors.New("flag needs an argument: --profile")
+				recordError(errors.New("flag needs an argument: --profile"))
+				continue
 			}
 			i++
 			opts.Profile = args[i]
@@ -200,7 +238,8 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			opts.BaseURL = strings.TrimPrefix(arg, "--base-url=")
 		case arg == "--base-url":
 			if i+1 >= len(args) {
-				return opts, nil, errors.New("flag needs an argument: --base-url")
+				recordError(errors.New("flag needs an argument: --base-url"))
+				continue
 			}
 			i++
 			opts.BaseURL = args[i]
@@ -216,6 +255,9 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 		default:
 			rest = append(rest, arg)
 		}
+	}
+	if parseErr != nil {
+		return opts, nil, parseErr
 	}
 	if opts.Quiet && opts.Verbose {
 		return opts, rest, fmt.Errorf("--quiet and --verbose are mutually exclusive")
