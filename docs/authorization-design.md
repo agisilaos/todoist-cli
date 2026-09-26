@@ -40,7 +40,7 @@ Schedules carry the resolved profile and configuration path, plus relevant expli
 
 ## Storage contract
 
-Keep the existing `profiles` mapping and `token` field. Add an optional per-profile `authorization` object:
+Keep the existing `profiles` mapping. File-backed profiles retain the `token` field; native profiles omit it and use a `storage` descriptor referencing the native token, as specified in the [credential storage contract](credential-store-design.md). Both backends preserve the optional per-profile `authorization` object:
 
 ```json
 {

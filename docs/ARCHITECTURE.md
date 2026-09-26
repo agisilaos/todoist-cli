@@ -53,7 +53,7 @@ for the success boundary and persistence limitations.
 
 ## Authorization boundary
 
-`internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` preserves the optional raw metadata per credential profile, including unsupported records in inactive profiles, and replaces credentials through a same-directory temporary file. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.
+`internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` defines credential records and preserves optional raw metadata, including unsupported records in inactive profiles. `internal/credentials` owns profile persistence, atomic replacement, and recovery across file and native storage. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.
 
 Constructing an API client requires an explicit resolved authorization report, preventing callers from silently dropping profile metadata. Every Todoist resource request passes through `internal/api.Client.dispatch`. Its underlying HTTP client is private; embedding/tests can supply a transport without gaining an unguarded dispatch API. Known GET resource routes and command-free Sync resource reads are classified as reads. All other operations require write capability. Redirects pass through the same policy before the next request is sent; destinations outside the configured API origin/path are unclassified. Sync POSTs are inspected because the same endpoint supports reads and mutations. OAuth exchange uses its separate credential-acquisition transport.
 

@@ -7,7 +7,7 @@ Go-based CLI for Todoist. Binary name: `todoist`. Designed for humans and script
 ## Authentication
 
 - **Primary**: `TODOIST_TOKEN` environment variable
-- **Fallback**: `~/.config/todoist/credentials.json`
+- **Stored profile**: when `TODOIST_TOKEN` is absent, load the selected profile from its recorded backend. New profiles default to macOS Keychain; portable file storage requires explicit selection. Profile metadata and native references remain in `~/.config/todoist/credentials.json`; only file-backed profiles store tokens there. See [credential storage](#credential-storage-contract).
 - Profiles supported via `--profile` / `TODOIST_PROFILE`
 - OAuth PKCE login supported via `todoist auth login --oauth` (client ID from `--client-id` or `TODOIST_OAUTH_CLIENT_ID`)
 - The existing configurable device-flow client is available via `todoist auth login --oauth-device`; live Todoist device support is unverified.

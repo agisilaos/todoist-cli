@@ -624,7 +624,7 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 - TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
-- `--ndjson` outputs one JSON object per line (streaming friendly) across task/project/section/label/comment lists.
+- `--ndjson` outputs one JSON object per line for resource lists. Mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` outputs one raw ID followed by a newline per result. Empty results emit no stdout.
 - Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
