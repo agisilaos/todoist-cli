@@ -74,13 +74,15 @@ func isPlanFileNotFoundError(err error) bool {
 func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 	if ctx.Mode == output.ModeJSON {
 		payload := map[string]any{
-			"plan":         plan,
-			"dry_run":      dryRun,
-			"action_count": len(plan.Actions),
-			"summary":      plan.Summary,
+			"plan":          plan,
+			"dry_run":       dryRun,
+			"authorization": currentAuthorization(ctx),
+			"action_count":  len(plan.Actions),
+			"summary":       plan.Summary,
 		}
 		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
 	}
+	fmt.Fprintf(ctx.Stdout, "Authorization: %s\n", currentAuthorization(ctx).Summary())
 	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
 	if dryRun {
 		fmt.Fprintln(ctx.Stdout, "DRY RUN: no actions applied")
@@ -166,8 +168,12 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 		}
 		return output.WriteJSON(ctx.Stdout, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
 	}
-	fmt.Fprintf(ctx.Stdout, "Applied plan: %s\n", plan.Instruction)
 	okCount, failedCount, skippedReplay := summarizeApplyResults(results)
+	if skippedReplay == len(results) {
+		fmt.Fprintf(ctx.Stdout, "Already applied plan: %s\n", plan.Instruction)
+	} else {
+		fmt.Fprintf(ctx.Stdout, "Applied plan: %s\n", plan.Instruction)
+	}
 	destructive := 0
 	byType := map[string]int{}
 	for _, result := range results {

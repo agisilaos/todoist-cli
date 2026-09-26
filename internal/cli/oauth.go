@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -16,17 +17,23 @@ import (
 	"strings"
 	"time"
 
-	"io"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 const (
-	defaultOAuthAuthorizeURL = "https://todoist.com/oauth/authorize"
-	defaultOAuthTokenURL     = "https://todoist.com/oauth/access_token"
+	defaultOAuthAuthorizeURL = "https://app.todoist.com/oauth/authorize"
+	defaultOAuthTokenURL     = "https://api.todoist.com/oauth/access_token"
 	defaultOAuthDeviceURL    = "https://todoist.com/oauth/device/code"
 	defaultOAuthListenAddr   = "127.0.0.1:8765"
 )
 
+type oauthToken struct {
+	AccessToken   string
+	Authorization authorization.Metadata
+}
+
 type oauthConfig struct {
+	ReadOnly     bool
 	ClientID     string
 	AuthorizeURL string
 	TokenURL     string
@@ -105,7 +112,7 @@ func buildOAuthAuthorizationURL(cfg oauthConfig, codeChallenge, state string) (s
 	}
 	q := u.Query()
 	q.Set("client_id", cfg.ClientID)
-	q.Set("scope", "data:read_write,data:delete,project:delete")
+	q.Set("scope", strings.Join(authorization.RequestedScopes(cfg.ReadOnly), ","))
 	q.Set("state", state)
 	q.Set("redirect_uri", cfg.RedirectURI)
 	q.Set("code_challenge", codeChallenge)
@@ -207,7 +214,7 @@ func waitForOAuthCode(ctx context.Context, cfg oauthConfig, expectedState string
 	}
 }
 
-func exchangeOAuthToken(ctx context.Context, cfg oauthConfig, code, codeVerifier string) (string, error) {
+func exchangeOAuthToken(ctx context.Context, cfg oauthConfig, code, codeVerifier string) (oauthToken, error) {
 	form := url.Values{}
 	form.Set("client_id", cfg.ClientID)
 	form.Set("code", code)
@@ -216,35 +223,40 @@ func exchangeOAuthToken(ctx context.Context, cfg oauthConfig, code, codeVerifier
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	defer resp.Body.Close()
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 8*1024))
 	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("oauth token exchange failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+		return oauthToken{}, fmt.Errorf("oauth token exchange failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
 	}
 	var payload struct {
-		AccessToken string `json:"access_token"`
+		AccessToken string          `json:"access_token"`
+		Scope       json.RawMessage `json:"scope"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return "", fmt.Errorf("decode oauth token response: %w", err)
+		return oauthToken{}, fmt.Errorf("decode oauth token response: %w", err)
 	}
 	if strings.TrimSpace(payload.AccessToken) == "" {
-		return "", fmt.Errorf("oauth token exchange returned empty access_token")
+		return oauthToken{}, fmt.Errorf("oauth token exchange returned empty access_token")
 	}
-	return payload.AccessToken, nil
+	metadata, err := authorization.OAuthMetadata(cfg.ReadOnly, "oauth-pkce", payload.Scope)
+	if err != nil {
+		return oauthToken{}, err
+	}
+	return oauthToken{AccessToken: payload.AccessToken, Authorization: metadata}, nil
 }
 
 func startOAuthDeviceFlow(ctx context.Context, cfg oauthConfig) (deviceCode, userCode, verifyURL, verifyURLComplete string, intervalSec int, expiresInSec int, err error) {
 	form := url.Values{}
 	form.Set("client_id", cfg.ClientID)
-	form.Set("scope", "data:read_write,data:delete,project:delete")
+	form.Set("scope", strings.Join(authorization.RequestedScopes(cfg.ReadOnly), ","))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.DeviceURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -283,7 +295,7 @@ func startOAuthDeviceFlow(ctx context.Context, cfg oauthConfig) (deviceCode, use
 	return payload.DeviceCode, payload.UserCode, payload.VerificationURI, payload.VerificationURIComplete, payload.Interval, payload.ExpiresIn, nil
 }
 
-func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int) (string, error) {
+func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int) (oauthToken, error) {
 	if intervalSec <= 0 {
 		intervalSec = 5
 	}
@@ -294,7 +306,7 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 
 	for {
 		if time.Now().After(deadline) {
-			return "", fmt.Errorf("oauth device flow timed out")
+			return oauthToken{}, fmt.Errorf("oauth device flow timed out")
 		}
 		form := url.Values{}
 		form.Set("client_id", cfg.ClientID)
@@ -303,48 +315,53 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.TokenURL, strings.NewReader(form.Encode()))
 		if err != nil {
-			return "", err
+			return oauthToken{}, err
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return "", err
+			return oauthToken{}, err
 		}
 		data, _ := io.ReadAll(io.LimitReader(resp.Body, 8*1024))
 		resp.Body.Close()
 
 		var payload struct {
-			AccessToken string `json:"access_token"`
-			Error       string `json:"error"`
+			AccessToken string          `json:"access_token"`
+			Scope       json.RawMessage `json:"scope"`
+			Error       string          `json:"error"`
 		}
 		_ = json.Unmarshal(data, &payload)
 
 		if resp.StatusCode < 400 && strings.TrimSpace(payload.AccessToken) != "" {
-			return payload.AccessToken, nil
+			metadata, err := authorization.OAuthMetadata(cfg.ReadOnly, "oauth-device", payload.Scope)
+			if err != nil {
+				return oauthToken{}, err
+			}
+			return oauthToken{AccessToken: payload.AccessToken, Authorization: metadata}, nil
 		}
 
 		switch payload.Error {
 		case "authorization_pending":
 			if err := waitForOAuthPollFn(ctx, time.Duration(intervalSec)*time.Second); err != nil {
-				return "", err
+				return oauthToken{}, err
 			}
 			continue
 		case "slow_down":
 			intervalSec += 5
 			if err := waitForOAuthPollFn(ctx, time.Duration(intervalSec)*time.Second); err != nil {
-				return "", err
+				return oauthToken{}, err
 			}
 			continue
 		case "access_denied":
-			return "", fmt.Errorf("oauth device authorization denied")
+			return oauthToken{}, fmt.Errorf("oauth device authorization denied")
 		case "expired_token":
-			return "", fmt.Errorf("oauth device code expired")
+			return oauthToken{}, fmt.Errorf("oauth device code expired")
 		}
 
 		if resp.StatusCode >= 400 {
-			return "", fmt.Errorf("oauth device token polling failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+			return oauthToken{}, fmt.Errorf("oauth device token polling failed: status %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
 		}
-		return "", fmt.Errorf("oauth device token polling failed: empty access_token")
+		return oauthToken{}, fmt.Errorf("oauth device token polling failed: empty access_token")
 	}
 }
 

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 type applyErrorMode string
@@ -34,6 +36,13 @@ func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, o
 }
 
 func applyActionsWithReplayStore(ctx *Context, confirmToken string, actions []Action, onError applyErrorMode, store replayStore) ([]applyResult, error) {
+	for idx, action := range actions {
+		if !store.Contains(makeReplayKey(confirmToken, idx, action)) {
+			if err := currentAuthorization(ctx).CheckMutation(); err != nil {
+				return nil, err
+			}
+		}
+	}
 	results := make([]applyResult, 0, len(actions))
 	for idx, action := range actions {
 		emitProgress(ctx, "agent_action_start", map[string]any{"index": idx, "action_type": action.Type})
@@ -48,7 +57,7 @@ func applyActionsWithReplayStore(ctx *Context, confirmToken string, actions []Ac
 		if err := applyAction(ctx, action); err != nil {
 			results = append(results, applyResult{Action: action, Error: err})
 			emitActionFailure(ctx, idx, action, err, nil)
-			if onError != applyErrorModeContinue {
+			if shouldAbortApply(onError, err) {
 				return results, err
 			}
 			continue
@@ -94,5 +103,6 @@ func shouldAbortApply(onError applyErrorMode, err error) bool {
 		return true
 	}
 	var replayErr *replayStoreError
-	return errors.As(err, &replayErr)
+	var authorizationErr *authorization.Error
+	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr)
 }

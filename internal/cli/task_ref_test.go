@@ -3,15 +3,15 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
-
-	"io"
 )
 
 type testRoundTripFunc func(*http.Request) (*http.Response, error)
@@ -21,15 +21,15 @@ func (f testRoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func TestResolveTaskRefLegacyNumericIDMessage(t *testing.T) {
-	client := api.NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := api.NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.SetTransport(testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
 		payload := `{"error":"The ID provided was deprecated and cannot be used with this version of the API","error_tag":"V1_ID_CANNOT_BE_USED","http_code":400}`
 		return &http.Response{
 			StatusCode: http.StatusBadRequest,
 			Body:       io.NopCloser(bytes.NewReader([]byte(payload))),
 			Header:     http.Header{"Content-Type": []string{"application/json"}},
 		}, nil
-	})}
+	}))
 	ctx := &Context{
 		Client: client,
 		Config: config.Config{TimeoutSeconds: 10},
@@ -52,8 +52,8 @@ func TestResolveTaskRefLegacyNumericIDMessage(t *testing.T) {
 }
 
 func TestResolveTaskRefExplicitAlphaNumericID(t *testing.T) {
-	client := api.NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := api.NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.SetTransport(testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path != "/tasks/abc123XYZ" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -63,7 +63,7 @@ func TestResolveTaskRefExplicitAlphaNumericID(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader([]byte(payload))),
 			Header:     http.Header{"Content-Type": []string{"application/json"}},
 		}, nil
-	})}
+	}))
 	ctx := &Context{
 		Client: client,
 		Config: config.Config{TimeoutSeconds: 10},
@@ -82,8 +82,8 @@ func TestResolveTaskRefExplicitAlphaNumericID(t *testing.T) {
 }
 
 func TestResolveTaskRefFromTaskURL(t *testing.T) {
-	client := api.NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := api.NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.SetTransport(testRoundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path != "/tasks/abc123XYZ" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -93,7 +93,7 @@ func TestResolveTaskRefFromTaskURL(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader([]byte(payload))),
 			Header:     http.Header{"Content-Type": []string{"application/json"}},
 		}, nil
-	})}
+	}))
 	ctx := &Context{
 		Client: client,
 		Config: config.Config{TimeoutSeconds: 10},

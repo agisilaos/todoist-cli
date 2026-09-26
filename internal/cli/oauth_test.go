@@ -58,6 +58,22 @@ func TestBuildOAuthConfigDefaultsAndEnv(t *testing.T) {
 	}
 }
 
+func TestOAuthDefaultsUseDocumentedTodoistEndpoints(t *testing.T) {
+	for _, key := range []string{"TODOIST_OAUTH_AUTHORIZE_URL", "TODOIST_OAUTH_TOKEN_URL"} {
+		t.Setenv(key, "")
+	}
+	cfg, err := buildOAuthConfig("client", "", "", "", "", "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AuthorizeURL != "https://app.todoist.com/oauth/authorize" {
+		t.Errorf("authorization endpoint: %s", cfg.AuthorizeURL)
+	}
+	if cfg.TokenURL != "https://api.todoist.com/oauth/access_token" {
+		t.Errorf("token endpoint: %s", cfg.TokenURL)
+	}
+}
+
 func TestStartOAuthDeviceFlowSuccess(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -107,8 +123,8 @@ func TestPollOAuthDeviceTokenSuccessAfterPending(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pollOAuthDeviceToken: %v", err)
 	}
-	if token != "token-device-1" {
-		t.Fatalf("unexpected token: %q", token)
+	if token.AccessToken != "token-device-1" {
+		t.Fatalf("unexpected token: %q", token.AccessToken)
 	}
 }
 
@@ -177,8 +193,8 @@ func TestExchangeOAuthTokenSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("exchangeOAuthToken: %v", err)
 	}
-	if token != "token-123" {
-		t.Fatalf("unexpected token: %q", token)
+	if token.AccessToken != "token-123" {
+		t.Fatalf("unexpected token: %q", token.AccessToken)
 	}
 	values, err := url.ParseQuery(gotBody)
 	if err != nil {

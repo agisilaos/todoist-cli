@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -12,9 +13,8 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
-
-	"io"
 )
 
 type capturedRequest struct {
@@ -72,7 +72,7 @@ func TestApplyActionExecutionMatrix(t *testing.T) {
 			ctx := &Context{
 				Stdout: &bytes.Buffer{},
 				Token:  "token",
-				Client: api.NewClient(ts.URL, "token", time.Second),
+				Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 				Config: config.Config{TimeoutSeconds: 2},
 			}
 			if err := applyAction(ctx, tt.action); err != nil {
@@ -112,7 +112,7 @@ func TestApplyActionValidationErrors(t *testing.T) {
 		{name: "unsupported_type", action: Action{Type: "unknown_action"}, wantErr: "unsupported action type"},
 	}
 
-	ctx := &Context{Token: "token", Config: config.Config{TimeoutSeconds: 2}, Client: api.NewClient("https://example.com", "token", time.Second)}
+	ctx := &Context{Token: "token", Config: config.Config{TimeoutSeconds: 2}, Client: api.NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := applyAction(ctx, tt.action)
@@ -143,7 +143,7 @@ func TestApplyActionCommentAddAcceptsProjectID(t *testing.T) {
 	ctx := &Context{
 		Stdout: &bytes.Buffer{},
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	action := Action{Type: "comment_add", Content: "hello", ProjectID: "p123"}
@@ -172,7 +172,7 @@ func TestApplyActionTaskAddReturnsResolverError(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	err := applyAction(ctx, Action{Type: "task_add", Content: "x", Project: "Home"})

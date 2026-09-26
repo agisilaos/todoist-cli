@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -378,7 +379,7 @@ func newApplyTestContext(dir, baseURL string) *Context {
 		Stdin:      bytes.NewReader(nil),
 		Now:        func() time.Time { return time.Date(2026, time.August, 25, 12, 0, 0, 0, time.UTC) },
 		Token:      "token",
-		Client:     api.NewClient(baseURL, "token", time.Second),
+		Client:     api.NewClient(baseURL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config:     config.Config{TimeoutSeconds: 2},
 		ConfigPath: filepath.Join(dir, "config.json"),
 	}

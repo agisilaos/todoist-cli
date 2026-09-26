@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
-
-	"io"
 )
 
 var (
@@ -68,8 +68,9 @@ type Context struct {
 	Fuzzy      bool
 	Accessible bool
 
-	Token       string
-	TokenSource string
+	Token         string
+	TokenSource   string
+	Authorization *authorization.Report
 
 	Client      *api.Client
 	Now         func() time.Time
@@ -120,12 +121,8 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		defer sink.Close()
 	}
 	if err := loadConfig(ctx); err != nil {
-		if opts.IDsOnly {
-			writeError(ctx, err)
-		} else {
-			fmt.Fprintln(stderr, err)
-		}
-		return exitError
+		writeError(ctx, err)
+		return toExitCode(err)
 	}
 	if len(rest) == 0 {
 		printRootHelp(stdout)
@@ -328,6 +325,8 @@ func loadConfig(ctx *Context) error {
 	if token != "" {
 		ctx.Token = token
 		ctx.TokenSource = "env"
+		report := authorization.Resolve(nil, "env", true)
+		ctx.Authorization = &report
 	} else {
 		credsPath := config.CredentialsPathFromConfig(configPath)
 		creds, _, err := config.LoadCredentials(credsPath)
@@ -337,10 +336,12 @@ func loadConfig(ctx *Context) error {
 		if cred, ok := creds.Profiles[ctx.Profile]; ok && cred.Token != "" {
 			ctx.Token = cred.Token
 			ctx.TokenSource = "credentials"
+			report := authorization.Resolve(cred.Authorization, "credentials", true)
+			ctx.Authorization = &report
 		}
 	}
 	if ctx.Token != "" {
-		ctx.Client = api.NewClient(cfg.BaseURL, ctx.Token, time.Duration(cfg.TimeoutSeconds)*time.Second)
+		ctx.Client = api.NewClient(cfg.BaseURL, ctx.Token, time.Duration(cfg.TimeoutSeconds)*time.Second, currentAuthorization(ctx))
 	}
 	return nil
 }
@@ -354,11 +355,14 @@ func isTTYFile(w io.Writer) bool {
 }
 
 func ensureClient(ctx *Context) error {
+	if err := currentAuthorization(ctx).CheckCredential(); err != nil {
+		return err
+	}
 	if ctx.Token == "" {
 		return &CodeError{Code: exitAuth, Err: fmt.Errorf("missing auth token; run 'todoist auth login' or set TODOIST_TOKEN")}
 	}
 	if ctx.Client == nil {
-		ctx.Client = api.NewClient(ctx.Config.BaseURL, ctx.Token, time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
+		ctx.Client = api.NewClient(ctx.Config.BaseURL, ctx.Token, time.Duration(ctx.Config.TimeoutSeconds)*time.Second, currentAuthorization(ctx))
 	}
 	return nil
 }
@@ -379,6 +383,10 @@ func (e *CodeError) Unwrap() error {
 func toExitCode(err error) int {
 	if err == nil {
 		return exitOK
+	}
+	var authorizationErr *authorization.Error
+	if errors.As(err, &authorizationErr) {
+		return exitAuth
 	}
 	var codeErr *CodeError
 	if errors.As(err, &codeErr) {

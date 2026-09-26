@@ -1,0 +1,16 @@
+{
+  "profile": "reader",
+  "configured": true,
+  "source": "credentials",
+  "authorization": {
+    "metadata_version": 1,
+    "metadata_status": "valid",
+    "mode": "read-only",
+    "origin": "oauth-pkce",
+    "requested_scopes": ["data:read"],
+    "effective_scopes": ["data:read"],
+    "scope_evidence": "token-response",
+    "write_capable": false,
+    "write_capability_reason": "read-only"
+  }
+}

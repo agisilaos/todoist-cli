@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -30,7 +31,7 @@ func TestProjectMoveWorkspaceDryRun(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 		Global: GlobalOptions{DryRun: true},
 	}
@@ -60,7 +61,7 @@ func TestProjectMoveWorkspacePreviewWithoutYes(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeHuman,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := projectMove(ctx, []string{"id:p1", "--to-workspace", "id:w1"}); err != nil {
@@ -95,7 +96,7 @@ func TestProjectMoveWorkspaceWithYes(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := projectMove(ctx, []string{"id:p1", "--to-workspace", "id:w1", "--visibility", "restricted", "--yes"}); err != nil {
@@ -129,7 +130,7 @@ func TestProjectMoveToPersonal(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := projectMove(ctx, []string{"id:p1", "--to-personal", "--yes"}); err != nil {
@@ -156,7 +157,7 @@ func TestProjectMoveToPersonalAlreadyPersonal(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeHuman,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	err := projectMove(ctx, []string{"id:p1", "--to-personal", "--yes"})

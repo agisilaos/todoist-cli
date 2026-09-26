@@ -15,6 +15,9 @@ type schemaDef struct {
 }
 
 var schemas = []schemaDef{
+	{Name: "authorization", Description: "Safe authorization report for the active credential", Schema: authorizationReportSchema()},
+	{Name: "auth_status", Description: "Offline credential presence and authorization from auth status", Schema: authStatusSchema()},
+	{Name: "doctor", Description: "Doctor diagnostics including safe credential authorization", Schema: doctorReportSchema()},
 	{
 		Name:        "ids_only",
 		Description: "Wire-format descriptor for --ids-only (not a JSON Schema)",
@@ -84,7 +87,9 @@ var schemas = []schemaDef{
 		Schema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"error": map[string]string{"type": "string"},
+				"error":   map[string]string{"type": "string"},
+				"code":    map[string]any{"type": "string", "description": "Stable authorization code: READ_ONLY, AUTH_METADATA_INVALID, AUTH_METADATA_UNSUPPORTED, or OAUTH_SCOPE_INVALID"},
+				"details": map[string]any{"type": "object", "properties": map[string]any{"profile": map[string]any{"type": "string"}, "source": map[string]any{"type": "string"}, "authorization": authorizationReportSchema()}},
 				"meta": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
@@ -163,14 +168,15 @@ var schemas = []schemaDef{
 		Schema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"plan":         map[string]any{"$ref": "#/plan"},
-				"dry_run":      map[string]string{"type": "boolean"},
-				"action_count": map[string]string{"type": "integer"},
+				"authorization": authorizationReportSchema(),
+				"plan":          map[string]any{"$ref": "#/plan"},
+				"dry_run":       map[string]string{"type": "boolean"},
+				"action_count":  map[string]string{"type": "integer"},
 				"summary": map[string]any{
 					"type": "object",
 				},
 			},
-			"required": []string{"plan", "dry_run"},
+			"required": []string{"plan", "dry_run", "authorization"},
 		},
 	},
 	{
@@ -179,9 +185,10 @@ var schemas = []schemaDef{
 		Schema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"instruction": map[string]string{"type": "string"},
-				"profile":     map[string]string{"type": "string"},
-				"now":         map[string]string{"type": "string"},
+				"authorization": authorizationReportSchema(),
+				"instruction":   map[string]string{"type": "string"},
+				"profile":       map[string]string{"type": "string"},
+				"now":           map[string]string{"type": "string"},
 				"context": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
@@ -193,7 +200,7 @@ var schemas = []schemaDef{
 					},
 				},
 			},
-			"required": []string{"instruction", "profile", "now", "context"},
+			"required": []string{"instruction", "profile", "now", "context", "authorization"},
 		},
 	},
 }

@@ -57,6 +57,24 @@ TODOIST_TOKEN=... todoist task list
 
 Tokens are stored in `~/.config/todoist/credentials.json` with `0600` permissions. Set `TODOIST_TOKEN` to override stored tokens.
 
+For read-only OAuth access:
+
+```bash
+todoist --profile reader auth login --oauth --read-only --client-id "$TODOIST_OAUTH_CLIENT_ID"
+todoist --profile reader auth status --json
+todoist --profile reader task list
+```
+
+Both `--oauth` (PKCE) and `--oauth-device` accept `--read-only`, requesting exactly `data:read`. OAuth without this flag requests `data:read_write,data:delete,project:delete`. The existing configurable device-flow client is protocol-tested, but live Todoist device authorization support is unverified. Token refresh is not implemented; saved authorization metadata does not extend token validity.
+
+Read-only credentials can read Todoist, construct plans, and run previews. The CLI blocks mutations, including `agent apply/run`, before a mutation request is sent. `--force` and `--on-error=continue` do not override this restriction. External planners are trusted programs and are not sandboxed.
+
+Authorization metadata is saved with each profile. `auth status` reports credential presence and authorization offline; `doctor` also performs a read-only API probe. Both distinguish requested/effective scopes, evidence, credential origin, source, and write capability without exposing tokens. Raw resource JSON and IDs-only output stay unchanged.
+
+Existing stored tokens, manual tokens, and `TODOIST_TOKEN` remain **unknown** and may attempt writes for compatibility. The environment token overrides a selected profile without inheriting its metadata. Exporting with `--print-env` also loses local scope evidence on subsequent environment use. Invalid or unsupported metadata blocks authenticated operations and can be repaired through login/logout. Logout removes the stored token and metadata, but does not revoke the token or unset the environment.
+
+See the [authorization contract](docs/authorization-design.md), [command classification](docs/authorization-command-inventory.md), and [compatibility decision](docs/adr/0003-preserve-write-capability-for-unknown-credentials.md).
+
 ## Config
 
 User config (non-secrets):
@@ -152,8 +170,8 @@ Manage Todoist credentials and profiles.
 
 ```
 todoist auth login [--token-stdin] [--print-env]
-todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
-todoist auth login --oauth-device [--client-id <id>] [--print-env]
+todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
+todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
                   [--oauth-authorize-url <url>] [--oauth-token-url <url>]
                   [--oauth-device-url <url>] [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 todoist auth status
@@ -161,10 +179,11 @@ todoist auth logout
 ```
 
 - `auth login` prompts for a token (TTY) or reads from stdin with `--token-stdin`. Stores tokens in `~/.config/todoist/credentials.json` (0600).
+- OAuth defaults use Todoist’s documented `https://app.todoist.com/oauth/authorize` and `https://api.todoist.com/oauth/access_token` endpoints. Endpoint override flags and environment variables remain available.
 - `auth login --oauth` runs OAuth PKCE via local callback (`http://127.0.0.1:8765/callback` by default). If browser auto-open fails, the command prints a warning and continues waiting for callback so you can open the URL manually.
-- `auth login --oauth-device` runs OAuth Device Flow (good for headless/CI/SSH); it prints verification URL/code and polls until authorized.
-- `auth status` prints active profile and whether a token is present.
-- `auth logout` deletes stored credentials for the active profile.
+- `auth login --oauth-device` prints a verification URL/code and polls until authorized. The configurable client flow is protocol-tested; live Todoist support remains unverified.
+- `auth status` reports the selected profile, credential source, authorization mode, scope evidence, and write capability without contacting Todoist.
+- `auth logout` deletes the selected stored credential and its authorization metadata. An environment token remains active.
 - Use `--print-env` to emit `TODOIST_TOKEN=...` for piping into other tools (`--json`/`--ndjson` return structured output with the export string).
 
 ### Tasks
@@ -461,7 +480,7 @@ todoist agent apply --plan <file> --confirm <token>
 todoist agent apply --plan <file> --confirm <token> --dry-run [--policy <file>]
 todoist agent apply --plan <file> --confirm <token> --on-error fail|continue
 todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force] [--policy <file>]
-todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--cron]
+todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--policy <file>] [--dry-run] [--cron]
 todoist agent examples
 todoist agent planner
 todoist agent planner --set --cmd "<planner>"
@@ -475,12 +494,12 @@ todoist agent status
 - `agent status` is safe on first run; it reports planner configuration and whether a last plan exists.
 - `--dry-run` with `agent apply` prints the plan without applying actions.
 - In `--dry-run`, no-action plans are allowed (useful for CI/pipeline contract checks).
-- `--on-error=continue` keeps applying after an individual action failure and reports statuses. A replay-store load or record failure always stops application because continuing would make later reruns unsafe.
+- `--on-error=continue` keeps applying after an individual action failure and reports statuses. Authorization denial and replay-store load or record failures always stop application.
 - Human apply/run output includes a summary block (ok/failed/skipped replay), destructive-action count, per-action-type counts, and final outcome.
 - `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
 - `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).
 - `agent run` combines plan + apply for automation (cron/launchd).
-- `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`).
+- `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`). It preserves `--dry-run` and `--force` plus profile/configuration selections; authorization is resolved when the generated command runs.
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
 - Planner context now includes active tasks (capped) in addition to projects/sections/labels/completed tasks.
 - `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).

@@ -8,6 +8,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -73,6 +74,10 @@ func taskMove(ctx *Context, args []string) error {
 			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/move", nil, body, nil, true)
 			cancel()
 			if err != nil {
+				var denied *authorization.Error
+				if errors.As(err, &denied) {
+					return err
+				}
 				failed++
 				continue
 			}
@@ -157,6 +162,10 @@ func taskComplete(ctx *Context, args []string) error {
 			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/close", nil, nil, nil, true)
 			cancel()
 			if err != nil {
+				var denied *authorization.Error
+				if errors.As(err, &denied) {
+					return err
+				}
 				failed++
 				continue
 			}

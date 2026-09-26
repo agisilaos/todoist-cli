@@ -9,11 +9,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 func TestFetchLiveNotifications(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path != "/sync" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -43,8 +45,8 @@ func TestFetchLiveNotifications(t *testing.T) {
 }
 
 func TestMarkNotificationsReadCommand(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		body, _ := io.ReadAll(r.Body)
 		values, _ := url.ParseQuery(string(body))
 		commands := values.Get("commands")
@@ -63,8 +65,8 @@ func TestMarkNotificationsReadCommand(t *testing.T) {
 }
 
 func TestAcceptInvitationCommand(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		body, _ := io.ReadAll(r.Body)
 		values, _ := url.ParseQuery(string(body))
 		commands := values.Get("commands")
@@ -86,8 +88,8 @@ func TestAcceptInvitationCommand(t *testing.T) {
 }
 
 func TestRejectInvitationCommand(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		body, _ := io.ReadAll(r.Body)
 		values, _ := url.ParseQuery(string(body))
 		commands := values.Get("commands")

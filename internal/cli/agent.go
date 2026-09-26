@@ -179,11 +179,14 @@ func agentApply(ctx *Context, args []string) error {
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
-	plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
-	if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
-		emitAgentApplySummary(ctx, "agent apply", results, false, err)
-		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-		return err
+	_, _, replayed := summarizeApplyResults(results)
+	if replayed != len(results) {
+		plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
+		if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
+			emitAgentApplySummary(ctx, "agent apply", results, false, err)
+			emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
+			return err
+		}
 	}
 	emitAgentApplySummary(ctx, "agent apply", results, false, err)
 	emitProgress(ctx, "agent_apply_complete", map[string]any{"action_count": len(plan.Actions)})
@@ -222,10 +225,11 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 		return Plan{}, err
 	}
 	request := PlannerRequest{
-		Instruction: instruction,
-		Profile:     ctx.Profile,
-		Context:     plannerContext,
-		Now:         ctx.Now().UTC().Format(time.RFC3339),
+		Authorization: currentAuthorization(ctx),
+		Instruction:   instruction,
+		Profile:       ctx.Profile,
+		Context:       plannerContext,
+		Now:           ctx.Now().UTC().Format(time.RFC3339),
 	}
 	payload, err := json.Marshal(request)
 	if err != nil {
@@ -265,12 +269,14 @@ func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, 
 			"planner_source":   status.PlannerSource,
 			"last_plan_path":   status.LastPlanPath,
 			"last_plan_exists": status.LastPlanExists,
+			"authorization":    currentAuthorization(ctx),
 		}
 		if status.LastPlanExists && plan != nil {
 			payload["plan"] = *plan
 		}
 		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
 	}
+	fmt.Fprintf(ctx.Stdout, "Current authorization: %s\n", currentAuthorization(ctx).Summary())
 	if status.PlannerCmd == "" {
 		fmt.Fprintf(ctx.Stdout, "Planner: (none) [source: %s]\n", status.PlannerSource)
 	} else {

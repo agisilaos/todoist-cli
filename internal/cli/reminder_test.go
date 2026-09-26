@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -32,7 +33,7 @@ func TestReminderListForTask(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := reminderList(ctx, []string{"id:t1"}); err != nil {
@@ -75,7 +76,7 @@ func TestReminderListHumanEmptyState(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeHuman,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := reminderList(ctx, []string{"id:t1"}); err != nil {

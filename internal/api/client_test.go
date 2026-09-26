@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -25,8 +27,8 @@ type echoResponse struct {
 }
 
 func TestClientGet(t *testing.T) {
-	client := NewClient("https://example.com", "token", 2*time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", 2*time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.Header.Get("Authorization") != "Bearer token" {
 			t.Fatalf("missing auth header: %q", r.Header.Get("Authorization"))
 		}
@@ -54,8 +56,8 @@ func TestClientGet(t *testing.T) {
 }
 
 func TestClientPostRequestID(t *testing.T) {
-	client := NewClient("https://example.com", "token", 2*time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", 2*time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.Header.Get("X-Request-Id") == "" {
 			t.Fatalf("missing request id")
 		}
@@ -78,8 +80,8 @@ func TestClientPostRequestID(t *testing.T) {
 }
 
 func TestClientQuickAdd(t *testing.T) {
-	client := NewClient("https://example.com", "token", 2*time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", 2*time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.String() != "https://example.com/tasks/quick" {
 			t.Fatalf("unexpected url: %s", r.URL.String())
 		}
@@ -127,13 +129,13 @@ func TestClientQuickAdd(t *testing.T) {
 }
 
 func TestClientRetriesGetOnTransientStatus(t *testing.T) {
-	client := NewClient("https://example.com", "token", 2*time.Second)
+	client := NewClient("https://example.com", "token", 2*time.Second, authorization.Resolve(nil, "credentials", true))
 	origWait := waitForRetry
 	waitForRetry = func(ctx context.Context, delay time.Duration) error { return nil }
 	t.Cleanup(func() { waitForRetry = origWait })
 
 	var calls int32
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		n := atomic.AddInt32(&calls, 1)
 		if n == 1 {
 			return &http.Response{
@@ -163,13 +165,13 @@ func TestClientRetriesGetOnTransientStatus(t *testing.T) {
 }
 
 func TestClientDoesNotRetryUnsafePostWithoutRequestID(t *testing.T) {
-	client := NewClient("https://example.com", "token", 2*time.Second)
+	client := NewClient("https://example.com", "token", 2*time.Second, authorization.Resolve(nil, "credentials", true))
 	origWait := waitForRetry
 	waitForRetry = func(ctx context.Context, delay time.Duration) error { return nil }
 	t.Cleanup(func() { waitForRetry = origWait })
 
 	var calls int32
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		atomic.AddInt32(&calls, 1)
 		return &http.Response{
 			StatusCode: http.StatusServiceUnavailable,
@@ -196,13 +198,13 @@ func TestClientDoesNotRetryUnsafePostWithoutRequestID(t *testing.T) {
 }
 
 func TestClientRetriesPostWithRequestIDOn429(t *testing.T) {
-	client := NewClient("https://example.com", "token", 2*time.Second)
+	client := NewClient("https://example.com", "token", 2*time.Second, authorization.Resolve(nil, "credentials", true))
 	origWait := waitForRetry
 	waitForRetry = func(ctx context.Context, delay time.Duration) error { return nil }
 	t.Cleanup(func() { waitForRetry = origWait })
 
 	var calls int32
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		n := atomic.AddInt32(&calls, 1)
 		if n == 1 {
 			return &http.Response{

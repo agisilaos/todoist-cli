@@ -84,7 +84,7 @@ func checkConfigFiles(ctx *Context) doctorCheck {
 	} else {
 		check.Status = "fail"
 		check.Message = "cannot stat config file"
-		check.Details["error"] = err.Error()
+		check.Details["error"] = safeErrorText(ctx, err)
 	}
 	return check
 }
@@ -113,12 +113,18 @@ func checkCredentials(ctx *Context) doctorCheck {
 	} else {
 		check.Status = "warn"
 		check.Message = "cannot read credentials file metadata"
-		check.Details["error"] = err.Error()
+		check.Details["error"] = safeErrorText(ctx, err)
 	}
 
 	if strings.TrimSpace(ctx.Token) == "" {
 		check.Status = "warn"
 		check.Message = "no token resolved; run `todoist auth login`"
+	}
+	report := currentAuthorization(ctx)
+	check.Details["authorization"] = report
+	check.Message += fmt.Sprintf("; profile %q; source: %s; %s", ctx.Profile, ctx.TokenSource, report.Summary())
+	if report.CheckCredential() != nil {
+		check.Status = "fail"
 	}
 	return check
 }
@@ -130,8 +136,8 @@ func checkAPIConnectivity(ctx *Context) doctorCheck {
 	}
 	if err := ensureClient(ctx); err != nil {
 		check.Status = "fail"
-		check.Message = "failed to initialize API client"
-		check.Details = map[string]any{"error": err.Error()}
+		check.Message = "authenticated API probe skipped: " + safeErrorText(ctx, err)
+		check.Details = map[string]any{"error": safeErrorText(ctx, err)}
 		return check
 	}
 	query := url.Values{}
@@ -143,7 +149,7 @@ func checkAPIConnectivity(ctx *Context) doctorCheck {
 	if err != nil {
 		check.Status = "fail"
 		check.Message = "API probe failed"
-		check.Details = map[string]any{"error": err.Error()}
+		check.Details = map[string]any{"error": safeErrorText(ctx, err)}
 		return check
 	}
 	setRequestID(ctx, reqID)
@@ -169,7 +175,7 @@ func checkPlannerSetup(ctx *Context) doctorCheck {
 	if _, err := exec.LookPath(bin[0]); err != nil {
 		check.Status = "warn"
 		check.Message = "planner executable not found in PATH"
-		check.Details["error"] = err.Error()
+		check.Details["error"] = safeErrorText(ctx, err)
 		return check
 	}
 	check.Status = "ok"
@@ -190,14 +196,14 @@ func checkPolicyFile(ctx *Context) doctorCheck {
 		}
 		check.Status = "fail"
 		check.Message = "cannot stat policy file"
-		check.Details["error"] = err.Error()
+		check.Details["error"] = safeErrorText(ctx, err)
 		return check
 	}
 	policy, err := loadAgentPolicy(ctx, path)
 	if err != nil {
 		check.Status = "fail"
 		check.Message = "policy parse failed"
-		check.Details["error"] = err.Error()
+		check.Details["error"] = safeErrorText(ctx, err)
 		return check
 	}
 	check.Status = "ok"
@@ -221,7 +227,7 @@ func checkReplayJournal(ctx *Context) doctorCheck {
 	if err != nil {
 		check.Status = "fail"
 		check.Message = "replay journal parse failed"
-		check.Details["error"] = err.Error()
+		check.Details["error"] = safeErrorText(ctx, err)
 		return check
 	}
 	check.Details["entries"] = store.Len()

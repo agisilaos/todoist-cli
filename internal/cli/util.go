@@ -14,6 +14,7 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -119,12 +120,13 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 func writeDryRun(ctx *Context, action string, payload any) error {
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"action":  action,
-			"payload": payload,
-			"dry_run": true,
+			"action":        action,
+			"payload":       payload,
+			"dry_run":       true,
+			"authorization": currentAuthorization(ctx),
 		}, output.Meta{})
 	}
-	fmt.Fprintf(ctx.Stdout, "dry run: %s\n", action)
+	fmt.Fprintf(ctx.Stdout, "dry run: %s; %s\n", action, currentAuthorization(ctx).Summary())
 	return nil
 }
 
@@ -179,8 +181,16 @@ func writeError(ctx *Context, err error) {
 			enc.SetIndent("", "  ")
 		}
 		payload := map[string]any{
-			"error": err.Error(),
+			"error": safeErrorText(ctx, err),
 			"meta":  meta,
+		}
+		var authorizationErr *authorization.Error
+		if errors.As(err, &authorizationErr) {
+			payload["code"] = authorizationErr.Code
+			details = map[string]any{"profile": ctx.Profile, "source": ctx.TokenSource, "authorization": currentAuthorization(ctx)}
+			if authorizationErr.Reason != "" {
+				details["reason"] = authorizationErr.Reason
+			}
 		}
 		if details != nil {
 			payload["details"] = details
@@ -189,10 +199,14 @@ func writeError(ctx *Context, err error) {
 		return
 	}
 	if meta.RequestID != "" {
-		fmt.Fprintf(ctx.Stderr, "error: %s (request_id=%s)\n", err, meta.RequestID)
-		return
+		fmt.Fprintf(ctx.Stderr, "error: %s (request_id=%s)\n", safeErrorText(ctx, err), meta.RequestID)
+	} else {
+		fmt.Fprintf(ctx.Stderr, "error: %s\n", safeErrorText(ctx, err))
 	}
-	fmt.Fprintf(ctx.Stderr, "error: %s\n", err)
+	var denied *authorization.Error
+	if errors.As(err, &denied) && denied.Code == "READ_ONLY" {
+		fmt.Fprintln(ctx.Stderr, "Select a write-capable profile, or log in with --oauth without --read-only. --force cannot override authorization.")
+	}
 }
 
 func requireNonEmpty(value, field string) error {
@@ -356,4 +370,12 @@ func splitFlagName(arg string) (string, bool) {
 func isFlagBool(v flag.Value) bool {
 	bf, ok := v.(boolFlag)
 	return ok && bf.IsBoolFlag()
+}
+
+func safeErrorText(ctx *Context, err error) string {
+	text := err.Error()
+	if ctx != nil && ctx.Token != "" {
+		text = strings.ReplaceAll(text, ctx.Token, "[REDACTED]")
+	}
+	return text
 }

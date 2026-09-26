@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 )
 
@@ -23,7 +24,7 @@ func TestResolveFilterRefAmbiguous(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	_, err := resolveFilterRef(ctx, "tod")
@@ -58,7 +59,7 @@ func TestResolveTaskRefAmbiguous(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 		Global: GlobalOptions{NoInput: true},
 	}
@@ -90,7 +91,7 @@ func TestResolveTaskRefPrefersExactTextMatch(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 		Global: GlobalOptions{NoInput: true},
 	}
@@ -117,7 +118,7 @@ func TestListAllActiveTasksUsesCache(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	a, err := listAllActiveTasks(ctx)
@@ -183,7 +184,7 @@ func TestResolveProjectIDPropagatesLookupErrors(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if _, err := resolveProjectID(ctx, "Home"); err == nil {
@@ -203,7 +204,7 @@ func TestResolveFilterRefFromURL(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	filter, err := resolveFilterRef(ctx, "https://app.todoist.com/app/filter/today-f1")
@@ -238,7 +239,7 @@ func TestResolveWorkspaceIDByName(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	got, err := resolveWorkspaceID(ctx, "acme corp")

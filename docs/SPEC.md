@@ -10,8 +10,25 @@ Go-based CLI for Todoist. Binary name: `todoist`. Designed for humans and script
 - **Fallback**: `~/.config/todoist/credentials.json`
 - Profiles supported via `--profile` / `TODOIST_PROFILE`
 - OAuth PKCE login supported via `todoist auth login --oauth` (client ID from `--client-id` or `TODOIST_OAUTH_CLIENT_ID`)
-- OAuth device login supported via `todoist auth login --oauth-device`
+- The existing configurable device-flow client is available via `todoist auth login --oauth-device`; live Todoist device support is unverified.
 - OAuth endpoint/listen overrides: `TODOIST_OAUTH_AUTHORIZE_URL`, `TODOIST_OAUTH_TOKEN_URL`, `TODOIST_OAUTH_DEVICE_URL`, `TODOIST_OAUTH_LISTEN`
+
+## Authorization
+
+- Both OAuth flows accept `--read-only`: `todoist auth login --oauth --read-only` or `todoist auth login --oauth-device --read-only`. The flag requires an OAuth flow and cannot assert scopes for manually supplied tokens.
+- Read-only requests use `data:read`. Default read-write requests use `data:read_write,data:delete,project:delete`.
+- Successful exchanges store per-profile authorization metadata version 1: `mode`, `origin`, `requested_scopes`, `effective_scopes`, and `scope_evidence`. Explicit returned scopes take precedence; an omitted response scope uses the requested set according to OAuth. Broader read-only grants and unsupported grants fail without replacing the credential. Reduced read-write grants may produce read-only credentials.
+- `auth status` remains offline. Its existing `profile`, `configured`, and `source` fields are retained; `authorization` adds safe evidence and effective `write_capable`/`write_capability_reason`. Missing credentials have null mode, unknown scopes are null rather than an empty grant, and source remains `env` or `credentials` when configured.
+- The versioned format and complete reporting fields are specified in [authorization-design.md](authorization-design.md). Published schemas include `authorization`, `auth_status`, and `doctor`.
+- Legacy credentials load as unknown without rewriting the file. Manual and environment tokens are also unknown; all three permit attempted writes for compatibility, without inferring OAuth scopes. Environment credentials override profile metadata.
+- Present but invalid/unsupported metadata blocks authenticated operations. Status and doctor remain available for inspection. Login/logout can repair a selected record in a structurally readable credentials file. Failed persistence preserves the old file, and saving one profile preserves other profiles and unknown fields.
+- Read-only mode blocks every Todoist mutation through a central API guard. Resource reads, local operations, planning, and dry-run previews remain allowed. See the [complete command classification](authorization-command-inventory.md); notification `read`, account settings, goals, and invitation responses are mutations.
+- Agent apply/run check pending actions before the first mutation; denial is fatal even with `--force` or `--on-error=continue`. Replay-only reruns perform no new mutation and do not acquire a new application timestamp. No read/local action types are added to agent plans.
+- Planner requests, previews, and agent status expose current authorization. It is advisory for planning and never persisted as permission in an executable plan. Application resolves the current credential again. The existing replay journal remains scoped to the configuration directory, not an account.
+- Schedules preserve profile/config selections and relevant explicit endpoint/policy settings, without embedding tokens. `TODOIST_TOKEN` still takes precedence at execution. Authorization is checked when the scheduled command runs.
+- `--print-env` remains an explicit secret-bearing export without persistence. Subsequent environment use has unknown authorization. Logout removes stored credential metadata without revocation or environment changes.
+- Read-only and unknown authorization alone are healthy doctor states. A doctor API probe establishes acceptance at probe time, not scope discovery. Token refresh is outside this feature; authorization metadata does not establish permanent token validity.
+- Local metadata is not a security boundary against editing credential files or running an older binary. External planners run independently and are not sandboxed by the CLI's mutation guard.
 
 ## Command Structure
 
@@ -186,7 +203,12 @@ Planner context notes:
 ## Errors
 
 - Human errors include `request_id` when available.
-- JSON errors: `{"error":"...", "meta":{"request_id":"..."}}`
+- JSON errors retain `{"error":"...", "meta":{"request_id":"..."}}`. Authorization failures additionally expose a stable `code` and safe `details` containing profile, source, and authorization; they exit 3 and remain on stderr. `--json --quiet-json` compacts the same payload.
+- `READ_ONLY`: `Todoist mutation blocked: the active credential is read-only.`
+- `AUTH_METADATA_INVALID`: `Stored authorization metadata is invalid; log in again or remove the affected profile.`
+- `AUTH_METADATA_UNSUPPORTED`: `Stored authorization metadata uses an unsupported version; upgrade the CLI or replace the affected credential.`
+- `OAUTH_SCOPE_INVALID`: `OAuth returned an unacceptable scope grant; the stored credential was not changed.`
+- Doctor retains its existing diagnostic-failure exit behavior and report shape.
 - ID-mode errors use the same JSON envelope on stderr, including global parsing, output conflicts, unsupported commands, and runtime failures. `--quiet-json` compacts the envelope; existing runtime exit codes remain 1 (generic), 3 (auth), 4 (not found), and 5 (conflict). Usage errors return 2. Invocations without `--ids-only` retain their existing error behavior.
 
 ## Config

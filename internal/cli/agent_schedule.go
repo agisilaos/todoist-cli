@@ -37,6 +37,7 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	var planner string
 	var instruction string
 	var planPath string
+	var policyPath string
 	var confirm string
 	var force bool
 	var dryRun bool
@@ -51,6 +52,7 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	fs.StringVar(&weekly, "weekly", "", `Weekly schedule, e.g. "sat 09:00"`)
 	fs.StringVar(&planner, "planner", "", "Planner command")
 	fs.StringVar(&instruction, "instruction", "", "Instruction to plan/apply")
+	fs.StringVar(&policyPath, "policy", "", "Policy file path")
 	fs.StringVar(&planPath, "plan", "", "Plan file (or - for stdin)")
 	fs.StringVar(&confirm, "confirm", "", "Confirmation token")
 	fs.BoolVar(&force, "force", false, "Skip confirmation prompts")
@@ -89,19 +91,42 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	if onError != "fail" && onError != "continue" {
 		return &CodeError{Code: exitUsage, Err: errors.New("invalid --on-error; must be fail or continue")}
 	}
+	if policyPath != "" {
+		absolute, err := filepath.Abs(policyPath)
+		if err != nil {
+			return err
+		}
+		policyPath = absolute
+	}
 	runArgs := buildAgentRunArgs(agentRunOptions{
 		PlanPath:         planPath,
+		PolicyPath:       policyPath,
 		Instruction:      instruction,
 		Planner:          planner,
 		Confirm:          confirm,
 		OnError:          onError,
 		ExpectedVersion:  expectedVersion,
-		Force:            force,
-		DryRun:           dryRun,
+		Force:            force || ctx.Global.Force,
+		DryRun:           dryRun || ctx.Global.DryRun,
 		ContextProjects:  contextProjects,
 		ContextLabels:    contextLabels,
 		ContextCompleted: contextCompleted,
 	})
+	globals := []string{}
+	if ctx.Profile != "" {
+		globals = append(globals, "--profile", ctx.Profile)
+	}
+	if ctx.ConfigPath != "" {
+		path, err := filepath.Abs(ctx.ConfigPath)
+		if err != nil {
+			return err
+		}
+		globals = append(globals, "--config", path)
+	}
+	if ctx.Global.BaseURL != "" {
+		globals = append(globals, "--base-url", ctx.Global.BaseURL)
+	}
+	runArgs = append(globals, runArgs...)
 	if cron {
 		line := cronLine(spec, binPath, runArgs)
 		fmt.Fprintln(ctx.Stdout, line)
@@ -113,6 +138,9 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 
 func buildAgentRunArgs(opts agentRunOptions) []string {
 	args := []string{"agent", "run"}
+	if opts.PolicyPath != "" {
+		args = append(args, "--policy", opts.PolicyPath)
+	}
 	if opts.PlanPath != "" {
 		args = append(args, "--plan", opts.PlanPath)
 	}

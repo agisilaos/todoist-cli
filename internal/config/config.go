@@ -25,11 +25,14 @@ type Config struct {
 }
 
 type Credentials struct {
+	extra    map[string]json.RawMessage
 	Profiles map[string]Credential `json:"profiles"`
 }
 
 type Credential struct {
-	Token string `json:"token"`
+	extra         map[string]json.RawMessage
+	Token         string          `json:"token"`
+	Authorization json.RawMessage `json:"authorization,omitempty"`
 }
 
 func DefaultUserConfigPath() (string, error) {
@@ -97,7 +100,26 @@ func SaveCredentials(path string, creds Credentials) error {
 	if err != nil {
 		return fmt.Errorf("encode credentials: %w", err)
 	}
-	return os.WriteFile(path, data, 0o600)
+	file, err := os.CreateTemp(filepath.Dir(path), ".credentials-*")
+	if err != nil {
+		return err
+	}
+	temporary := file.Name()
+	defer os.Remove(temporary)
+	if err = file.Chmod(0600); err == nil {
+		_, err = file.Write(data)
+	}
+	if err == nil {
+		err = file.Sync()
+	}
+	closeErr := file.Close()
+	if err != nil {
+		return err
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	return os.Rename(temporary, path)
 }
 
 func EnsureDir(path string) error {

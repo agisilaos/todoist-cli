@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -37,7 +38,7 @@ func TestListTasksByFilterFallbacksToSearchQueryForLiteralText(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	tasks, _, err := listTasksByFilter(ctx, "Call mom", "", 50, true)
@@ -67,7 +68,7 @@ func TestListTasksByFilterDoesNotFallbackStructuredQuery(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if _, _, err := listTasksByFilter(ctx, "@work & today", "", 50, true); err == nil {

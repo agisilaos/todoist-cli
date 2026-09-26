@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 )
 
@@ -21,7 +22,7 @@ func TestResolveAssigneeIDMe(t *testing.T) {
 	defer ts.Close()
 
 	ctx := &Context{
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	id, err := resolveAssigneeID(ctx, "me", "", "")
@@ -35,7 +36,7 @@ func TestResolveAssigneeIDMe(t *testing.T) {
 
 func TestResolveAssigneeIDByEmailRequiresProject(t *testing.T) {
 	ctx := &Context{
-		Client: api.NewClient("https://example.com", "token", time.Second),
+		Client: api.NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	_, err := resolveAssigneeID(ctx, "ada@example.com", "", "")
@@ -56,7 +57,7 @@ func TestResolveAssigneeIDByEmailWithProject(t *testing.T) {
 	defer ts.Close()
 
 	ctx := &Context{
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	id, err := resolveAssigneeID(ctx, "ada@example.com", "id:p1", "")

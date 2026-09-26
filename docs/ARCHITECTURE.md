@@ -50,3 +50,13 @@ Todoist API v1
 Agent apply and replay persistence remain in `internal/cli`; the app layer plans
 requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
 for the success boundary and persistence limitations.
+
+## Authorization boundary
+
+`internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` preserves the optional raw metadata per credential profile, including unsupported records in inactive profiles, and replaces credentials through a same-directory temporary file. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.
+
+Constructing an API client requires an explicit resolved authorization report, preventing callers from silently dropping profile metadata. Every Todoist resource request passes through `internal/api.Client.dispatch`. Its underlying HTTP client is private; embedding/tests can supply a transport without gaining an unguarded dispatch API. Known GET resource routes and command-free Sync resource reads are classified as reads. All other operations require write capability. Redirects pass through the same policy before the next request is sent; destinations outside the configured API origin/path are unclassified. Sync POSTs are inspected because the same endpoint supports reads and mutations. OAuth exchange uses its separate credential-acquisition transport.
+
+The API guard is authoritative. Agent preflight calls the same authorization policy before dispatching any pending action, and authorization errors abort even under continue mode. Bulk task commands propagate these errors instead of converting them to a successful partial-failure summary. Replay skips perform no mutation and remain available with a read-only credential. Planning and previews report current authorization without putting authority into executable plans.
+
+Unknown credential compatibility is deliberate; see [ADR-0003](adr/0003-preserve-write-capability-for-unknown-credentials.md). The [authorization contract](authorization-design.md) separates metadata absence from invalid metadata and describes the machine output contract. External planners and older CLI binaries are outside the guard's enforcement boundary.
