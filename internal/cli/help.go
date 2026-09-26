@@ -181,6 +181,7 @@ Storage:
   New profiles require native storage by default; file storage is an explicit fallback.
   Existing profiles keep their backend. Status reads metadata without retrieving secrets.
   Keychain never prompts; unlock or adjust it externally, then retry.
+  Manual login verifies the token with Todoist before saving; network access is required.
 
 Examples:
   todoist auth login
@@ -226,6 +227,9 @@ Examples:
   todoist auth login --oauth --no-browser --print-env
 
 Notes:
+  Paste only the API token from Todoist settings, without spaces, quotes, or Bearer.
+  Manual tokens are checked with Todoist before saving or --print-env; network access is required.
+  Failed verification leaves existing credentials unchanged. Rerun login to retry.
   OAuth defaults to read-write; --read-only blocks Todoist mutations, including agent apply/run.
   Planning, local inspection, and dry runs remain available with read-only credentials.
   Manual, environment, and legacy tokens have unknown scopes and permit write attempts.

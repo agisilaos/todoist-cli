@@ -11,6 +11,7 @@ Storage:
   New profiles require native storage by default; file storage is an explicit fallback.
   Existing profiles keep their backend. Status reads metadata without retrieving secrets.
   Keychain never prompts; unlock or adjust it externally, then retry.
+  Manual login verifies the token with Todoist before saving; network access is required.
 
 Examples:
   todoist auth login

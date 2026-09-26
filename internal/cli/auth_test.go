@@ -134,6 +134,7 @@ func TestAuthLoginTokenStdinPrintEnvNDJSONMode(t *testing.T) {
 	ctx := newAuthTestContext(t)
 	ctx.Mode = output.ModeNDJSON
 	ctx.Stdin = strings.NewReader("stdin-token-123\n")
+	authValidationServer(t, ctx, 200, "stdin-token-123")
 
 	if err := authLogin(ctx, []string{"--token-stdin", "--print-env"}); err != nil {
 		t.Fatalf("authLogin: %v", err)

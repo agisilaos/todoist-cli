@@ -13,6 +13,7 @@ func TestAuthLoginAndLogoutNDJSON(t *testing.T) {
 	ctx := newAuthTestContext(t)
 	ctx.Mode = output.ModeNDJSON
 	ctx.Stdin = strings.NewReader("synthetic-output-token\n")
+	authValidationServer(t, ctx, 200, "synthetic-output-token")
 	for _, operation := range []string{"login", "logout"} {
 		ctx.Stdout.(*bytes.Buffer).Reset()
 		var err error

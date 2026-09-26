@@ -9,15 +9,17 @@ import subprocess
 import tempfile
 import termios
 import time
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def check_login(binary, scratch, name, token, input_bytes):
+def check_login(binary, scratch, probe_url, name, token, input_bytes):
     config = scratch / name / 'config.json'
     config.parent.mkdir()
     env = {k: v for k, v in os.environ.items() if not k.startswith('TODOIST_')}
-    env.update(HOME=str(scratch), XDG_CONFIG_HOME=str(scratch), NO_COLOR='1')
+    env.update(HOME=str(scratch), XDG_CONFIG_HOME=str(scratch), NO_COLOR='1', TODOIST_BASE_URL=probe_url)
     master, slave = pty.openpty()
     initial = termios.tcgetattr(slave)
     process = subprocess.Popen(
@@ -74,8 +76,29 @@ with tempfile.TemporaryDirectory(prefix='todoist-terminal-test-') as directory:
     binary = scratch / 'todoist'
     subprocess.run(['go', 'build', '-o', str(binary), './cmd/todoist'],
                    cwd=ROOT, env=dict(os.environ, CGO_ENABLED='0'), check=True)
-    check_login(binary, scratch, 'success', b'synthetic-terminal-test-token', b'synthetic-terminal-test-token\r')
-    check_login(binary, scratch, 'empty', b'', b'\r')
-    check_login(binary, scratch, 'eof', b'', b'\x04')
-    check_login(binary, scratch, 'cancel', b'', b'\x03')
+    class AuthProbe(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_GET(self):
+            if self.path != '/projects?limit=1':
+                self.send_error(404)
+                return
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"results":[],"next_cursor":null}')
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), AuthProbe)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    probe_url = f'http://127.0.0.1:{server.server_port}'
+    try:
+        check_login(binary, scratch, probe_url, 'success', b'synthetic-terminal-test-token', b'synthetic-terminal-test-token\r')
+        check_login(binary, scratch, probe_url, 'paste', b'synthetic-pasted-token', b'\x1b[200~synthetic-pasted-token\x1b[201~\r')
+        check_login(binary, scratch, probe_url, 'spaces', b'', b'not a valid token\r')
+        check_login(binary, scratch, probe_url, 'empty', b'', b'\r')
+        check_login(binary, scratch, probe_url, 'eof', b'', b'\x04')
+        check_login(binary, scratch, probe_url, 'cancel', b'', b'\x03')
+    finally:
+        server.shutdown()
+        server.server_close()
 print('auth terminal checks passed')

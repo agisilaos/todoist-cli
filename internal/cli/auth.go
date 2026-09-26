@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
+	"unicode"
 
+	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
@@ -167,19 +170,45 @@ func authLogin(ctx *Context, args []string) error {
 		if !isTTYReader(ctx.Stdin) {
 			return &CodeError{Code: exitUsage, Err: errors.New("stdin is not a TTY; use --token-stdin")}
 		}
+		fmt.Fprintln(ctx.Stderr, "Copy your API token from Todoist settings. Paste only the token, without quotes or a Bearer prefix. Input is hidden.")
 		val, err := readSecret(ctx.Stdin.(*os.File), ctx.Stderr, "Todoist API token: ")
 		if err != nil {
 			return err
 		}
 		token = strings.TrimSpace(val)
 	}
-	if token == "" {
-		return &CodeError{Code: exitUsage, Err: errors.New("token is empty")}
+	if err := validateManualLoginToken(ctx, token); err != nil {
+		return err
 	}
 	if printEnv {
 		return writeAuthPrintEnv(ctx, token)
 	}
 	return storeProfileToken(ctx, token)
+}
+
+// Validate the candidate, not an environment override or the previously saved
+// profile. Never include provider responses: they may echo the candidate secret.
+func validateManualLoginToken(ctx *Context, token string) error {
+	if token == "" || strings.ContainsAny(token, "\"'") || strings.HasPrefix(token, "TODOIST_TOKEN=") || strings.ContainsFunc(token, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) {
+		return &CodeError{Code: exitUsage, Err: errors.New("Invalid API token format. Paste only the API token from Todoist settings, without spaces, quotes, or a Bearer prefix. Nothing was saved; run `todoist auth login` to retry.")}
+	}
+	timeout := time.Duration(ctx.Config.TimeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+	client := api.NewClient(ctx.Config.BaseURL, token, timeout, authorization.Resolve(nil, "env", true))
+	req, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	var page api.Paginated[api.Project]
+	_, err := client.Get(req, "/projects", url.Values{"limit": {"1"}}, &page)
+	if err == nil {
+		return nil
+	}
+	var apiErr *api.APIError
+	if errors.As(err, &apiErr) && (apiErr.Status == 401 || apiErr.Status == 403) {
+		return &CodeError{Code: exitAuth, Err: errors.New("API token was not accepted by Todoist. Copy your API token from Todoist settings and run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")}
+	}
+	return &CodeError{Code: exitError, Err: errors.New("Could not verify the API token. Check your connection and API endpoint, then run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")}
 }
 
 func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
@@ -272,7 +301,16 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSON(ctx.Stdout, []any{payload})
 	}
-	fmt.Fprintf(ctx.Stdout, "stored token for profile %q; backend: %s; %s\n", ctx.Profile, info.Backend, report.Summary())
+	storage := "the credential file"
+	if info.Backend == "keychain" {
+		storage = "macOS Keychain"
+	}
+	fmt.Fprintf(ctx.Stdout, "Connected to Todoist. Token saved in %s for profile %q.\n", storage, ctx.Profile)
+	if ctx.Profile == "default" {
+		fmt.Fprintln(ctx.Stdout, "Run `todoist today` to see your tasks.")
+	} else {
+		fmt.Fprintf(ctx.Stdout, "Run `todoist --profile %s today` to see your tasks.\n", shellEscape(ctx.Profile))
+	}
 	if os.Getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN still overrides the stored profile.")
 	}
