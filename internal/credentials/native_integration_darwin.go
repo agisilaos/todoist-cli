@@ -7,6 +7,7 @@ package credentials
 #cgo CFLAGS: -Wno-deprecated-declarations
 #include <Security/Security.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Private keychains never use a login.keychain path. No search-list/default
 // setter is called. Snapshot invariants are checked around their lifecycle.
@@ -21,14 +22,23 @@ static OSStatus test_keychain(const char *path, const char *password, int operat
  SecKeychainRef defaultBefore = NULL, defaultAfter = NULL;
  OSStatus beforeListStatus = SecKeychainCopySearchList(&before);
  OSStatus beforeDefaultStatus = SecKeychainCopyDefault(&defaultBefore);
- if (operation == 0) status = SecKeychainCreate(path, (UInt32)strlen(password), password, false, NULL, &keychain);
+ // A missing default is a known empty state; every other snapshot failure
+ // prevents us from establishing isolation and must abort before mutation.
+ int validBefore = beforeListStatus == 0 && before != NULL &&
+  ((beforeDefaultStatus == 0 && defaultBefore != NULL) ||
+   (beforeDefaultStatus == errSecNoDefaultKeychain && defaultBefore == NULL));
+ if (!validBefore) status = -100002;
+ else if (operation == 0) status = SecKeychainCreate(path, (UInt32)strlen(password), password, false, NULL, &keychain);
  else status = SecKeychainOpen(path, &keychain);
  if (status == 0 && operation == 1) status = SecKeychainLock(keychain);
  if (status == 0 && operation == 2) status = SecKeychainUnlock(keychain, (UInt32)strlen(password), password, true);
  if (status == 0 && operation == 3) status = SecKeychainDelete(keychain);
  OSStatus afterListStatus = SecKeychainCopySearchList(&after);
  OSStatus afterDefaultStatus = SecKeychainCopyDefault(&defaultAfter);
- if (beforeListStatus != afterListStatus || beforeDefaultStatus != afterDefaultStatus ||
+ int validAfter = afterListStatus == 0 && after != NULL &&
+  ((afterDefaultStatus == 0 && defaultAfter != NULL) ||
+   (afterDefaultStatus == errSecNoDefaultKeychain && defaultAfter == NULL));
+ if (!validBefore || !validAfter || beforeListStatus != afterListStatus || beforeDefaultStatus != afterDefaultStatus ||
   (before && after && !CFEqual(before,after)) ||
   (defaultBefore && defaultAfter && !CFEqual(defaultBefore,defaultAfter))) status = -100002;
  if (before) CFRelease(before); if (after) CFRelease(after);
@@ -40,7 +50,10 @@ static OSStatus test_keychain(const char *path, const char *password, int operat
 }
 */
 import "C"
-import "unsafe"
+import (
+	"errors"
+	"unsafe"
+)
 
 func isolatedKeychain(path, password string, operation int) error {
 	nativeMu.Lock()
@@ -49,5 +62,9 @@ func isolatedKeychain(path, password string, operation int) error {
 	defer C.free(unsafe.Pointer(p))
 	secret := C.CString(password)
 	defer C.free(unsafe.Pointer(secret))
-	return nativeError(int(C.test_keychain(p, secret, C.int(operation))))
+	status := int(C.test_keychain(p, secret, C.int(operation)))
+	if status == -100002 {
+		return errors.New("isolated Keychain snapshots could not be established or changed unexpectedly")
+	}
+	return nativeError(status)
 }

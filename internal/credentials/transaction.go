@@ -237,6 +237,25 @@ func resolveBackend(selector string) (string, error) {
 		return "", failure(Selection)
 	}
 }
+
+// SelectBackend applies the common selection policy. The caller supplies any
+// user-config default only for a new profile; existing profiles remain sticky.
+func SelectBackend(info Info, selector string) (string, error) {
+	if selector == "" {
+		if info.Configured {
+			return info.Backend, nil
+		}
+		return "keychain", nil
+	}
+	selected, err := resolveBackend(selector)
+	if err != nil {
+		return "", err
+	}
+	if info.Configured && selected != info.Backend {
+		return "", failure(Selection)
+	}
+	return selected, nil
+}
 func (s *ProfileStore) Save(ctx context.Context, name string, c config.Credential, selector string) error {
 	if strings.TrimSpace(c.Token) == "" {
 		return failure(Missing)
@@ -265,19 +284,9 @@ func (s *ProfileStore) Save(ctx context.Context, name string, c config.Credentia
 	if d.Disabled || (old.Storage == nil && old.Token == "") {
 		exists = false
 	}
-	backend := d.Backend
-	if !exists {
-		backend = "keychain"
-	}
-	if selector != "" {
-		selected, err := resolveBackend(selector)
-		if err != nil {
-			return err
-		}
-		if exists && selected != backend {
-			return failure(Selection)
-		}
-		backend = selected
+	backend, err := SelectBackend(Info{Configured: exists, Backend: d.Backend}, selector)
+	if err != nil {
+		return err
 	}
 	return s.change(ctx, all, name, c, backend, false)
 }
@@ -366,6 +375,9 @@ func (s *ProfileStore) change(ctx context.Context, all config.Credentials, name 
 	} else if tx != nil {
 		return failure(Recovery)
 	}
+	if err := s.files.RemoveStaging(s.path); err != nil {
+		return Normalize(err)
+	}
 	ns, err := s.namespace()
 	if err != nil {
 		return err
@@ -440,20 +452,26 @@ func (s *ProfileStore) repair(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	if tx == nil {
-		return nil
-	}
-	if tx.Profile != name {
-		return failure(Recovery)
-	}
 	all, err := s.read()
 	if err != nil {
 		return err
+	}
+	if tx == nil {
+		if _, err := s.descriptor(all.Profiles[name], name); err != nil {
+			return err
+		}
+		return Normalize(s.files.RemoveStaging(s.path))
+	}
+	if tx.Profile != name {
+		return failure(Recovery)
 	}
 	c, exists := all.Profiles[name]
 	done := committed(tx, c, exists)
 	if !done && !sameJSON(c.Storage, tx.Before) {
 		return failure(Recovery)
+	}
+	if err := s.files.RemoveStaging(s.path); err != nil {
+		return Normalize(err)
 	}
 	// Recovery may follow a rename whose directory sync failed. Confirm the
 	// selected file state durably before deleting either side's native entries.

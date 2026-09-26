@@ -9,6 +9,8 @@ package credentials
 #include <stdlib.h>
 #include <string.h>
 
+enum CredentialOperation { CredentialProbe, CredentialWrite, CredentialRead, CredentialDelete };
+
 // Every operation uses an explicit keychain reference and restores the process
 // interaction setting. Go serializes this scope because the setting is global.
 static OSStatus credential_operation(const char *path, const char *service,
@@ -31,19 +33,19 @@ static OSStatus credential_operation(const char *path, const char *service,
   status = SecKeychainGetStatus(keychain, &flags);
   if (status == errSecSuccess && !(flags & kSecUnlockStateStatus)) status = -100001;
  }
- if (status == errSecSuccess && operation == 1) {
+ if (status == errSecSuccess && operation == CredentialWrite) {
   status = SecKeychainAddGenericPassword(keychain, (UInt32)strlen(service), service,
    (UInt32)strlen(account), account, secretLen, secret, NULL);
- } else if (status == errSecSuccess && (operation == 2 || operation == 3)) {
+ } else if (status == errSecSuccess && (operation == CredentialRead || operation == CredentialDelete)) {
   status = SecKeychainFindGenericPassword(keychain, (UInt32)strlen(service), service,
-   (UInt32)strlen(account), account, operation == 2 ? &length : NULL,
-   operation == 2 ? &content : NULL, &item);
-  if (status == errSecSuccess && operation == 2) {
+   (UInt32)strlen(account), account, operation == CredentialRead ? &length : NULL,
+   operation == CredentialRead ? &content : NULL, &item);
+  if (status == errSecSuccess && operation == CredentialRead) {
    *result = malloc(length ? length : 1);
    if (*result == NULL) status = errSecAllocate;
    else { memcpy(*result, content, length); *resultLen = length; }
   }
-  if (status == errSecSuccess && operation == 3) status = SecKeychainItemDelete(item);
+  if (status == errSecSuccess && operation == CredentialDelete) status = SecKeychainItemDelete(item);
  }
  if (content) SecKeychainItemFreeContent(NULL, content);
  if (item) CFRelease(item);
@@ -100,18 +102,18 @@ func (k *keychain) operation(ctx context.Context, op int, account, token string)
 	return "", nil
 }
 func (k *keychain) Read(ctx context.Context, id string) (string, error) {
-	return k.operation(ctx, 2, id, "")
+	return k.operation(ctx, int(C.CredentialRead), id, "")
 }
 func (k *keychain) Write(ctx context.Context, id, token string) error {
-	_, err := k.operation(ctx, 1, id, token)
+	_, err := k.operation(ctx, int(C.CredentialWrite), id, token)
 	return err
 }
 func (k *keychain) Delete(ctx context.Context, id string) error {
-	_, err := k.operation(ctx, 3, id, "")
+	_, err := k.operation(ctx, int(C.CredentialDelete), id, "")
 	return err
 }
 func (k *keychain) Probe(ctx context.Context) error {
-	_, err := k.operation(ctx, 0, "", "")
+	_, err := k.operation(ctx, int(C.CredentialProbe), "", "")
 	return err
 }
 func nativeError(status int) error {

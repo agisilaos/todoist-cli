@@ -18,7 +18,10 @@ Tokens are passed directly to native APIs, never through subprocess arguments.
 output, errors, logs and doctor reports exclude secrets.
 
 Migration verifies the destination before removing the current plaintext token.
-Recovery journals contain no tokens. Cleanup errors distinguish completed changes
+Recovery journals contain no tokens. Writers and explicit repair remove abandoned
+regular files under the reserved `.todoist-credentials-stage-*` prefix and older
+numeric `.credentials-*` staging names while holding the writer lock. Other files
+and symlink targets are preserved. Cleanup errors distinguish completed changes
 from operations needing recovery. Logout disables a profile before deleting its
 native token. Neither operation remotely revokes a token. No CLI can erase copies
 in filesystem snapshots or backups, or protect credentials from an actor with the

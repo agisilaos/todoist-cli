@@ -492,3 +492,63 @@ func TestCorruptRecoveryJournalCannotDeleteNativeEntries(t *testing.T) {
 		})
 	}
 }
+
+func TestMigrationAndRepairRemoveAbandonedOwnedPlaintextStaging(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "credentials.json")
+	f := &fakeSecrets{values: map[string]string{}}
+	s := credentials.New(path, f, nil)
+	if err := s.Save(ctx, "work", config.Credential{Token: "interrupted-plaintext"}, "file"); err != nil {
+		t.Fatal(err)
+	}
+	// A killed process does not execute Disk.Write's deferred temporary removal.
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphan := filepath.Join(dir, ".credentials-123456789")
+	if err := os.WriteFile(orphan, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	unrelated := filepath.Join(dir, ".credentials-user-notes")
+	if err := os.WriteFile(unrelated, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Migrate(ctx, "work", "native"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
+		t.Fatal("native migration retained abandoned plaintext staging")
+	}
+	if _, err := os.Stat(unrelated); err != nil {
+		t.Fatal("cleanup touched unrelated file")
+	}
+	// Repair also clears abandoned staging when a crash happened before the
+	// transaction journal itself was published.
+	orphan = filepath.Join(dir, ".todoist-credentials-stage-abandoned")
+	if err := os.WriteFile(orphan, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Repair(ctx, "work"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
+		t.Fatal("repair retained orphan staging")
+	}
+}
+
+func TestCorruptStatePreservesStagingForDeliberateRecovery(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "credentials.json")
+	os.WriteFile(path, []byte(`{"profiles":`), 0600)
+	stage := filepath.Join(dir, ".todoist-credentials-stage-recovery")
+	os.WriteFile(stage, []byte(`{"profiles":{"default":{"token":"recoverable-fixture"}}}`), 0600)
+	s := credentials.New(path, nil, nil)
+	if err := s.Repair(context.Background(), "default"); err == nil {
+		t.Fatal("corrupt state repair should fail")
+	}
+	if _, err := os.Stat(stage); err != nil {
+		t.Fatal("corrupt-state repair destroyed recovery material")
+	}
+}

@@ -64,26 +64,18 @@ func loginBackend(ctx *Context, explicit string) (string, error) {
 			return "", err
 		}
 	}
-	if explicit != "" {
-		target := explicit
-		if target == "native" {
-			target = "keychain"
-		}
-		if info.Configured && info.Backend != target {
-			return "", &CodeError{Code: exitUsage, Err: &credentials.Error{Kind: credentials.Selection}}
-		}
-		return explicit, nil
-	}
-	if info.Configured {
-		return "", nil
-	}
-	if ctx.Config.CredentialStore != "" {
-		if ctx.Config.CredentialStore != "native" && ctx.Config.CredentialStore != "file" {
+	requested := explicit
+	if requested == "" && !info.Configured {
+		requested = ctx.Config.CredentialStore
+		if requested != "" && requested != "native" && requested != "file" {
 			return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("credential_store must be native or file")}
 		}
-		return ctx.Config.CredentialStore, nil
 	}
-	return "native", nil
+	selected, err := credentials.SelectBackend(info, requested)
+	if err != nil {
+		return "", err
+	}
+	return selected, nil
 }
 func authStorageCommand(ctx *Context, operation string, args []string) error {
 	fs := newFlagSet("auth migrate")
