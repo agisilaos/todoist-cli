@@ -15,6 +15,7 @@ import (
 	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/authorization"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -191,6 +192,11 @@ func writeError(ctx *Context, err error) {
 			if authorizationErr.Reason != "" {
 				details["reason"] = authorizationErr.Reason
 			}
+		}
+		var storageErr *credentials.Error
+		if errors.As(err, &storageErr) {
+			payload["code"] = storageErr.Kind
+			details = storageErrorDetails(err)
 		}
 		if details != nil {
 			payload["details"] = details

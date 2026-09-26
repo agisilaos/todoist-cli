@@ -27,6 +27,10 @@ func authCommand(ctx *Context, args []string) error {
 		return nil
 	}
 	if args[0] == "help" {
+		if len(args) > 1 && (args[1] == "migrate" || args[1] == "repair") {
+			printAuthStorageHelp(ctx.Stdout, args[1])
+			return nil
+		}
 		if len(args) > 1 && args[1] == "login" {
 			printAuthLoginHelp(ctx.Stdout)
 			return nil
@@ -37,6 +41,8 @@ func authCommand(ctx *Context, args []string) error {
 	switch args[0] {
 	case "login":
 		return authLogin(ctx, args[1:])
+	case "migrate", "repair":
+		return authStorageCommand(ctx, args[0], args[1:])
 	case "status":
 		return authStatus(ctx)
 	case "logout":
@@ -48,6 +54,7 @@ func authCommand(ctx *Context, args []string) error {
 
 func authLogin(ctx *Context, args []string) error {
 	fs := newFlagSet("auth login")
+	var backend string
 	var tokenStdin bool
 	var readOnly bool
 	var printEnv bool
@@ -61,6 +68,7 @@ func authLogin(ctx *Context, args []string) error {
 	var oauthListen string
 	var redirectURI string
 	var help bool
+	fs.StringVar(&backend, "credential-store", "", "Storage for a new profile: native or file")
 	fs.BoolVar(&readOnly, "read-only", false, "Request read-only OAuth access")
 	fs.BoolVar(&tokenStdin, "token-stdin", false, "Read token from stdin")
 	fs.BoolVar(&printEnv, "print-env", false, "Print export command instead of saving")
@@ -80,6 +88,13 @@ func authLogin(ctx *Context, args []string) error {
 	if help {
 		printAuthLoginHelp(ctx.Stdout)
 		return nil
+	}
+	if !printEnv {
+		selected, err := loginBackend(ctx, backend)
+		if err != nil {
+			return err
+		}
+		ctx.SavingBackend = selected
 	}
 	if readOnly && !oauth && !oauthDevice {
 		return &CodeError{Code: exitUsage, Err: errors.New("--read-only requires --oauth or --oauth-device")}
@@ -213,32 +228,31 @@ func storeProfileToken(ctx *Context, token string) error {
 }
 
 func storeProfileCredential(ctx *Context, token string, metadata authorization.Metadata) error {
-	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
-	creds, _, err := config.LoadCredentials(credsPath)
-	if err != nil {
-		return err
-	}
-	if creds.Profiles == nil {
-		creds.Profiles = map[string]config.Credential{}
-	}
 	raw, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	creds.Profiles[ctx.Profile] = config.Credential{Token: token, Authorization: raw}
 	report := authorization.Resolve(raw, "credentials", true)
-	if err := config.SaveCredentials(credsPath, creds); err != nil {
+	req, cancel := requestContext(ctx)
+	defer cancel()
+	if err := profileStore(ctx).Save(req, ctx.Profile, config.Credential{Token: token, Authorization: raw}, ctx.SavingBackend); err != nil {
 		return err
 	}
+	info, err := profileStore(ctx).Inspect(req, ctx.Profile)
+	if err != nil {
+		return err
+	}
+
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
 			"profile":                  ctx.Profile,
 			"stored":                   true,
+			"backend":                  info.Backend,
 			"authorization":            report,
 			"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
 		}, output.Meta{})
 	}
-	fmt.Fprintf(ctx.Stdout, "stored token for profile %q; %s\n", ctx.Profile, report.Summary())
+	fmt.Fprintf(ctx.Stdout, "stored token for profile %q; backend: %s; %s\n", ctx.Profile, info.Backend, report.Summary())
 	if os.Getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN still overrides the stored profile.")
 	}
@@ -268,14 +282,17 @@ func writeAuthPrintEnv(ctx *Context, token string) error {
 }
 
 func authStatus(ctx *Context) error {
+	if ctx.CredentialErr != nil {
+		return ctx.CredentialErr
+	}
 	report := currentAuthorization(ctx)
 	source := ctx.TokenSource
-	configured := ctx.Token != ""
+	configured := configuredCredential(ctx)
 	if source == "" && configured {
 		source = "unknown"
 	}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		payload := map[string]any{"profile": ctx.Profile, "configured": configured, "source": source, "authorization": report}
+		payload := map[string]any{"profile": ctx.Profile, "configured": configured, "source": source, "authorization": report, "backend": credentialBackend(ctx), "accessibility": "unchecked", "recovery": ctx.CredentialInfo.Recovery}
 		var err error
 		if ctx.Mode == output.ModeNDJSON {
 			err = output.WriteNDJSON(ctx.Stdout, []any{payload})
@@ -286,23 +303,20 @@ func authStatus(ctx *Context) error {
 			return err
 		}
 	} else if configured {
-		fmt.Fprintf(ctx.Stdout, "profile %q token source: %s; %s\n", ctx.Profile, source, report.Summary())
+		fmt.Fprintf(ctx.Stdout, "profile %q token source: %s; backend: %s; accessibility unchecked; %s\n", ctx.Profile, source, credentialBackend(ctx), report.Summary())
 	} else {
 		fmt.Fprintf(ctx.Stdout, "profile %q has no token configured\n", ctx.Profile)
+	}
+	if ctx.CredentialInfo.Recovery != "" && ctx.Mode != output.ModeJSON && ctx.Mode != output.ModeNDJSON {
+		fmt.Fprintf(ctx.Stdout, "credential recovery: %s; run todoist auth repair\n", ctx.CredentialInfo.Recovery)
 	}
 	return report.CheckCredential()
 }
 
 func authLogout(ctx *Context) error {
-	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
-	creds, _, err := config.LoadCredentials(credsPath)
-	if err != nil {
-		return err
-	}
-	if creds.Profiles != nil {
-		delete(creds.Profiles, ctx.Profile)
-	}
-	if err := config.SaveCredentials(credsPath, creds); err != nil {
+	req, cancel := requestContext(ctx)
+	defer cancel()
+	if err := profileStore(ctx).Delete(req, ctx.Profile); err != nil {
 		return err
 	}
 	if ctx.Mode == output.ModeJSON {

@@ -202,7 +202,7 @@ build_archive() {
   fi
 
   rm -f "$bin_path"
-  GOOS=darwin GOARCH="$arch" CGO_ENABLED=0 "${build_cmd[@]}"
+  GOOS=darwin GOARCH="$arch" CGO_ENABLED=1 "${build_cmd[@]}"
   tar -C "$tmp_dir" -czf "$archive_path" "$CLI_NAME"
 }
 

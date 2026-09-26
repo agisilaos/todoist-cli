@@ -52,6 +52,10 @@ _Avoid_: Credential source, authorization mode
 A named stored credential and its associated authorization information, selected together for an invocation. A token supplied through the environment overrides that selection without inheriting the profile's authorization information.
 _Avoid_: Todoist account, authorization mode
 
+**Authorization metadata**:
+The recorded authorization information associated with a particular credential, including its authorization mode, credential origin, requested and effective scopes, and scope evidence. It does not establish current token validity or transfer to a replacement credential.
+_Avoid_: Credential source, write capability, token validity
+
 **Write capability**:
 Whether the CLI's authorization policy permits the current invocation to attempt a Todoist mutation. Todoist still determines whether the request succeeds.
 _Avoid_: Granted scope, guaranteed write access

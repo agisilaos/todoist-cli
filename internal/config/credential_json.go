@@ -15,13 +15,19 @@ func (c *Credential) UnmarshalJSON(data []byte) error {
 	}
 	delete(c.extra, "token")
 	delete(c.extra, "authorization")
+	delete(c.extra, "storage")
 	return nil
 }
 
 func (c Credential) MarshalJSON() ([]byte, error) {
 	fields := copyJSONFields(c.extra)
 	token, _ := json.Marshal(c.Token)
-	fields["token"] = token
+	if c.Token != "" || c.Storage == nil {
+		fields["token"] = token
+	}
+	if c.Storage != nil {
+		fields["storage"] = c.Storage
+	}
 	if c.Authorization != nil {
 		fields["authorization"] = c.Authorization
 	}

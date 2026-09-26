@@ -40,3 +40,12 @@ The final command creates and pushes the tag, publishes the GitHub Release with 
 - Keep concrete release headings in the form `## [vX.Y.Z] - YYYY-MM-DD`.
 - Do not add an `Unreleased` section.
 - Treat the reviewed changelog section as the source of truth for GitHub release notes.
+
+## Native credential adapter
+
+macOS release archives build both amd64 and arm64 with `CGO_ENABLED=1` so Keychain
+support is included. Build on macOS with Xcode Command Line Tools/Apple clang and
+Security.framework available. `CGO_ENABLED=0` still compiles a portable CLI whose
+native adapter reports unavailable; saved login then requires explicit file storage.
+Before release, run the opt-in disposable-Keychain test documented in SECURITY.md
+and cross-compile the portable builds for macOS, Linux, and Windows.

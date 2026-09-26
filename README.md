@@ -55,7 +55,7 @@ todoist auth login --token-stdin < token.txt
 TODOIST_TOKEN=... todoist task list
 ```
 
-Tokens are stored in `~/.config/todoist/credentials.json` with `0600` permissions. Set `TODOIST_TOKEN` to override stored tokens.
+New profiles use macOS Keychain by default. Explicit portable file storage uses `~/.config/todoist/credentials.json` with `0600` permissions. Set `TODOIST_TOKEN` to override stored tokens. See [credential storage and recovery](#credential-storage-and-recovery) for other platforms and migration.
 
 For read-only OAuth access:
 
@@ -71,7 +71,7 @@ Read-only credentials can read Todoist, construct plans, and run previews. The C
 
 Authorization metadata is saved with each profile. `auth status` reports credential presence and authorization offline; `doctor` also performs a read-only API probe. Both distinguish requested/effective scopes, evidence, credential origin, source, and write capability without exposing tokens. Raw resource JSON and IDs-only output stay unchanged.
 
-Existing stored tokens, manual tokens, and `TODOIST_TOKEN` remain **unknown** and may attempt writes for compatibility. The environment token overrides a selected profile without inheriting its metadata. Exporting with `--print-env` also loses local scope evidence on subsequent environment use. Invalid or unsupported metadata blocks authenticated operations and can be repaired through login/logout. Logout removes the stored token and metadata, but does not revoke the token or unset the environment.
+Existing stored tokens, manual tokens, and `TODOIST_TOKEN` remain **unknown** and may attempt writes for compatibility. The environment token overrides a selected profile without inheriting its metadata. Exporting with `--print-env` also loses local scope evidence on subsequent environment use. Invalid or unsupported metadata blocks authenticated operations and can be repaired through login/logout. Logout disables the profile and removes its token and metadata; failed native deletion is reported as pending cleanup. It does not revoke the token or unset the environment.
 
 See the [authorization contract](docs/authorization-design.md), [command classification](docs/authorization-command-inventory.md), and [compatibility decision](docs/adr/0003-preserve-write-capability-for-unknown-credentials.md).
 
@@ -92,6 +92,7 @@ Example `config.json`:
   "base_url": "https://api.todoist.com/api/v1",
   "timeout_seconds": 10,
   "default_profile": "default",
+  "credential_store": "native",
   "default_inbox_labels": ["inbox"],
   "default_inbox_due": "today",
   "table_width": 120,
@@ -790,3 +791,45 @@ todoist comment add --task 123456 --content "Need QA sign-off"
 todoist agent plan "Clean up overdue tasks" --out plan.json
 todoist agent apply --plan plan.json --confirm "$(jq -r .confirm_token plan.json)"
 ```
+
+### Credential storage and recovery
+
+New profiles require native storage by default. macOS releases use Keychain; Linux,
+Windows, and macOS builds without cgo require explicit file storage for saved login:
+
+```bash
+todoist auth login --credential-store=file --token-stdin < token.txt
+todoist --profile work auth migrate --credential-store=native
+todoist --profile work auth repair
+```
+
+`--credential-store=native|file` selects storage for new profiles. Set
+`"credential_store": "file"` in the user configuration to choose the portable
+fallback by default; project `.todoist.json` cannot select credential storage.
+Existing profiles retain their backend, including existing plaintext profiles.
+A conflicting login selection requires explicit migration first. There is no
+silent fallback when native storage is unavailable, locked, or denied.
+
+Native tokens reside in Keychain. Non-secret authorization metadata and native
+references remain in `credentials.json` with `0600` permissions. `auth status`
+reads metadata without retrieving native secrets; its `configured` field does
+not verify accessibility or authentication. `doctor` reports backend health and
+attempts its existing read-only API probe. Keychain never opens an OS dialog;
+unlock or adjust access outside the CLI and retry. `TODOIST_TOKEN` still bypasses
+stored credentials and their metadata.
+
+Migration verifies the destination before selecting it and removing the current
+plaintext token. It preserves authorization evidence and other profiles. Reads
+never migrate automatically. Interrupted operations require `auth repair`;
+cleanup failures report whether the switch completed. Logout disables the profile
+before attempting native deletion, and repeating logout retries pending cleanup.
+
+Older binaries cannot use migrated profiles. To downgrade, first explicitly run
+`todoist auth migrate --credential-store=file`. No compatibility token copy is
+retained. Avoid editing migrated files with older binaries, which may discard
+storage references. File removal is not forensic erasure of backups or snapshots.
+
+Profiles are isolated by canonical configuration directory and name. Symlink
+aliases share a directory; moving or copying it requires a new login and cannot
+delete entries in its original namespace. See the [storage design](docs/credential-store-design.md)
+and [security policy](SECURITY.md) for recovery and native-test boundaries.

@@ -21,7 +21,8 @@ func authorizationReportSchema() map[string]any {
 func authStatusSchema() map[string]any {
 	return map[string]any{"type": "object", "properties": map[string]any{
 		"profile": map[string]any{"type": "string"}, "configured": map[string]any{"type": "boolean"}, "source": map[string]any{"type": "string"}, "authorization": authorizationReportSchema(),
-	}, "required": []string{"profile", "configured", "source", "authorization"}}
+		"backend": map[string]any{"type": "string"}, "accessibility": map[string]any{"enum": []string{"unchecked"}}, "recovery": map[string]any{"enum": []string{"", "cleanup", "rollback"}},
+	}, "required": []string{"profile", "configured", "source", "authorization", "backend", "accessibility"}}
 }
 
 func doctorReportSchema() map[string]any {
@@ -29,7 +30,7 @@ func doctorReportSchema() map[string]any {
 	return map[string]any{"type": "object", "properties": map[string]any{
 		"checks": map[string]any{"type": "array", "items": map[string]any{"type": "object", "properties": map[string]any{
 			"name": map[string]any{"type": "string"}, "status": map[string]any{"enum": []string{"ok", "warn", "fail"}}, "message": map[string]any{"type": "string"},
-			"details": map[string]any{"type": "object", "properties": map[string]any{"authorization": authorizationReportSchema()}},
+			"details": map[string]any{"type": "object", "properties": map[string]any{"authorization": authorizationReportSchema(), "backend": map[string]any{"type": "string"}, "accessibility": map[string]any{"type": "string"}}},
 		}, "required": []string{"name", "status", "message"}}},
 		"summary": map[string]any{"type": "object", "properties": map[string]any{"ok": integer, "warn": integer, "fail": integer, "total": integer}, "required": []string{"ok", "warn", "fail", "total"}},
 	}, "required": []string{"checks", "summary"}}

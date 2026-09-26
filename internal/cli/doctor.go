@@ -116,7 +116,7 @@ func checkCredentials(ctx *Context) doctorCheck {
 		check.Details["error"] = safeErrorText(ctx, err)
 	}
 
-	if strings.TrimSpace(ctx.Token) == "" {
+	if !configuredCredential(ctx) {
 		check.Status = "warn"
 		check.Message = "no token resolved; run `todoist auth login`"
 	}
@@ -126,12 +126,26 @@ func checkCredentials(ctx *Context) doctorCheck {
 	if report.CheckCredential() != nil {
 		check.Status = "fail"
 	}
+	check.Details["backend"] = credentialBackend(ctx)
+	check.Details["accessibility"] = "unchecked"
+	check.Details["recovery"] = ctx.CredentialInfo.Recovery
+	storageErr := ctx.CredentialErr
+	if storageErr == nil && ctx.TokenSource != "env" && ctx.CredentialInfo.Configured {
+		req, cancel := requestContext(ctx)
+		storageErr = profileStore(ctx).Probe(req, ctx.Profile)
+		cancel()
+	}
+	if storageErr != nil {
+		check.Status = "fail"
+		check.Message = storageErr.Error()
+	}
+
 	return check
 }
 
 func checkAPIConnectivity(ctx *Context) doctorCheck {
 	check := doctorCheck{Name: "api", Status: "warn", Message: "token not configured; connectivity skipped"}
-	if ctx == nil || strings.TrimSpace(ctx.Token) == "" {
+	if ctx == nil || (!configuredCredential(ctx) && ctx.CredentialErr == nil) {
 		return check
 	}
 	if err := ensureClient(ctx); err != nil {

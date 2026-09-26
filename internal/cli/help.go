@@ -147,11 +147,18 @@ func helpCommand(ctx *Context, args []string) error {
 
 func printAuthHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
   todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
   todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
   todoist auth status
   todoist auth logout
+  todoist auth migrate --credential-store=native|file
+  todoist auth repair
+
+Storage:
+  New profiles require native storage by default; file storage is an explicit fallback.
+  Existing profiles keep their backend. Status reads metadata without retrieving secrets.
+  Keychain never prompts; unlock or adjust it externally, then retry.
 
 Examples:
   todoist auth login
@@ -166,7 +173,7 @@ Examples:
 
 func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
   todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
   todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
                     [--oauth-authorize-url <url>] [--oauth-token-url <url>]
@@ -174,6 +181,7 @@ func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
                     [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 
 Flags:
+  --credential-store          New-profile backend: native or file (existing profiles require migration)
   --token-stdin                Read token from stdin
   --print-env                  Print token export instead of saving profile credentials
   --oauth                      Authenticate using OAuth PKCE flow
@@ -486,4 +494,26 @@ Examples:
   todoist add --content - --strict
   echo "From stdin" | todoist add --content -
 `)
+}
+
+func printAuthStorageHelp(w interface{ Write([]byte) (int, error) }, operation string) {
+	if operation == "migrate" {
+		fmt.Fprintln(w, `Usage: todoist auth migrate --credential-store=native|file
+
+Move the selected profile after verifying destination storage.
+Native migration removes its plaintext token. No automatic fallback occurs.
+Older CLI versions cannot use native profiles; explicitly migrate to file first.
+
+Options:
+  --credential-store native|file  Required destination backend
+  -h, --help                      Show help`)
+	} else {
+		fmt.Fprintln(w, `Usage: todoist auth repair
+
+Recover the selected profile's interrupted credential transaction or retry cleanup.
+Does not reconstruct corrupt files or access another directory's native entries.
+
+Options:
+  -h, --help  Show help`)
+	}
 }

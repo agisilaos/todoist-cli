@@ -13,6 +13,7 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -67,6 +68,11 @@ type Context struct {
 	ConfigPath string
 	Fuzzy      bool
 	Accessible bool
+
+	Credentials    credentials.Store
+	CredentialInfo credentials.Info
+	CredentialErr  error
+	SavingBackend  string
 
 	Token         string
 	TokenSource   string
@@ -328,17 +334,7 @@ func loadConfig(ctx *Context) error {
 		report := authorization.Resolve(nil, "env", true)
 		ctx.Authorization = &report
 	} else {
-		credsPath := config.CredentialsPathFromConfig(configPath)
-		creds, _, err := config.LoadCredentials(credsPath)
-		if err != nil {
-			return err
-		}
-		if cred, ok := creds.Profiles[ctx.Profile]; ok && cred.Token != "" {
-			ctx.Token = cred.Token
-			ctx.TokenSource = "credentials"
-			report := authorization.Resolve(cred.Authorization, "credentials", true)
-			ctx.Authorization = &report
-		}
+		inspectProfile(ctx)
 	}
 	if ctx.Token != "" {
 		ctx.Client = api.NewClient(cfg.BaseURL, ctx.Token, time.Duration(cfg.TimeoutSeconds)*time.Second, currentAuthorization(ctx))
@@ -355,6 +351,15 @@ func isTTYFile(w io.Writer) bool {
 }
 
 func ensureClient(ctx *Context) error {
+	if ctx.CredentialErr != nil && ctx.TokenSource != "env" {
+		return ctx.CredentialErr
+	}
+	if err := currentAuthorization(ctx).CheckCredential(); err != nil {
+		return err
+	}
+	if err := resolveStoredToken(ctx); err != nil {
+		return err
+	}
 	if err := currentAuthorization(ctx).CheckCredential(); err != nil {
 		return err
 	}
@@ -383,6 +388,13 @@ func (e *CodeError) Unwrap() error {
 func toExitCode(err error) int {
 	if err == nil {
 		return exitOK
+	}
+	var storageErr *credentials.Error
+	if errors.As(err, &storageErr) {
+		if storageErr.Kind == credentials.Selection {
+			return exitUsage
+		}
+		return exitAuth
 	}
 	var authorizationErr *authorization.Error
 	if errors.As(err, &authorizationErr) {
