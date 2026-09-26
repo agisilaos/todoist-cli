@@ -130,7 +130,7 @@ Environment variables:
 todoist [global flags] <command> [args]
 ```
 
-Global flags can appear before or after commands; `--ids-only` is restricted to supported lists:
+Global flags can appear before or after commands; command-option values stay literal even when they look like flags. `--ids-only` is restricted to supported lists:
 
 ```
 -h, --help           Show help
@@ -243,6 +243,7 @@ Notes:
 - If you pass `--since` without `--until`, `--until` defaults to today.
 - Bulk commands using `--filter` accept Todoist query syntax; plain text is treated as search text.
 - `--strict` is a flag on `todoist add` (quick-add command), not on `todoist task add`.
+- `todoist task add --content "--json" --json` creates a task named `--json` and returns JSON.
 - `task add/update --natural` lets you pass quick-add style tokens in `--content` (for example `#Home @errands p2 due:tomorrow`) and maps them to REST fields.
 - Task references also support due hints for disambiguation: `"call mom today"`, `"call mom tomorrow"`, `"call mom overdue"`.
 

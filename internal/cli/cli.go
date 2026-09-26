@@ -263,6 +263,11 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			}
 		default:
 			rest = append(rest, arg)
+			name, hasValue := splitFlagName(arg)
+			if !hasValue && commandFlagTakesValue(name) && i+1 < len(args) {
+				i++
+				rest = append(rest, args[i])
+			}
 		}
 	}
 	if parseErr != nil {
