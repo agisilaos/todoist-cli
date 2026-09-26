@@ -1,6 +1,9 @@
 package cli
 
-import "net/url"
+import (
+	"fmt"
+	"net/url"
+)
 
 func fetchPaginated[T any](ctx *Context, path string, query url.Values, all bool) ([]T, string, error) {
 	q := cloneQuery(query)
@@ -39,4 +42,12 @@ func cloneQuery(in url.Values) url.Values {
 		out[k] = cp
 	}
 	return out
+}
+
+func writeCursorNotice(ctx *Context, cursor string) error {
+	if cursor == "" {
+		return nil
+	}
+	_, err := fmt.Fprintf(ctx.Stderr, "More available. Use --cursor %q\n", cursor)
+	return err
 }

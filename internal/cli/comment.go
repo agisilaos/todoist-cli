@@ -209,6 +209,11 @@ func commentDelete(ctx *Context, args []string) error {
 }
 
 func writeCommentList(ctx *Context, comments []api.Comment, cursor string) error {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		if err := writeCursorNotice(ctx, cursor); err != nil {
+			return err
+		}
+	}
 	if ctx.Mode == output.ModeIDsOnly {
 		return writeIDs(ctx, comments, func(item api.Comment) string { return item.ID }, cursor)
 	}

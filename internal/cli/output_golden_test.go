@@ -54,6 +54,7 @@ func TestWriteTaskListPlainAccessibleSnapshot(t *testing.T) {
 
 func TestWriteTaskListJSONSnapshot(t *testing.T) {
 	ctx := &Context{
+		Stderr:    &bytes.Buffer{},
 		Stdout:    &bytes.Buffer{},
 		Mode:      output.ModeJSON,
 		Config:    config.Config{TableWidth: 80},

@@ -94,6 +94,11 @@ func taskTableConfigFor(ctx *Context, wide bool) taskTableConfig {
 }
 
 func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) error {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		if err := writeCursorNotice(ctx, cursor); err != nil {
+			return err
+		}
+	}
 	if ctx.Mode == output.ModeIDsOnly {
 		return writeIDs(ctx, tasks, func(task api.Task) string { return task.ID }, cursor)
 	}

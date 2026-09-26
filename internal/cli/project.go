@@ -566,6 +566,11 @@ func fetchProjectByID(ctx *Context, id string) (api.Project, error) {
 }
 
 func writeProjectList(ctx *Context, projects []api.Project, cursor string) error {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		if err := writeCursorNotice(ctx, cursor); err != nil {
+			return err
+		}
+	}
 	if ctx.Mode == output.ModeIDsOnly {
 		return writeIDs(ctx, projects, func(item api.Project) string { return item.ID }, cursor)
 	}
@@ -592,6 +597,11 @@ func writeProjectList(ctx *Context, projects []api.Project, cursor string) error
 }
 
 func writeProjectCollaborators(ctx *Context, collaborators []api.Collaborator, cursor string) error {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		if err := writeCursorNotice(ctx, cursor); err != nil {
+			return err
+		}
+	}
 	if ctx.Mode == output.ModeIDsOnly {
 		return writeIDs(ctx, collaborators, func(item api.Collaborator) string { return item.ID }, cursor)
 	}
