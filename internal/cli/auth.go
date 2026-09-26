@@ -166,8 +166,7 @@ func authLogin(ctx *Context, args []string) error {
 		if !isTTYReader(ctx.Stdin) {
 			return &CodeError{Code: exitUsage, Err: errors.New("stdin is not a TTY; use --token-stdin")}
 		}
-		fmt.Fprint(ctx.Stderr, "Todoist API token: ")
-		val, err := readLine(ctx.Stdin)
+		val, err := readSecret(ctx.Stdin.(*os.File), ctx.Stderr, "Todoist API token: ")
 		if err != nil {
 			return err
 		}

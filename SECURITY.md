@@ -14,6 +14,8 @@ authorization. Environment tokens override profiles without inheriting evidence.
 
 Keychain operations disable OS interaction and classify failures before rendering.
 Tokens are passed directly to native APIs, never through subprocess arguments.
+Interactive token entry disables terminal echo and restores terminal settings when
+the read finishes, including read errors. Scripts can use `--token-stdin`.
 `auth login --print-env` deliberately exports the newly acquired token; all ordinary
 output, errors, logs and doctor reports exclude secrets.
 

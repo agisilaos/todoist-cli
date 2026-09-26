@@ -23,6 +23,12 @@ Thanks for your interest in contributing.
    make coverage-check
    ```
 
+On macOS or Linux, verify terminal token input without real credentials:
+
+```bash
+python3 scripts/test-auth-terminal.py
+```
+
 ## Guidelines
 
 - Keep changes focused and add tests when possible.
