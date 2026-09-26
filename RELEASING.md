@@ -31,7 +31,7 @@ make release-dry-run VERSION=vX.Y.Z
 make release VERSION=vX.Y.Z
 ```
 
-`release-check` validates the clean worktree, version, changelog, tests, documentation, module metadata, formatting, and version-stamped binary. `release-dry-run` builds both macOS archives and checksums, extracts the approved changelog section as release notes, and renders the Homebrew formula without remote writes.
+`release-check` validates the clean worktree, version, changelog, tests, documentation, module metadata, formatting, and version-stamped binary. `release-dry-run` builds both macOS archives and checksums, extracts the approved changelog section as release notes, and renders the Homebrew formula without remote writes. Formula validation requires Ruby and checks its syntax; both archives include the MIT license.
 
 The final command creates and pushes the tag, publishes the GitHub Release with the approved changelog section, and updates the configured Homebrew tap.
 

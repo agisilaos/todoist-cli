@@ -37,11 +37,10 @@ err() {
 }
 
 to_class_name() {
-  echo "$1" | awk -F'[-_]' '{
+  echo "$1" | awk -F'[-_]' 'BEGIN { OFS = "" } {
     for (i = 1; i <= NF; i++) {
       $i = toupper(substr($i, 1, 1)) substr($i, 2)
     }
-    OFS = ""
     print $0
   }'
 }
@@ -99,6 +98,7 @@ FORMULA
 
 validate_formula() {
   local target="$1"
+  ruby -c "$target" >/dev/null || err "formula is not valid Ruby"
   grep -Fq "${ARTIFACT_NAME}_${version_no_v}_darwin_arm64.tar.gz" "$target" || err "formula missing arm64 artifact URL"
   grep -Fq "${ARTIFACT_NAME}_${version_no_v}_darwin_amd64.tar.gz" "$target" || err "formula missing amd64 artifact URL"
   grep -Fq "sha256 \"${arm64_sha}\"" "$target" || err "formula missing arm64 checksum"
@@ -156,7 +156,7 @@ fi
 
 ./scripts/release-check.sh "$VERSION"
 
-for cmd in go git gh tar python3; do
+for cmd in go git gh tar python3 ruby; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     err "required command not found: $cmd"
   fi
@@ -203,7 +203,8 @@ build_archive() {
 
   rm -f "$bin_path"
   GOOS=darwin GOARCH="$arch" CGO_ENABLED=1 "${build_cmd[@]}"
-  tar -C "$tmp_dir" -czf "$archive_path" "$CLI_NAME"
+  cp LICENSE "$tmp_dir/LICENSE"
+  tar -C "$tmp_dir" -czf "$archive_path" "$CLI_NAME" LICENSE
 }
 
 build_archive amd64
