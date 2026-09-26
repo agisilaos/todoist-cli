@@ -14,7 +14,7 @@ compatibility decision in [ADR-0003](adr/0003-preserve-write-capability-for-unkn
 | API dispatch | REST and Sync mutations blocked before transport; recognized reads permitted; redirects checked with stable authorization errors |
 | Machine output contract | Status, doctor, planner requests, previews, schemas, and human/JSON/quiet-JSON errors; no credential disclosure |
 | Agent execution | Pending-action preflight; force/continue cannot override authorization; replay skips; plans contain no authorization snapshot |
-| Schedules | Profile/config/endpoint/policy selections retained; cron and launchd preserve dry-run/force flags; credentials resolved at execution |
+| Schedules | Profile/config/endpoint/policy selections retained; cron and launchd preserve dry-run/force flags and metacharacters; cron line breaks rejected; credentials resolved at execution |
 
 Run the repository checks after changing these boundaries:
 

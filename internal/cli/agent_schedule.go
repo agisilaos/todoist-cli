@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"os"
@@ -128,6 +129,11 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	}
 	runArgs = append(globals, runArgs...)
 	if cron {
+		for _, arg := range append([]string{binPath}, runArgs...) {
+			if strings.ContainsAny(arg, "\r\n") {
+				return &CodeError{Code: exitUsage, Err: errors.New("cron schedule arguments cannot contain line breaks")}
+			}
+		}
 		line := cronLine(spec, binPath, runArgs)
 		fmt.Fprintln(ctx.Stdout, line)
 		return nil
@@ -233,6 +239,9 @@ func parseTime(value string) (int, int, error) {
 func cronLine(spec scheduleSpec, binPath string, args []string) string {
 	weekday := cronWeekday(spec.Weekday)
 	cmd := strings.Join(append([]string{shellEscape(binPath)}, escapeArgs(args)...), " ")
+	// Cron interprets percent signs before the shell. Quote boundaries keep
+	// the cron escape separate from any preceding literal backslashes.
+	cmd = strings.ReplaceAll(cmd, "%", `'\%'`)
 	return fmt.Sprintf("%d %d * * %d %s", spec.Minute, spec.Hour, weekday, cmd)
 }
 
@@ -266,9 +275,9 @@ func launchdPlist(spec scheduleSpec, binPath string, args []string) string {
 	b.WriteString(`  <dict>` + "\n")
 	b.WriteString(fmt.Sprintf("    <key>Label</key>\n    <string>%s</string>\n", label))
 	b.WriteString("    <key>ProgramArguments</key>\n    <array>\n")
-	b.WriteString(fmt.Sprintf("      <string>%s</string>\n", binPath))
+	b.WriteString(fmt.Sprintf("      <string>%s</string>\n", xmlEscape(binPath)))
 	for _, arg := range args {
-		b.WriteString(fmt.Sprintf("      <string>%s</string>\n", arg))
+		b.WriteString(fmt.Sprintf("      <string>%s</string>\n", xmlEscape(arg)))
 	}
 	b.WriteString("    </array>\n")
 	b.WriteString("    <key>StartCalendarInterval</key>\n    <dict>\n")
@@ -276,9 +285,15 @@ func launchdPlist(spec scheduleSpec, binPath string, args []string) string {
 	b.WriteString(fmt.Sprintf("      <key>Hour</key>\n      <integer>%d</integer>\n", spec.Hour))
 	b.WriteString(fmt.Sprintf("      <key>Minute</key>\n      <integer>%d</integer>\n", spec.Minute))
 	b.WriteString("    </dict>\n")
-	b.WriteString(fmt.Sprintf("    <key>StandardOutPath</key>\n    <string>%s</string>\n", filepath.Join(os.TempDir(), "todoist-agent.log")))
-	b.WriteString(fmt.Sprintf("    <key>StandardErrorPath</key>\n    <string>%s</string>\n", filepath.Join(os.TempDir(), "todoist-agent.err")))
+	b.WriteString(fmt.Sprintf("    <key>StandardOutPath</key>\n    <string>%s</string>\n", xmlEscape(filepath.Join(os.TempDir(), "todoist-agent.log"))))
+	b.WriteString(fmt.Sprintf("    <key>StandardErrorPath</key>\n    <string>%s</string>\n", xmlEscape(filepath.Join(os.TempDir(), "todoist-agent.err"))))
 	b.WriteString("  </dict>\n</plist>\n")
+	return b.String()
+}
+
+func xmlEscape(value string) string {
+	var b strings.Builder
+	_ = xml.EscapeText(&b, []byte(value))
 	return b.String()
 }
 
@@ -286,7 +301,10 @@ func shellEscape(value string) string {
 	if value == "" {
 		return "''"
 	}
-	if strings.ContainsAny(value, " \t\"'\\") {
+	for _, r := range value {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("_@%+=:,./-", r) {
+			continue
+		}
 		return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 	}
 	return value

@@ -1,6 +1,107 @@
 package cli
 
-import "testing"
+import (
+	"bytes"
+	"encoding/xml"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+func TestSchedulePreservesArgumentsWithMetacharacters(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "")
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config&reader.json")
+	policyPath := filepath.Join(dir, "policy<reader>.json")
+	bin := filepath.Join(dir, "capture&args")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\nprintf '%s\\000' \"$@\"\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"--profile", "read&only", "--config", configPath, "agent", "run", "--policy", policyPath, "--instruction", `literal$HOME\%`, "--confirm", "it's-reviewed", "--dry-run", "--plan-version", "1"}
+	for _, format := range []string{"launchd", "cron"} {
+		t.Run(format, func(t *testing.T) {
+			cron := format == "cron"
+			if cron && runtime.GOOS == "windows" {
+				t.Skip("cron executes through a POSIX shell")
+			}
+			args := []string{"--profile", "read&only", "--config", configPath, "agent", "schedule", "print", "--weekly", "sat 09:00", "--policy", policyPath, "--instruction", `literal$HOME\%`, "--confirm", "it's-reviewed", "--dry-run", "--bin", bin}
+			if cron {
+				args = append(args, "--cron")
+			}
+			var out, diagnostic bytes.Buffer
+			if code := Execute(args, &out, &diagnostic); code != 0 {
+				t.Fatalf("schedule failed (%d): %s", code, diagnostic.String())
+			}
+			var got []string
+			if cron {
+				command := strings.TrimPrefix(strings.TrimSpace(out.String()), "0 9 * * 6 ")
+				// Cron removes the backslash before escaped %, treats an
+				// unescaped % as stdin, and preserves other backslash pairs.
+				var shellCommand strings.Builder
+				for i := 0; i < len(command); i++ {
+					if command[i] == '%' {
+						t.Fatal("generated cron entry contains an unescaped percent separator")
+					}
+					if command[i] == '\\' && i+1 < len(command) {
+						if command[i+1] != '%' {
+							shellCommand.WriteByte('\\')
+						}
+						i++
+					}
+					shellCommand.WriteByte(command[i])
+				}
+				result, err := exec.Command("/bin/sh", "-c", shellCommand.String()).CombinedOutput()
+				if err != nil {
+					t.Fatalf("generated command failed: %v: %s", err, result)
+				}
+				got = strings.Split(strings.TrimSuffix(string(result), "\x00"), "\x00")
+			} else {
+				var plist struct {
+					Arguments []string `xml:"dict>array>string"`
+				}
+				if err := xml.Unmarshal(out.Bytes(), &plist); err != nil {
+					t.Fatalf("invalid launchd plist: %v", err)
+				}
+				if len(plist.Arguments) == 0 || plist.Arguments[0] != bin {
+					t.Fatalf("binary path changed: %q", plist.Arguments)
+				}
+				got = plist.Arguments[1:]
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("arguments changed:\n got %q\nwant %q", got, want)
+			}
+		})
+	}
+}
+
+func TestCronScheduleEscapesPercentAndRejectsLineBreaks(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "")
+	for _, tc := range []struct {
+		profile string
+		code    int
+	}{
+		{"read%only", 0},
+		{"read\nonly", 2},
+		{"read\ronly", 2},
+	} {
+		var out, diagnostic bytes.Buffer
+		code := Execute([]string{"--config", filepath.Join(t.TempDir(), "config.json"), "--profile", tc.profile, "agent", "schedule", "print", "--weekly", "sat 09:00", "--instruction", "review", "--cron", "--bin", "todoist"}, &out, &diagnostic)
+		if code != tc.code {
+			t.Fatalf("profile %q: exit %d want %d: %s", tc.profile, code, tc.code, diagnostic.String())
+		}
+		if code == 0 {
+			if !strings.Contains(out.String(), `--profile read'\%'only`) {
+				t.Fatalf("cron percent separator was not escaped: %s", out.String())
+			}
+		} else if out.Len() != 0 || !strings.Contains(diagnostic.String(), "line breaks") {
+			t.Fatalf("unsafe cron entry emitted: %s %s", out.String(), diagnostic.String())
+		}
+	}
+}
 
 func TestParseWeeklySpec(t *testing.T) {
 	spec, err := parseWeeklySpec("sat 09:30")
