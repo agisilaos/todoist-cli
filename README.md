@@ -508,7 +508,7 @@ todoist agent status
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
 - Planner context now includes active tasks (capped) in addition to projects/sections/labels/completed tasks.
 - `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).
-- `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default).
+- `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default). If the requested log file cannot be opened, the command fails before dispatching actions.
   Key lifecycle events include `agent_plan_loaded`, `agent_action_validated`, `agent_action_dispatched`,
   `agent_action_succeeded`/`agent_action_failed`, and `agent_apply_summary`.
 - Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token. An action is reported as successful only after its Todoist mutation and replay record both succeed.

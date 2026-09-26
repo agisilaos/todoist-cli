@@ -122,10 +122,13 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		writeError(ctx, fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')"))
 		return exitUsage
 	}
-	if sink, err := newProgressSink(opts.ProgressJSONL, stderr); err == nil {
-		ctx.Progress = sink
-		defer sink.Close()
+	sink, err := newProgressSink(opts.ProgressJSONL, stderr)
+	if err != nil {
+		writeError(ctx, fmt.Errorf("open progress log: %w", err))
+		return exitError
 	}
+	ctx.Progress = sink
+	defer sink.Close()
 	if err := loadConfig(ctx); err != nil {
 		writeError(ctx, err)
 		return toExitCode(err)
