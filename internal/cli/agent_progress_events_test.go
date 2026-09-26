@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -69,7 +70,7 @@ func TestAgentApplyEmitsActionLifecycleAndSummaryEvents(t *testing.T) {
 		Mode:       output.ModeJSON,
 		Now:        time.Now,
 		Token:      "token",
-		Client:     api.NewClient(ts.URL, "token", time.Second),
+		Client:     api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config:     config.Config{TimeoutSeconds: 2},
 		ConfigPath: filepath.Join(tmp, ".todoist.json"),
 		Progress: &progressSink{

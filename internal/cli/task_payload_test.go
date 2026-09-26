@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 )
 
@@ -37,7 +38,7 @@ func TestBuildTaskCreatePayloadResolvesProjectError(t *testing.T) {
 
 	ctx := &Context{
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	_, err := buildTaskCreatePayload(ctx, taskMutationInput{Content: "x", ProjectRef: "Home"})

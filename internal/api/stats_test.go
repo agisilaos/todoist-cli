@@ -9,11 +9,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 func TestFetchProductivityStats(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path != "/tasks/completed/stats" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -62,8 +64,8 @@ func TestFetchProductivityStats(t *testing.T) {
 }
 
 func TestUpdateGoalsBuildsSyncCommand(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
-	client.HTTP = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
+	client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path != "/sync" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}

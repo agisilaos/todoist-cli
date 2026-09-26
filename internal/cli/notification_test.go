@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -33,7 +34,7 @@ func TestNotificationListFiltersUnread(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := notificationList(ctx, []string{"--unread"}); err != nil {
@@ -86,7 +87,7 @@ func TestNotificationListHumanEmptyState(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeHuman,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := notificationList(ctx, nil); err != nil {
@@ -113,7 +114,7 @@ func TestNotificationViewJSON(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := notificationView(ctx, []string{"--id", "n1"}); err != nil {
@@ -140,7 +141,7 @@ func TestNotificationAcceptDryRun(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 		Global: GlobalOptions{DryRun: true},
 	}
@@ -186,7 +187,7 @@ func TestNotificationAcceptMarksRead(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := notificationAccept(ctx, []string{"--id", "n1"}); err != nil {
@@ -213,7 +214,7 @@ func TestNotificationViewHumanShowsActionHints(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeHuman,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := notificationView(ctx, []string{"--id", "n1"}); err != nil {

@@ -4,3 +4,6 @@ Usage:
 Notes:
   - Default output is a macOS launchd plist. Use --cron for cron syntax.
   - --bin can override the todoist binary path for scheduling.
+  - --policy <file> preserves an explicit agent policy in the generated command.
+  - Profile and config selections are preserved; authorization is checked when the schedule runs.
+  - Schedules contain no token. TODOIST_TOKEN still overrides the profile at execution.

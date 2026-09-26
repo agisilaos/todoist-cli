@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 func TestMoveProjectToWorkspace(t *testing.T) {
@@ -22,7 +24,7 @@ func TestMoveProjectToWorkspace(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := NewClient(ts.URL, "token", time.Second)
+	client := NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true))
 	project, reqID, err := client.MoveProjectToWorkspace(context.Background(), MoveProjectToWorkspaceInput{
 		ProjectID:   "p1",
 		WorkspaceID: "w1",
@@ -56,7 +58,7 @@ func TestMoveProjectToPersonal(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := NewClient(ts.URL, "token", time.Second)
+	client := NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true))
 	project, _, err := client.MoveProjectToPersonal(context.Background(), "p1")
 	if err != nil {
 		t.Fatalf("MoveProjectToPersonal: %v", err)
@@ -73,7 +75,7 @@ func TestMoveProjectToPersonal(t *testing.T) {
 }
 
 func TestMoveProjectToWorkspaceRequiresFields(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
 	if _, _, err := client.MoveProjectToWorkspace(context.Background(), MoveProjectToWorkspaceInput{WorkspaceID: "w1"}); err == nil {
 		t.Fatalf("expected error")
 	}
@@ -83,7 +85,7 @@ func TestMoveProjectToWorkspaceRequiresFields(t *testing.T) {
 }
 
 func TestMoveProjectToPersonalRequiresProjectID(t *testing.T) {
-	client := NewClient("https://example.com", "token", time.Second)
+	client := NewClient("https://example.com", "token", time.Second, authorization.Resolve(nil, "credentials", true))
 	if _, _, err := client.MoveProjectToPersonal(context.Background(), ""); err == nil {
 		t.Fatalf("expected error")
 	}
@@ -104,7 +106,7 @@ func TestDecodeProjectFromMoveResponseSupportsDirectProjectShape(t *testing.T) {
 
 func TestMoveProjectToWorkspaceEscapesBaseURL(t *testing.T) {
 	base := "https://example.com/api"
-	client := NewClient(base, "token", time.Second)
+	client := NewClient(base, "token", time.Second, authorization.Resolve(nil, "credentials", true))
 	u, err := url.Parse(client.BaseURL)
 	if err != nil || u.Host == "" {
 		t.Fatalf("unexpected base url: %q err=%v", client.BaseURL, err)

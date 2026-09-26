@@ -122,11 +122,14 @@ func agentRun(ctx *Context, args []string) error {
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": applyErr.Error()})
 		return applyErr
 	}
-	plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
-	if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
-		emitAgentApplySummary(ctx, "agent run", results, false, err)
-		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
-		return err
+	_, _, replayed := summarizeApplyResults(results)
+	if replayed != len(results) {
+		plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
+		if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
+			emitAgentApplySummary(ctx, "agent run", results, false, err)
+			emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
+			return err
+		}
 	}
 	emitAgentApplySummary(ctx, "agent run", results, false, applyErr)
 	emitProgress(ctx, "agent_run_complete", map[string]any{"action_count": len(plan.Actions)})

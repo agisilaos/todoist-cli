@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -35,7 +36,7 @@ func TestUpcomingCommandDefaultsToSevenDays(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 		Now: func() time.Time {
 			return time.Date(2026, 2, 22, 9, 0, 0, 0, time.UTC)
@@ -77,7 +78,7 @@ func TestUpcomingCommandProjectFilterResolvesProjectName(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 		Now: func() time.Time {
 			return time.Date(2026, 2, 22, 9, 0, 0, 0, time.UTC)

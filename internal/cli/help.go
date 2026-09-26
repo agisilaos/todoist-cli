@@ -148,8 +148,8 @@ func helpCommand(ctx *Context, args []string) error {
 func printAuthHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist auth login [--token-stdin] [--print-env]
-  todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
-  todoist auth login --oauth-device [--client-id <id>] [--print-env]
+  todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
+  todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
   todoist auth status
   todoist auth logout
 
@@ -157,6 +157,7 @@ Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist --profile reader auth login --oauth --read-only
   todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser
   todoist auth login --print-env
@@ -166,8 +167,8 @@ Examples:
 func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
   todoist auth login [--token-stdin] [--print-env]
-  todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
-  todoist auth login --oauth-device [--client-id <id>] [--print-env]
+  todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
+  todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
                     [--oauth-authorize-url <url>] [--oauth-token-url <url>]
                     [--oauth-device-url <url>]
                     [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
@@ -177,6 +178,7 @@ Flags:
   --print-env                  Print token export instead of saving profile credentials
   --oauth                      Authenticate using OAuth PKCE flow
   --oauth-device               Authenticate using OAuth device flow (headless-friendly)
+  --read-only                  Request data:read; requires --oauth or --oauth-device
   --no-browser                 Do not auto-open browser for OAuth flow
   --client-id <id>             OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
   --oauth-authorize-url <url>  OAuth authorize URL override
@@ -189,8 +191,16 @@ Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist --profile reader auth login --oauth --read-only
   todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser --print-env
+
+Notes:
+  OAuth defaults to read-write; --read-only blocks Todoist mutations, including agent apply/run.
+  Planning, local inspection, and dry runs remain available with read-only credentials.
+  Manual, environment, and legacy tokens have unknown scopes and permit write attempts.
+  --print-env exports only the token; later environment use has unknown authorization.
+  Device flow endpoint support by Todoist is unverified. Token refresh is not implemented.
 `)
 }
 
@@ -425,6 +435,9 @@ func printAgentScheduleHelp(out interface{ Write([]byte) (int, error) }) {
 Notes:
   - Default output is a macOS launchd plist. Use --cron for cron syntax.
   - --bin can override the todoist binary path for scheduling.
+  - --policy <file> preserves an explicit agent policy in the generated command.
+  - Profile and config selections are preserved; authorization is checked when the schedule runs.
+  - Schedules contain no token. TODOIST_TOKEN still overrides the profile at execution.
 `)
 }
 func printInboxHelp(out interface{ Write([]byte) (int, error) }) {

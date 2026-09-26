@@ -1,10 +1,13 @@
 package agent
 
+import "github.com/agisilaos/todoist-cli/internal/authorization"
+
 type PlannerRequest struct {
-	Instruction string         `json:"instruction"`
-	Profile     string         `json:"profile"`
-	Context     PlannerContext `json:"context"`
-	Now         string         `json:"now"`
+	Authorization authorization.Report `json:"authorization"`
+	Instruction   string               `json:"instruction"`
+	Profile       string               `json:"profile"`
+	Context       PlannerContext       `json:"context"`
+	Now           string               `json:"now"`
 }
 
 type PlannerContext struct {

@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -46,6 +49,7 @@ func authCommand(ctx *Context, args []string) error {
 func authLogin(ctx *Context, args []string) error {
 	fs := newFlagSet("auth login")
 	var tokenStdin bool
+	var readOnly bool
 	var printEnv bool
 	var oauth bool
 	var oauthDevice bool
@@ -57,6 +61,7 @@ func authLogin(ctx *Context, args []string) error {
 	var oauthListen string
 	var redirectURI string
 	var help bool
+	fs.BoolVar(&readOnly, "read-only", false, "Request read-only OAuth access")
 	fs.BoolVar(&tokenStdin, "token-stdin", false, "Read token from stdin")
 	fs.BoolVar(&printEnv, "print-env", false, "Print export command instead of saving")
 	fs.BoolVar(&oauth, "oauth", false, "Authenticate via OAuth PKCE flow")
@@ -76,6 +81,9 @@ func authLogin(ctx *Context, args []string) error {
 		printAuthLoginHelp(ctx.Stdout)
 		return nil
 	}
+	if readOnly && !oauth && !oauthDevice {
+		return &CodeError{Code: exitUsage, Err: errors.New("--read-only requires --oauth or --oauth-device")}
+	}
 	if oauth {
 		if oauthDevice {
 			return &CodeError{Code: exitUsage, Err: errors.New("--oauth and --oauth-device are mutually exclusive")}
@@ -87,14 +95,15 @@ func authLogin(ctx *Context, args []string) error {
 		if err != nil {
 			return &CodeError{Code: exitUsage, Err: err}
 		}
+		cfg.ReadOnly = readOnly
 		token, err := performOAuthLogin(ctx, cfg)
 		if err != nil {
 			return err
 		}
 		if printEnv {
-			return writeAuthPrintEnv(ctx, token)
+			return writeAuthPrintEnv(ctx, token.AccessToken)
 		}
-		return storeProfileToken(ctx, token)
+		return storeProfileCredential(ctx, token.AccessToken, token.Authorization)
 	}
 	if oauthDevice {
 		if tokenStdin {
@@ -104,14 +113,15 @@ func authLogin(ctx *Context, args []string) error {
 		if err != nil {
 			return &CodeError{Code: exitUsage, Err: err}
 		}
+		cfg.ReadOnly = readOnly
 		token, err := performOAuthDeviceLogin(ctx, cfg)
 		if err != nil {
 			return err
 		}
 		if printEnv {
-			return writeAuthPrintEnv(ctx, token)
+			return writeAuthPrintEnv(ctx, token.AccessToken)
 		}
-		return storeProfileToken(ctx, token)
+		return storeProfileCredential(ctx, token.AccessToken, token.Authorization)
 	}
 	var token string
 	if tokenStdin {
@@ -143,18 +153,18 @@ func authLogin(ctx *Context, args []string) error {
 	return storeProfileToken(ctx, token)
 }
 
-func authOAuthLogin(ctx *Context, cfg oauthConfig) (string, error) {
+func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	verifier, err := generateOAuthRandomFn(32)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	state, err := generateOAuthRandomFn(16)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	authURL, err := buildOAuthAuthorizationURLFn(cfg, oauthCodeChallenge(verifier), state)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	fmt.Fprintf(ctx.Stderr, "OAuth authorization URL:\n%s\n", authURL)
 	if !cfg.NoBrowser {
@@ -167,21 +177,21 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (string, error) {
 	defer cancel()
 	code, err := waitForOAuthCodeFn(reqCtx, cfg, state, 3*time.Minute)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	token, err := exchangeOAuthTokenFn(reqCtx, cfg, code, verifier)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	return token, nil
 }
 
-func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (string, error) {
+func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	reqCtx, cancel := requestContext(ctx)
 	defer cancel()
 	deviceCode, userCode, verifyURL, verifyURLComplete, intervalSec, expiresInSec, err := startOAuthDeviceFlow(reqCtx, cfg)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	fmt.Fprintln(ctx.Stderr, "OAuth device flow started.")
 	if verifyURLComplete != "" {
@@ -193,12 +203,16 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (string, error) {
 	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
 	token, err := pollOAuthDeviceToken(reqCtx, cfg, deviceCode, intervalSec, expiresInSec)
 	if err != nil {
-		return "", err
+		return oauthToken{}, err
 	}
 	return token, nil
 }
 
 func storeProfileToken(ctx *Context, token string) error {
+	return storeProfileCredential(ctx, token, authorization.ManualMetadata())
+}
+
+func storeProfileCredential(ctx *Context, token string, metadata authorization.Metadata) error {
 	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
 	creds, _, err := config.LoadCredentials(credsPath)
 	if err != nil {
@@ -207,17 +221,27 @@ func storeProfileToken(ctx *Context, token string) error {
 	if creds.Profiles == nil {
 		creds.Profiles = map[string]config.Credential{}
 	}
-	creds.Profiles[ctx.Profile] = config.Credential{Token: token}
+	raw, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	creds.Profiles[ctx.Profile] = config.Credential{Token: token, Authorization: raw}
+	report := authorization.Resolve(raw, "credentials", true)
 	if err := config.SaveCredentials(credsPath, creds); err != nil {
 		return err
 	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"profile": ctx.Profile,
-			"stored":  true,
+			"profile":                  ctx.Profile,
+			"stored":                   true,
+			"authorization":            report,
+			"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
 		}, output.Meta{})
 	}
-	fmt.Fprintf(ctx.Stdout, "stored token for profile %q\n", ctx.Profile)
+	fmt.Fprintf(ctx.Stdout, "stored token for profile %q; %s\n", ctx.Profile, report.Summary())
+	if os.Getenv("TODOIST_TOKEN") != "" {
+		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN still overrides the stored profile.")
+	}
 	return nil
 }
 
@@ -244,24 +268,29 @@ func writeAuthPrintEnv(ctx *Context, token string) error {
 }
 
 func authStatus(ctx *Context) error {
+	report := currentAuthorization(ctx)
 	source := ctx.TokenSource
 	configured := ctx.Token != ""
 	if source == "" && configured {
 		source = "unknown"
 	}
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"profile":    ctx.Profile,
-			"configured": configured,
-			"source":     source,
-		}, output.Meta{})
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		payload := map[string]any{"profile": ctx.Profile, "configured": configured, "source": source, "authorization": report}
+		var err error
+		if ctx.Mode == output.ModeNDJSON {
+			err = output.WriteNDJSON(ctx.Stdout, []any{payload})
+		} else {
+			err = output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+		}
+		if err != nil {
+			return err
+		}
+	} else if configured {
+		fmt.Fprintf(ctx.Stdout, "profile %q token source: %s; %s\n", ctx.Profile, source, report.Summary())
+	} else {
+		fmt.Fprintf(ctx.Stdout, "profile %q has no token configured\n", ctx.Profile)
 	}
-	if configured {
-		fmt.Fprintf(ctx.Stdout, "profile %q token source: %s\n", ctx.Profile, source)
-		return nil
-	}
-	fmt.Fprintf(ctx.Stdout, "profile %q has no token configured\n", ctx.Profile)
-	return nil
+	return report.CheckCredential()
 }
 
 func authLogout(ctx *Context) error {
@@ -278,10 +307,21 @@ func authLogout(ctx *Context) error {
 	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"profile": ctx.Profile,
-			"removed": true,
+			"profile":                  ctx.Profile,
+			"removed":                  true,
+			"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
 		}, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "removed token for profile %q\n", ctx.Profile)
+	if os.Getenv("TODOIST_TOKEN") != "" {
+		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN remains active; logout only removes stored credentials.")
+	}
 	return nil
+}
+
+func currentAuthorization(ctx *Context) authorization.Report {
+	if ctx.Authorization != nil {
+		return *ctx.Authorization
+	}
+	return authorization.Resolve(nil, ctx.TokenSource, ctx.Token != "")
 }

@@ -160,7 +160,7 @@ func (c *Client) syncRequest(ctx context.Context, formValues map[string]string) 
 	if c.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
-	resp, err := c.HTTP.Do(req)
+	resp, err := c.dispatch(req, "/sync")
 	if err != nil {
 		return reminderSyncResponse{}, requestID, err
 	}

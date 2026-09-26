@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -43,8 +44,8 @@ func TestAuthLoginOAuthRequiresClientID(t *testing.T) {
 
 func TestAuthLoginOAuthStoresToken(t *testing.T) {
 	ctx := newAuthTestContext(t)
-	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (string, error) {
-		return "oauth-token-123", nil
+	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (oauthToken, error) {
+		return oauthToken{AccessToken: "oauth-token-123", Authorization: authorization.ManualMetadata()}, nil
 	})
 	defer restore()
 
@@ -68,8 +69,8 @@ func TestAuthLoginOAuthStoresToken(t *testing.T) {
 
 func TestAuthLoginOAuthDeviceStoresToken(t *testing.T) {
 	ctx := newAuthTestContext(t)
-	restore := stubPerformOAuthDeviceLogin(func(_ *Context, _ oauthConfig) (string, error) {
-		return "oauth-device-token-123", nil
+	restore := stubPerformOAuthDeviceLogin(func(_ *Context, _ oauthConfig) (oauthToken, error) {
+		return oauthToken{AccessToken: "oauth-device-token-123", Authorization: authorization.ManualMetadata()}, nil
 	})
 	defer restore()
 
@@ -93,8 +94,8 @@ func TestAuthLoginOAuthDeviceStoresToken(t *testing.T) {
 
 func TestAuthLoginOAuthPrintEnvDoesNotStore(t *testing.T) {
 	ctx := newAuthTestContext(t)
-	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (string, error) {
-		return "oauth-token-xyz", nil
+	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (oauthToken, error) {
+		return oauthToken{AccessToken: "oauth-token-xyz", Authorization: authorization.ManualMetadata()}, nil
 	})
 	defer restore()
 
@@ -115,8 +116,8 @@ func TestAuthLoginOAuthPrintEnvDoesNotStore(t *testing.T) {
 func TestAuthLoginOAuthPrintEnvJSONMode(t *testing.T) {
 	ctx := newAuthTestContext(t)
 	ctx.Mode = output.ModeJSON
-	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (string, error) {
-		return "oauth-token-json", nil
+	restore := stubPerformOAuthLogin(func(_ *Context, _ oauthConfig) (oauthToken, error) {
+		return oauthToken{AccessToken: "oauth-token-json", Authorization: authorization.ManualMetadata()}, nil
 	})
 	defer restore()
 
@@ -161,7 +162,9 @@ func TestAuthOAuthLoginContinuesWhenBrowserOpenFails(t *testing.T) {
 		func(_ context.Context, _ oauthConfig, _ string, _ time.Duration) (string, error) {
 			return "code-1", nil
 		},
-		func(_ context.Context, _ oauthConfig, _, _ string) (string, error) { return "token-1", nil },
+		func(_ context.Context, _ oauthConfig, _, _ string) (oauthToken, error) {
+			return oauthToken{AccessToken: "token-1", Authorization: authorization.ManualMetadata()}, nil
+		},
 	)
 	defer restore()
 
@@ -169,8 +172,8 @@ func TestAuthOAuthLoginContinuesWhenBrowserOpenFails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("authOAuthLogin: %v", err)
 	}
-	if token != "token-1" {
-		t.Fatalf("unexpected token: %q", token)
+	if token.AccessToken != "token-1" {
+		t.Fatalf("unexpected token: %q", token.AccessToken)
 	}
 	stderr := ctx.Stderr.(*bytes.Buffer).String()
 	if !strings.Contains(stderr, "warning: could not open browser automatically") {
@@ -204,7 +207,9 @@ func TestAuthOAuthLoginNoBrowserSkipsBrowserOpen(t *testing.T) {
 		func(_ context.Context, _ oauthConfig, _ string, _ time.Duration) (string, error) {
 			return "code-1", nil
 		},
-		func(_ context.Context, _ oauthConfig, _, _ string) (string, error) { return "token-1", nil },
+		func(_ context.Context, _ oauthConfig, _, _ string) (oauthToken, error) {
+			return oauthToken{AccessToken: "token-1", Authorization: authorization.ManualMetadata()}, nil
+		},
 	)
 	defer restore()
 
@@ -228,7 +233,7 @@ func newAuthTestContext(t *testing.T) *Context {
 	}
 }
 
-func stubPerformOAuthLogin(fn func(ctx *Context, cfg oauthConfig) (string, error)) func() {
+func stubPerformOAuthLogin(fn func(ctx *Context, cfg oauthConfig) (oauthToken, error)) func() {
 	prev := performOAuthLogin
 	performOAuthLogin = fn
 	return func() {
@@ -236,7 +241,7 @@ func stubPerformOAuthLogin(fn func(ctx *Context, cfg oauthConfig) (string, error
 	}
 }
 
-func stubPerformOAuthDeviceLogin(fn func(ctx *Context, cfg oauthConfig) (string, error)) func() {
+func stubPerformOAuthDeviceLogin(fn func(ctx *Context, cfg oauthConfig) (oauthToken, error)) func() {
 	prev := performOAuthDeviceLogin
 	performOAuthDeviceLogin = fn
 	return func() {
@@ -249,7 +254,7 @@ func stubOAuthFlowDeps(
 	authURLFn func(cfg oauthConfig, codeChallenge, state string) (string, error),
 	openFn func(url string) error,
 	waitFn func(ctx context.Context, cfg oauthConfig, expectedState string, timeout time.Duration) (string, error),
-	exchangeFn func(ctx context.Context, cfg oauthConfig, code, codeVerifier string) (string, error),
+	exchangeFn func(ctx context.Context, cfg oauthConfig, code, codeVerifier string) (oauthToken, error),
 ) func() {
 	prevRandom := generateOAuthRandomFn
 	prevAuthURL := buildOAuthAuthorizationURLFn

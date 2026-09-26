@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -27,7 +28,7 @@ func TestCompletedCommandUsesCompletionDateEndpointByDefault(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := completedCommand(ctx, nil); err != nil {
@@ -52,7 +53,7 @@ func TestCompletedCommandSupportsByDue(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
 		Token:  "token",
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	if err := completedCommand(ctx, []string{"--completed-by", "due"}); err != nil {

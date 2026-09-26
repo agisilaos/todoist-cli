@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
 )
 
@@ -34,7 +35,7 @@ func TestFetchPaginatedCollectsPages(t *testing.T) {
 	defer ts.Close()
 
 	ctx := &Context{
-		Client: api.NewClient(ts.URL, "token", time.Second),
+		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
 	}
 	query := url.Values{}

@@ -12,12 +12,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
 type Client struct {
-	BaseURL string
-	Token   string
-	HTTP    *http.Client
+	BaseURL       string
+	Token         string
+	http          *http.Client
+	authorization authorization.Report
 }
 
 type APIError struct {
@@ -46,17 +49,20 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("api error: status %d: %s", e.Status, e.Message)
 }
 
-func NewClient(baseURL, token string, timeout time.Duration) *Client {
+func NewClient(baseURL, token string, timeout time.Duration, report authorization.Report) *Client {
 	if baseURL == "" {
 		baseURL = "https://api.todoist.com/api/v1"
 	}
-	return &Client{
-		BaseURL: strings.TrimRight(baseURL, "/"),
-		Token:   token,
-		HTTP: &http.Client{
+	c := &Client{
+		authorization: report,
+		BaseURL:       strings.TrimRight(baseURL, "/"),
+		Token:         token,
+		http: &http.Client{
 			Timeout: timeout,
 		},
 	}
+	c.http.CheckRedirect = c.checkRedirect
+	return c
 }
 
 func (c *Client) Get(ctx context.Context, path string, query url.Values, out any) (string, error) {
@@ -98,7 +104,7 @@ func (c *Client) SyncWorkspaces(ctx context.Context) ([]Workspace, string, error
 	if c.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
-	resp, err := c.HTTP.Do(req)
+	resp, err := c.dispatch(req, "/sync")
 	if err != nil {
 		return nil, requestID, err
 	}
@@ -134,7 +140,7 @@ func (c *Client) SyncCurrentUserID(ctx context.Context) (string, string, error) 
 	if c.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
-	resp, err := c.HTTP.Do(req)
+	resp, err := c.dispatch(req, "/sync")
 	if err != nil {
 		return "", requestID, err
 	}
@@ -196,9 +202,10 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 			req.Header.Set("X-Request-Id", requestID)
 		}
 
-		resp, err := c.HTTP.Do(req)
+		resp, err := c.dispatch(req, path)
 		if err != nil {
-			if shouldRetryTransport(method, includeRequestID, err) && attempt < maxRetries {
+			var authorizationErr *authorization.Error
+			if !errors.As(err, &authorizationErr) && shouldRetryTransport(method, includeRequestID, err) && attempt < maxRetries {
 				if err := waitForRetry(ctx, retryDelay(attempt, "")); err != nil {
 					return requestID, err
 				}
