@@ -2,8 +2,10 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -577,5 +579,59 @@ func TestCompletionScriptsIncludeProjectCreateSubcommand(t *testing.T) {
 		if !strings.Contains(script, "create") {
 			t.Fatalf("%s completion missing create subcommand", shell)
 		}
+	}
+}
+
+func TestZshInstallActivationRegistersCompletion(t *testing.T) {
+	zsh, err := exec.LookPath("zsh")
+	if err != nil {
+		t.Skip("zsh is not installed")
+	}
+	for _, mode := range []output.Mode{output.ModeHuman, output.ModeJSON} {
+		t.Run(string(mode), func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "user's completion $files", "custom.zsh")
+			var out bytes.Buffer
+			ctx := &Context{Stdout: &out, Stderr: &bytes.Buffer{}, Mode: mode}
+			if err := completionCommand(ctx, []string{"install", "zsh", "--path", path}); err != nil {
+				t.Fatal(err)
+			}
+			var activation string
+			if mode == output.ModeJSON {
+				var result struct {
+					Activation string `json:"activation"`
+				}
+				if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+					t.Fatal(err)
+				}
+				activation = result.Activation
+			} else {
+				_, activation, _ = strings.Cut(strings.TrimSpace(out.String()), "\n")
+			}
+			command, ok := strings.CutPrefix(activation, "Activate now: ")
+			if !ok {
+				t.Fatalf("missing activation command: %q", activation)
+			}
+			// Execute the user-facing command in a fresh shell. Direct sourcing
+			// would invoke _arguments outside a completion function and emit errors.
+			command += `
+[[ ${_comps[todoist]} == _todoist ]] || exit 1
+(( ${+functions[_todoist]} )) || exit 1
+# Replace the completion-only builtin to verify the registered function loads
+# the installed script without requiring an interactive line editor.
+_arguments() { print -r -- completion-script-loaded; }
+words=(todoist)
+_todoist
+`
+			timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			cmd := exec.CommandContext(timeout, zsh, "-f", "-c", command)
+			cmd.Dir = dir
+			cmd.Env = append(os.Environ(), "ZDOTDIR="+dir)
+			result, err := cmd.CombinedOutput()
+			if err != nil || string(result) != "completion-script-loaded\n" {
+				t.Fatalf("activation failed: %v; output: %s", err, result)
+			}
+		})
 	}
 }

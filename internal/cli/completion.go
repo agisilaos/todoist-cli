@@ -229,7 +229,13 @@ func completionActivationHint(shell, path string) string {
 	case "bash":
 		return fmt.Sprintf("Activate now: source %s", path)
 	case "zsh":
-		return fmt.Sprintf("Activate now: source %s (ensure its directory is in $fpath, then run: autoload -U compinit && compinit)", path)
+		// Register a function so custom filenames work and the script only runs
+		// inside zsh's completion context. Resolve relative paths before the
+		// user changes directory and invokes completion.
+		if absolutePath, err := filepath.Abs(path); err == nil {
+			path = absolutePath
+		}
+		return fmt.Sprintf("Activate now: autoload -Uz compinit && compinit && { _todoist() { source %s; }; compdef _todoist todoist; }", shellEscape(path))
 	case "fish":
 		return fmt.Sprintf("Activate now: source %s", path)
 	case "powershell":

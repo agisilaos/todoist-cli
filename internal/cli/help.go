@@ -445,7 +445,8 @@ Notes:
   - PowerShell installs under $XDG_DATA_HOME, or ~/.local/share when XDG_DATA_HOME is unset.
   - PowerShell installation never edits $PROFILE; follow the printed activation instructions.
   - Without a shell argument, "install" detects PowerShell environment markers, then SHELL.
-  - For zsh, ensure the install path directory is in $fpath.
+  - For zsh, run the printed activation command; add it to .zshrc for future shells.
+  - Do not source the zsh completion file directly; it runs inside a completion function.
 `)
 }
 
