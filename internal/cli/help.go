@@ -393,14 +393,17 @@ Notes:
 
 func printCompletionHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist completion bash|zsh|fish
-  todoist completion install [bash|zsh|fish] [--path <file>]
-  todoist completion uninstall [bash|zsh|fish] [--path <file>]
+  todoist completion bash|zsh|fish|powershell|pwsh
+  todoist completion install [bash|zsh|fish|powershell|pwsh] [--path <file>]
+  todoist completion uninstall [bash|zsh|fish|powershell|pwsh] [--path <file>]
 
 Notes:
   - "install" writes the script to a user-writable path (override with --path).
   - "uninstall" removes scripts from default paths (or --path).
-  - Without a shell argument, "install" tries to detect SHELL.
+  - "powershell" is canonical; "pwsh" is an identical alias for PowerShell 7 on macOS and Linux.
+  - PowerShell installs under $XDG_DATA_HOME, or ~/.local/share when XDG_DATA_HOME is unset.
+  - PowerShell installation never edits $PROFILE; follow the printed activation instructions.
+  - Without a shell argument, "install" detects PowerShell environment markers, then SHELL.
   - For zsh, ensure the install path directory is in $fpath.
 `)
 }

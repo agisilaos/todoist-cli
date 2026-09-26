@@ -542,9 +542,11 @@ Generate a completion script for your shell:
 todoist completion bash > /usr/local/etc/bash_completion.d/todoist
 todoist completion zsh  > "${fpath[1]}/_todoist"
 todoist completion fish > ~/.config/fish/completions/todoist.fish
+todoist completion powershell > ~/.local/share/todoist/completions/todoist.ps1
 
 # Or install to a sensible default location:
 todoist completion install bash
+todoist completion install powershell  # "pwsh" is an identical alias
 
 # Auto-detect your shell from $SHELL:
 todoist completion install
@@ -552,9 +554,14 @@ todoist completion install
 # Remove installed scripts:
 todoist completion uninstall
 todoist completion uninstall zsh
+todoist completion uninstall powershell
 ```
 
-`completion install` prints an activation hint (`source ...`); for zsh ensure the directory is in `$fpath` and run `autoload -U compinit && compinit`.
+`completion install` prints an activation hint (`source ...` for POSIX shells and `. '<path>'` for PowerShell). For zsh, ensure the directory is in `$fpath` and run `autoload -U compinit && compinit`.
+
+PowerShell completion supports PowerShell 7 on macOS and Linux. Its default path is `$XDG_DATA_HOME/todoist/completions/todoist.ps1`, falling back to `~/.local/share/todoist/completions/todoist.ps1`. Installation never edits `$PROFILE`; run the printed dot-source command for the current session and add that command to your chosen `$PROFILE` for future sessions.
+
+When no shell is given, installation checks for an active PowerShell environment before falling back to `$SHELL`. If neither can be identified, pass the shell explicitly. Use `--path <file>` to override any default installation or removal path.
 
 ## Finding IDs
 

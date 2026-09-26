@@ -25,3 +25,6 @@ jobs:
         run: go vet ./...
       - name: test
         run: go test ./...
+      - name: PowerShell completion smoke test
+        shell: pwsh
+        run: ./scripts/test-powershell-completion.ps1
