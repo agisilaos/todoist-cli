@@ -195,6 +195,7 @@ Planner context notes:
 
 - Global flags may appear before or after commands/subcommands.
 - `--ids-only` is parsed globally and validated against command eligibility. Like existing boolean global flags, it accepts the exact spelling, not `--ids-only=true`; global parsing stops at `--`.
+- Explicit `--help`/`-h` requests show command usage before validating mutation arguments or contacting the API.
 - Existing informational precedence applies: version wins over output conflicts, conflicts precede help, and root/command help remains available with `--ids-only` (an exception to ID-only stdout).
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
 - Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.

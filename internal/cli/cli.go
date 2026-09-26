@@ -138,14 +138,9 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 	if opts.Help {
-		if opts.IDsOnly {
-			// Route informational requests directly without applying IDs-only
-			// command eligibility restrictions to help.
-			err := helpCommand(ctx, rest[:1])
-			writeError(ctx, err)
-			return toExitCode(err)
-		}
-		rest = append(rest, "--help")
+		err := helpCommand(ctx, rest)
+		writeError(ctx, err)
+		return toExitCode(err)
 	}
 
 	code := dispatch(ctx, rest)

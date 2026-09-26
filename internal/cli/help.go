@@ -87,7 +87,29 @@ func helpCommand(ctx *Context, args []string) error {
 		printRootHelp(ctx.Stdout)
 		return nil
 	}
+	if args[0] == "auth" && len(args) > 1 {
+		switch args[1] {
+		case "login":
+			printAuthLoginHelp(ctx.Stdout)
+			return nil
+		case "migrate", "repair":
+			printAuthStorageHelp(ctx.Stdout, args[1])
+			return nil
+		}
+	}
+	if args[0] == "agent" && len(args) > 1 {
+		switch args[1] {
+		case "planner":
+			printAgentPlannerHelp(ctx.Stdout)
+			return nil
+		case "schedule":
+			printAgentScheduleHelp(ctx.Stdout)
+			return nil
+		}
+	}
 	switch args[0] {
+	case "inbox":
+		printInboxHelp(ctx.Stdout)
 	case "auth":
 		printAuthHelp(ctx.Stdout)
 	case "add":
