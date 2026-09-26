@@ -66,6 +66,7 @@ type Context struct {
 	Config     config.Config
 	Profile    string
 	ConfigPath string
+	ConfigErr  error
 	Fuzzy      bool
 	Accessible bool
 
@@ -122,6 +123,19 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		writeError(ctx, fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')"))
 		return exitUsage
 	}
+	helpArgs := rest
+	showHelp := opts.Help || len(rest) == 0
+	if len(rest) > 0 && rest[0] == "help" {
+		helpArgs, showHelp = rest[1:], true
+	} else if len(rest) > 1 && rest[1] == "help" {
+		helpArgs = append([]string{rest[0]}, rest[2:]...)
+		showHelp = true
+	}
+	if showHelp {
+		err := helpCommand(ctx, helpArgs)
+		writeError(ctx, err)
+		return toExitCode(err)
+	}
 	sink, err := newProgressSink(opts.ProgressJSONL, stderr)
 	if err != nil {
 		writeError(ctx, fmt.Errorf("open progress log: %w", err))
@@ -130,17 +144,11 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	ctx.Progress = sink
 	defer sink.Close()
 	if err := loadConfig(ctx); err != nil {
-		writeError(ctx, err)
-		return toExitCode(err)
-	}
-	if len(rest) == 0 {
-		printRootHelp(stdout)
-		return exitOK
-	}
-	if opts.Help {
-		err := helpCommand(ctx, rest)
-		writeError(ctx, err)
-		return toExitCode(err)
+		if rest[0] != "doctor" {
+			writeError(ctx, err)
+			return toExitCode(err)
+		}
+		ctx.ConfigErr = err
 	}
 
 	code := dispatch(ctx, rest)
@@ -287,11 +295,11 @@ func loadConfig(ctx *Context) error {
 
 	userCfg, _, err := config.LoadConfig(configPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("load config %s: %w", configPath, err)
 	}
 	projectCfg, _, err := config.LoadConfig(projectConfigPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("load config %s: %w", projectConfigPath, err)
 	}
 	cfg := config.MergeConfig(userCfg, projectCfg)
 	applyEnvString("TODOIST_BASE_URL", &cfg.BaseURL)

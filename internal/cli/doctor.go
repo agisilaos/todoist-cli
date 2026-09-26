@@ -56,6 +56,13 @@ func doctorCommand(ctx *Context, args []string) error {
 }
 
 func runDoctorChecks(ctx *Context) []doctorCheck {
+	if ctx.ConfigErr != nil {
+		checks := []doctorCheck{{Name: "config", Status: "fail", Message: "cannot load configuration", Details: map[string]any{"error": safeErrorText(ctx, ctx.ConfigErr)}}}
+		for _, name := range []string{"credentials", "api", "planner", "policy", "replay"} {
+			checks = append(checks, doctorCheck{Name: name, Status: "warn", Message: "skipped because configuration could not be loaded"})
+		}
+		return checks
+	}
 	return []doctorCheck{
 		checkConfigFiles(ctx),
 		checkCredentials(ctx),
