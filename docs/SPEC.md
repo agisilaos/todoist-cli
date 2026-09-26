@@ -85,10 +85,10 @@ todoist project delete --id <id>
 ### Reminder commands
 
 ```
-todoist reminder list [task] [--task <ref>]
-todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
-todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
-todoist reminder delete [id] [--id <id>] [--yes]
+todoist reminder list (<task> | --task <ref>)
+todoist reminder add (<task> | --task <ref>) (--before <duration> | --at <datetime>)
+todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime>)
+todoist reminder delete (<id> | --id <id>) [--yes]
 ```
 
 ### Notification commands

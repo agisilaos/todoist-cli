@@ -355,12 +355,13 @@ func printCommentHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printReminderHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist reminder list [task] [--task <ref>] [--ids-only]
-  todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
-  todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
-  todoist reminder delete [id] [--id <id>] [--yes]
+  todoist reminder list (<task> | --task <ref>) [--ids-only]
+  todoist reminder add (<task> | --task <ref>) (--before <duration> | --at <datetime>)
+  todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime>)
+  todoist reminder delete (<id> | --id <id>) [--yes]
 
 Notes:
+  - List and add require a task; update and delete require a reminder ID.
   - Task refs support id:<id>, text references, and Todoist task URLs.
   - --before accepts values like 30m, 1h, 2h15m.
   - --at accepts RFC3339, YYYY-MM-DD HH:MM, or YYYY-MM-DD.
