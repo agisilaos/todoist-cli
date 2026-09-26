@@ -1,0 +1,5 @@
+Usage:
+  todoist today [--ids-only]
+
+Notes:
+  - Shows tasks due today and overdue (across all projects).

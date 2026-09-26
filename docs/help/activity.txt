@@ -1,0 +1,12 @@
+Usage:
+  todoist activity [--since <date>] [--until <date>] [--type task|comment|project] [--event <type>] [--project <id|name>] [--by <id|me>] [--limit <n>] [--cursor <cursor>] [--all] [--ids-only]
+
+Notes:
+  - Queries Todoist activity logs endpoint with cursor pagination.
+  - --type task maps to object_type=item; comment maps to object_type=note.
+
+Examples:
+  todoist activity
+  todoist activity --since 2026-02-01 --until 2026-02-23
+  todoist activity --type task --event completed --project Home
+  todoist activity --by me --limit 20

@@ -1,0 +1,5 @@
+Usage:
+  todoist comment list (--task <id> | --project <id>) [--ids-only]
+  todoist comment add --content <text> (--task <id> | --project <id>)
+  todoist comment update --id <comment_id> --content <text>
+  todoist comment delete --id <comment_id>

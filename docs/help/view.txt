@@ -1,0 +1,12 @@
+Usage:
+  todoist view <url>
+
+Notes:
+  - Opens Todoist web URLs via equivalent CLI commands.
+  - Supported entity URLs: task, project, label, filter.
+  - Supported page URLs: inbox, today, upcoming, completed, settings, activity.
+
+Examples:
+  todoist view https://app.todoist.com/app/task/call-mom-6f3qg8mgqp99mFVJ
+  todoist view https://app.todoist.com/app/project/home-2203306141
+  todoist view https://app.todoist.com/app/settings

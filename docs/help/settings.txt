@@ -1,0 +1,26 @@
+Usage:
+  todoist settings
+  todoist settings view
+  todoist settings update [flags]
+  todoist settings themes
+
+Update flags:
+  --timezone <tz>
+  --time-format <12|24>
+  --date-format <us|intl>
+  --start-day <day>
+  --theme <name>
+  --auto-reminder <minutes>
+  --next-week <day>
+  --start-page <page>
+  --reminder-push <on|off>
+  --reminder-desktop <on|off>
+  --reminder-email <on|off>
+  --completed-sound-desktop <on|off>
+  --completed-sound-mobile <on|off>
+
+Examples:
+  todoist settings
+  todoist settings view --json
+  todoist settings update --timezone UTC --time-format 24
+  todoist settings themes

@@ -1,0 +1,2 @@
+Usage:
+  todoist workspace list [--ids-only]

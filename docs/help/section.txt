@@ -1,0 +1,5 @@
+Usage:
+  todoist section list [--project <id|name>] [--ids-only]
+  todoist section add --name <name> --project <id|name>
+  todoist section update --id <section_id> --name <name>
+  todoist section delete --id <section_id>

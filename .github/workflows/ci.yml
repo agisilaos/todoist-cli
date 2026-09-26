@@ -28,3 +28,5 @@ jobs:
       - name: PowerShell completion smoke test
         shell: pwsh
         run: ./scripts/test-powershell-completion.ps1
+      - name: docs
+        run: make docs-check

@@ -13,8 +13,8 @@ Usage:
   todoist [global flags] <command> [args]
 
 Commands:
-  inbox       Quick-add to Inbox
-  add         Quick add (alias of task add)
+  inbox       List Inbox tasks or add to Inbox
+  add         Capture tasks with natural language parsing
   today       Tasks due today and overdue
   completed   Completed task history
   upcoming    Tasks due in the next N days
@@ -205,7 +205,7 @@ func printTaskHelp(out interface{ Write([]byte) (int, error) }) {
   todoist task complete <ref>
   todoist task complete --filter <query> --yes
   todoist task reopen <ref>
-  todoist task delete <ref> [--yes]
+  todoist task delete <ref> --yes
 
 Task flags:
   --content <text>           Task content ("-" reads stdin)
@@ -225,19 +225,19 @@ Task flags:
   --deadline <YYYY-MM-DD>    Deadline date
   --assignee <ref>           Assignee reference (id, me, name, email)
   --natural                  Parse quick-add style tokens in content (#project @label p1..p4 due:...)
-  --yes                      Skip delete confirmation
+  --yes                      Required for task deletion and bulk move/complete
 
 Notes:
   By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
   --strict belongs to top-level "todoist add", not "todoist task add".
-  Aliases: ls=list, show=view, rm/delete=delete.
+  Aliases: ls=list, show=view, rm/del=delete.
   Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
   If --completed uses --since without --until, --until defaults to today.
   For bulk actions, plain --filter text is treated as search text when not a Todoist query.
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
-  Task updates/completions/deletes require task IDs; projects/sections/labels resolve names.
+  Task updates/completions/deletes accept IDs or text references.
   Use --content - to read task content from stdin.
   Use id:<id> to explicitly reference a task ID.
   Task/project/label/filter references can also use Todoist app URLs.
@@ -460,7 +460,7 @@ func printAddHelp(out interface{ Write([]byte) (int, error) }) {
   todoist add <text> [flags]
 
 Notes:
-  - Default uses Sync API quick add (full natural language parsing).
+  - Default uses the API v1 quick-add endpoint (full natural language parsing).
   - Use --strict to disable parsing and use the REST add endpoint.
   - Quick add does not support --section or project IDs; use --strict for those.
   - In --strict mode, pass --project as a name/id (no "#"), --label as names (no "@"), and --due without "due:".

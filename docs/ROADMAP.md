@@ -1,19 +1,22 @@
 # Todoist CLI Roadmap
 
-Status snapshot (2026-02-12):
+The following capabilities are implemented in the current source tree. Release
+availability is recorded in [CHANGELOG.md](../CHANGELOG.md).
 
-- Shipped:
-  - Quick add via Todoist quick endpoint with natural language parsing
-  - NDJSON across task/project/section/label/comment list outputs
-  - Task update by reference (id or text reference)
-  - Output schema command for JSON/NDJSON contracts
+## Implemented
 
-Planned/considered next:
+- Quick add with natural language parsing
+- NDJSON task/project/section/label/comment lists and output schemas
+- IDs-only output for supported lists
+- Task updates by ID or text reference
+- OAuth PKCE and device-flow login
+- Workspace listing and project collaborators
+- Agent progress events, action policies, and replay protection
+- Reference disambiguation and bulk task operations with previews
+- Filters, reminders, notifications, activity, productivity stats, and settings
 
-- [x] 1. OAuth device flow auth for headless/CI/agent environments
-- [x] 2. Workspace and collaboration command surface (workspace list + collaborators)
-- [x] 3. Agent progress JSONL stream for run/apply observability
-- [x] 4. Stronger agent safety rails (policy checks and scoped permissions)
-- [x] 5. Idempotency + replay safety for plan/apply reruns
-- [x] 6. Better reference-resolution UX (interactive disambiguation + machine details)
-- [x] 7. Bulk task operations with filter + dry-run/confirm flows
+## Future work
+
+Planned work is tracked in [GitHub Issues](https://github.com/agisilaos/todoist-cli/issues).
+This file summarizes implemented capabilities; issues track changing priorities
+and acceptance criteria.

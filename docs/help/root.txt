@@ -4,8 +4,8 @@ Usage:
   todoist [global flags] <command> [args]
 
 Commands:
-  inbox       Quick-add to Inbox
-  add         Quick add (alias of task add)
+  inbox       List Inbox tasks or add to Inbox
+  add         Capture tasks with natural language parsing
   today       Tasks due today and overdue
   completed   Completed task history
   upcoming    Tasks due in the next N days

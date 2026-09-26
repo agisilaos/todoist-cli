@@ -1,3 +1,28 @@
 # output_file<TAB>command args
 root.txt	--help
+auth.txt	auth --help
+task.txt	task --help
+project.txt	project --help
+filter.txt	filter --help
+workspace.txt	workspace --help
+section.txt	section --help
+label.txt	label --help
+comment.txt	comment --help
+reminder.txt	reminder --help
+notification.txt	notification --help
+activity.txt	activity --help
+stats.txt	stats --help
+settings.txt	settings --help
+view.txt	view --help
+agent.txt	agent --help
 completion.txt	completion --help
+doctor.txt	doctor --help
+inbox.txt	inbox --help
+schema.txt	schema --help
+planner.txt	planner --help
+add.txt	add --help
+today.txt	today --help
+completed.txt	completed --help
+upcoming.txt	upcoming --help
+auth-login.txt	auth login --help
+agent-schedule.txt	agent schedule --help
