@@ -1,0 +1,6 @@
+Usage:
+  todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force] [--cron]
+
+Notes:
+  - Default output is a macOS launchd plist. Use --cron for cron syntax.
+  - --bin can override the todoist binary path for scheduling.

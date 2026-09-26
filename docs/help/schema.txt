@@ -1,0 +1,9 @@
+Usage:
+  todoist schema [--name <schema>] [--json]
+
+Schemas:
+  ids_only, task_list, task_item_ndjson, error, plan, plan_preview, planner_request
+
+Examples:
+  todoist schema --json
+  todoist schema --name task_list --json

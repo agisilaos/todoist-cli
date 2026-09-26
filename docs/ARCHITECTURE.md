@@ -37,3 +37,16 @@ Todoist API v1
 - `internal/app/sections`: section list query planning, add/update payload validation, and delete confirmation planning.
 - `internal/app/agent`: status payload composition and agent action-to-API request planning for `agent apply/run`.
 - `internal/agent`: plan/action types, action validation, and summary derivation.
+- `internal/app/activities`: activity query validation and date/type filters.
+- `internal/app/assignees`: assignee lookup and reference resolution.
+- `internal/app/notifications`: notification filtering and action validation.
+- `internal/app/refs`: shared URL parsing and reference matching.
+- `internal/app/reminders`: reminder target and schedule validation.
+- `internal/app/settings`: user settings validation and update payloads.
+- `internal/app/stats`: productivity goals and vacation updates.
+
+## CLI-local orchestration
+
+Agent apply and replay persistence remain in `internal/cli`; the app layer plans
+requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
+for the success boundary and persistence limitations.

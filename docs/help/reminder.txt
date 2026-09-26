@@ -1,0 +1,16 @@
+Usage:
+  todoist reminder list [task] [--task <ref>] [--ids-only]
+  todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
+  todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
+  todoist reminder delete [id] [--id <id>] [--yes]
+
+Notes:
+  - Task refs support id:<id>, text references, and Todoist task URLs.
+  - --before accepts values like 30m, 1h, 2h15m.
+  - --at accepts RFC3339, YYYY-MM-DD HH:MM, or YYYY-MM-DD.
+
+Examples:
+  todoist reminder list "Call mom"
+  todoist reminder add "Call mom" --before 30m
+  todoist reminder update id:r1 --at "2026-02-24 10:00"
+  todoist reminder delete id:r1 --yes

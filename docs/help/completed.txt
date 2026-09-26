@@ -1,0 +1,11 @@
+Usage:
+  todoist completed [--completed-by completion|due] [--since <date>] [--until <date>] [--project <id|name>] [--section <id|name>] [--filter <query>] [--json|--plain|--ndjson|--ids-only]
+
+Notes:
+  - Shortcut for: todoist task list --completed ...
+  - If --since is set without --until, --until defaults to today.
+
+Examples:
+  todoist completed
+  todoist completed --since "2 weeks ago" --completed-by due
+  todoist completed --project Home --json

@@ -1,0 +1,28 @@
+Usage:
+  todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
+  todoist agent apply <instruction> --confirm <token> [--planner <cmd>] [--policy <file>]
+  todoist agent apply --plan <file> --confirm <token>
+  todoist agent apply --plan <file> --confirm <token> --dry-run [--policy <file>]
+  todoist agent run --instruction <text> [--planner <cmd>] [--confirm <token>|--force] [--policy <file>]
+  todoist agent schedule print --weekly "sat 09:00" [--instruction <text>] [--planner <cmd>] [--confirm <token>|--force]
+  todoist agent examples
+  todoist agent planner
+  todoist agent status
+
+Examples:
+  todoist agent plan "Move overdue tasks to Catch Up" --out plan.json
+  todoist agent apply --plan plan.json --confirm 6f2b
+  todoist agent run --instruction "Triage inbox"
+  todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today"
+
+Context flags:
+  --context-project <name>   Limit planner context to project(s) (repeatable)
+  --context-label <name>     Limit planner context to label(s) (repeatable)
+  --context-completed <Nd>   Include completed tasks for last N days (e.g. 7d)
+  --policy <file>            Enforce policy rules for planned actions
+
+Notes:
+  agent status is safe on first run and reports planner config + whether a last plan exists.
+  agent apply/agent run allow no-action plans in --dry-run mode for pipeline validation.
+  Planner context includes active tasks plus project/section/label/completed slices.
+  Plan actions may include optional "reason" text; human previews print it when present.

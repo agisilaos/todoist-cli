@@ -32,11 +32,11 @@ Pattern: `todoist <resource> <action> [args]`
 
 ```
 todoist task list [--project X] [--label L] [--filter "query"] [--preset today|overdue|next7] [--json|--ndjson|--plain]
-todoist task add --content "text" [--project X] [--labels L] [--due "text"] [--priority 1-4] [--assignee <id|me|name|email>]
+todoist task add --content "text" [--project X] [--label L] [--due "text"] [--priority 1-4] [--assignee <id|me|name|email>]
 todoist task view <ref> [--full]
 todoist task update --id <id> [flags]
 todoist task complete --id <id>
-todoist task delete --id <id> [--yes]
+todoist task delete --id <id> --yes
 ```
 
 ### Filter commands
@@ -180,7 +180,7 @@ Planner context notes:
 - `--ids-only` is parsed globally and validated against command eligibility. Like existing boolean global flags, it accepts the exact spelling, not `--ids-only=true`; global parsing stops at `--`.
 - Existing informational precedence applies: version wins over output conflicts, conflicts precede help, and root/command help remains available with `--ids-only` (an exception to ID-only stdout).
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
-- Common aliases: `ls=list`, `rm/delete=delete`; plus `task show=view`.
+- Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
 
 ## Errors

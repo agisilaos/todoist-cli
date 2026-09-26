@@ -1,0 +1,24 @@
+Usage:
+  todoist inbox [--ids-only]
+  todoist inbox add --content <text> [flags]
+
+Flags:
+  --content <text>        Task content ("-" reads stdin)
+  --description <text>    Task description
+  --section <id|name>     Section within Inbox
+  --label <name>          Label (repeatable)
+  --priority <1-4>        Priority
+  --due <string>          Natural language due
+  --due-date <YYYY-MM-DD> Due date
+  --due-datetime <RFC3339> Due date/time
+  --due-lang <code>       Due language
+  --duration <minutes>    Duration
+  --duration-unit <unit>  Duration unit (minute/day)
+  --deadline <YYYY-MM-DD> Deadline date
+  --assignee <id>         Assignee ID
+
+Notes:
+  - Uses Inbox project automatically.
+  - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
+  - Use --content - to read task content from stdin.
+  - Positional text is accepted when --content is omitted.

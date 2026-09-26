@@ -1,0 +1,27 @@
+Usage:
+  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login --oauth [--client-id <id>] [--no-browser] [--print-env]
+  todoist auth login --oauth-device [--client-id <id>] [--print-env]
+                    [--oauth-authorize-url <url>] [--oauth-token-url <url>]
+                    [--oauth-device-url <url>]
+                    [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
+
+Flags:
+  --token-stdin                Read token from stdin
+  --print-env                  Print token export instead of saving profile credentials
+  --oauth                      Authenticate using OAuth PKCE flow
+  --oauth-device               Authenticate using OAuth device flow (headless-friendly)
+  --no-browser                 Do not auto-open browser for OAuth flow
+  --client-id <id>             OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
+  --oauth-authorize-url <url>  OAuth authorize URL override
+  --oauth-token-url <url>      OAuth token URL override
+  --oauth-device-url <url>     OAuth device code URL override
+  --oauth-listen <host:port>   OAuth callback listen address (default 127.0.0.1:8765)
+  --oauth-redirect-uri <uri>   OAuth redirect URI (default http://<listen>/callback)
+
+Examples:
+  todoist auth login
+  todoist auth login --token-stdin < token.txt
+  todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
+  todoist auth login --oauth --no-browser --print-env

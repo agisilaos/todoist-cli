@@ -14,7 +14,11 @@ Thanks for your interest in contributing.
    ```bash
    gofmt -w $(rg --files -g '*.go')
    ```
-5. Run coverage guardrails:
+5. Check documentation (requires Python 3):
+   ```bash
+   make docs-check
+   ```
+6. Run coverage guardrails:
    ```bash
    make coverage-check
    ```
@@ -23,6 +27,7 @@ Thanks for your interest in contributing.
 
 - Keep changes focused and add tests when possible.
 - Follow the CLI UX conventions in `README.md`.
+- When changing commands, flags, output, or configuration, update the affected README/spec sections and regenerate help with `scripts/update-help.sh`. See [documentation maintenance](docs/README.md#keeping-docs-in-sync).
 - Open a discussion before large or breaking changes.
 
 ## Submitting a PR

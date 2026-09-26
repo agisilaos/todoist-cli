@@ -76,7 +76,8 @@ Example `config.json`:
   "default_profile": "default",
   "default_inbox_labels": ["inbox"],
   "default_inbox_due": "today",
-  "table_width": 120
+  "table_width": 120,
+  "planner_cmd": ""
 }
 ```
 
@@ -102,6 +103,7 @@ Environment variables:
 - `TODOIST_FUZZY` (1 to enable fuzzy name resolution)
 - `TODOIST_ACCESSIBLE` (1 to add screen-reader-friendly labels in human output)
 - `TODOIST_TABLE_WIDTH` (override table width for human output)
+- `TODOIST_PLANNER_CMD` (external planner command)
 
 ## Usage
 
@@ -179,7 +181,7 @@ todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [
 todoist task complete <ref>
 todoist task complete --filter <query> --yes
 todoist task reopen <ref>
-todoist task delete <ref> [--yes]
+todoist task delete <ref> --yes
 ```
 
 Task flags:
@@ -203,7 +205,7 @@ By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or 
 --deadline <YYYY-MM-DD>    Deadline date
 --assignee <ref>           Assignee reference (id, me, name, email)
 --natural                  Parse quick-add style tokens in content (#project @label p1..p4 due:...)
---yes                      Skip delete confirmation
+--yes                      Required for task deletion and bulk move/complete
 ```
 
 Completed task listing:
@@ -558,7 +560,7 @@ todoist completion uninstall zsh
 
 ## Finding IDs
 
-Some operations require IDs (e.g., task update/complete/delete; project archive/delete). Use list commands in `--plain` or `--json` mode to locate IDs:
+Some operations require IDs (for example, project archive/delete and comment update/delete). Use list commands in `--plain` or `--json` mode to locate IDs:
 
 ```bash
 todoist task list --filter "content:\"Write launch blog\"" --plain
@@ -567,7 +569,7 @@ todoist comment list --task <task_id> --plain
 todoist task list --completed --since "yesterday" --json | jq -r '.[].id'
 ```
 
-Where supported, name resolution is built-in (e.g., `--project <name>` and `--section <name>` on task commands, `--label <name>`), but task IDs are required for update/complete/delete. Use `id:<id>` to explicitly reference IDs.
+Where supported, name resolution is built-in (e.g., `--project <name>` and `--section <name>` on task commands, `--label <name>`), and task update/complete/delete accept IDs or text references. Use `id:<id>` to explicitly reference IDs.
 
 Task/project/label/filter references also accept Todoist app URLs, for example:
 
@@ -579,7 +581,7 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 
 ## Prompts & Safety
 
-- Destructive commands (delete/archive) prompt when stdin is a TTY; `todoist task delete` requires `--yes` (no prompt). Use `--force` to skip prompts. In non-interactive mode (`--no-input`), destructive commands fail unless `--force` is set.
+- Project archive/delete and section/label/comment delete prompt when stdin is a TTY; use `--force` to skip those prompts, including with `--no-input`. Task deletion always requires `--yes`, even with `--force` or `--dry-run`. Filter deletion requires `--yes` or `--force`.
 - `--dry-run` previews the actions that would be sent to Todoist without performing them.
 - `--no-input` disables all prompts (auth included). Provide required flags or env vars to continue.
 
@@ -717,7 +719,8 @@ See `RELEASING.md` for the full runbook. Release scripts are `scripts/changelog-
 
 ## Docs
 
-- CLI specification: `docs/SPEC.md`
+- Documentation index and maintenance checks: [docs/README.md](docs/README.md)
+- CLI specification: [docs/SPEC.md](docs/SPEC.md)
 - Roadmap: `docs/ROADMAP.md`
 - Release runbook: `RELEASING.md`
 - Release history: `CHANGELOG.md`

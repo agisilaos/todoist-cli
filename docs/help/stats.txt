@@ -1,0 +1,15 @@
+Usage:
+  todoist stats
+  todoist stats goals [--daily <n>] [--weekly <n>]
+  todoist stats vacation (--on | --off)
+
+Notes:
+  - Shows productivity stats, goals, and completion progress.
+  - "goals" updates daily/weekly targets.
+  - "vacation" toggles vacation mode.
+
+Examples:
+  todoist stats
+  todoist stats --json
+  todoist stats goals --daily 5 --weekly 25
+  todoist stats vacation --on

@@ -1,0 +1,6 @@
+Usage:
+  todoist filter list [--ids-only]
+  todoist filter show <id|name> [--ids-only]
+  todoist filter add --name <name> --query <query> [--color <color>] [--favorite]
+  todoist filter update <id|name> [--name <name>] [--query <query>] [--color <color>] [--favorite|--unfavorite]
+  todoist filter delete <id|name> --yes

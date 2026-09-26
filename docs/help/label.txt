@@ -1,0 +1,5 @@
+Usage:
+  todoist label list [--ids-only]
+  todoist label add --name <name> [--color <color>] [--favorite]
+  todoist label update --id <label_id> [flags]
+  todoist label delete --id <label_id>

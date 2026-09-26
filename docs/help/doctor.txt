@@ -1,0 +1,13 @@
+Usage:
+  todoist doctor [--strict]
+
+Checks:
+  - config and credentials file status
+  - auth token availability
+  - API reachability (when token exists)
+  - planner command configuration
+  - default agent policy file parse
+  - replay journal parse/readability
+
+Flags:
+  --strict   Exit non-zero when warnings exist

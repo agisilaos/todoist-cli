@@ -1,0 +1,6 @@
+Usage:
+  todoist agent planner                 # show planner command
+  todoist agent planner --set --cmd "<command>"  # set planner command
+
+Notes:
+  Sources (priority): --planner flag > TODOIST_PLANNER_CMD env > config.planner_cmd > none.
