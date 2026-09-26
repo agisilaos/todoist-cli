@@ -118,9 +118,17 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 	return resolvedID, nil
 }
 
+// writeStructuredValue emits a single result, preserving the JSON payload in NDJSON.
+func writeStructuredValue(ctx *Context, value any, meta output.Meta) error {
+	if ctx.Mode == output.ModeNDJSON {
+		return output.WriteNDJSON(ctx.Stdout, []any{value})
+	}
+	return output.WriteJSON(ctx.Stdout, value, meta)
+}
+
 func writeDryRun(ctx *Context, action string, payload any) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"action":        action,
 			"payload":       payload,
 			"dry_run":       true,
@@ -132,8 +140,8 @@ func writeDryRun(ctx *Context, action string, payload any) error {
 }
 
 func writeSimpleResult(ctx *Context, status, id string) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"id":     id,
 			"status": status,
 		}, output.Meta{RequestID: ctx.RequestID})

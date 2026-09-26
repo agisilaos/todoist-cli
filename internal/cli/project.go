@@ -438,8 +438,8 @@ func projectBrowse(ctx *Context, args []string) error {
 	if err := openProjectBrowserFn(browseURL); err != nil {
 		return fmt.Errorf("open browser: %w", err)
 	}
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"id":     project.ID,
 			"name":   project.Name,
 			"url":    browseURL,

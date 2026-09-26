@@ -108,8 +108,8 @@ func notificationView(ctx *Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, n, output.Meta{RequestID: ctx.RequestID})
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, n, output.Meta{RequestID: ctx.RequestID})
 	}
 	if ctx.Mode == output.ModePlain {
 		rows := [][]string{

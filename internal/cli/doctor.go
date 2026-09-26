@@ -249,8 +249,8 @@ func checkReplayJournal(ctx *Context) doctorCheck {
 }
 
 func writeDoctorReport(ctx *Context, checks []doctorCheck, warnCount, failCount int) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"checks": checks,
 			"summary": map[string]any{
 				"ok":    len(checks) - warnCount - failCount,
