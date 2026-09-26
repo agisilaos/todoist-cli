@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
+## [v0.8.0] - 2026-09-26
+
+### Upgrade notes
+
+- **Breaking for new saved logins:** macOS builds now use Keychain by default. On Linux, Windows, or macOS builds without native storage, use `auth login --credential-store=file`. Existing profiles keep their current storage; native failures never silently fall back to plaintext. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Move an existing profile to Keychain with `auth migrate --credential-store=native`; use `auth repair` after an interrupted migration. Before downgrading, migrate back with `auth migrate --credential-store=file` because older binaries cannot read native profiles. Migration cannot erase backups or snapshots. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+
+### Added
+
+- Added `auth login --oauth --read-only` for read-only profiles whose mutations the CLI blocks, including agent actions. Manual and environment tokens retain their existing permission to attempt writes. Token refresh remains unsupported; live device authorization support is unverified. [#4](https://github.com/agisilaos/todoist-cli/pull/4)
+- Added `--ids-only` to supported lists and shortcuts, emitting one ID per line for scripts. Empty results produce no stdout, and pagination hints go to stderr. [#2](https://github.com/agisilaos/todoist-cli/pull/2)
+- Added PowerShell 7 completion on macOS and Linux, including installation and removal through `completion powershell` and its `pwsh` alias. [#3](https://github.com/agisilaos/todoist-cli/pull/3)
+- Added agent progress events and apply summaries showing successful, failed, replay-skipped, and destructive actions. [593d415](https://github.com/agisilaos/todoist-cli/commit/593d415d03ec44279d9b7de9eb113cb77df9760a), [56e97e7](https://github.com/agisilaos/todoist-cli/commit/56e97e7730a8c67c780e73783fbf84b280b271d6)
+
+### Changed
+
+- JSON/NDJSON lists now report remaining pages on stderr, and empty JSON resource lists return `[]`. Commands that previously emitted prose under `--ndjson` now return structured records. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+
+### Security
+
+- Token entry no longer echoes secrets in the terminal, and cancellation restores terminal settings. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Fixed migration and logout leaving stale credential copies in files containing alternate spellings of credential fields. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+
+### Fixed
+
+- Agent actions now record replay protection before reporting success and stop if recording fails. Interrupted remote writes can still be repeated on retry; use one applying process at a time. [#1](https://github.com/agisilaos/todoist-cli/pull/1)
+- Generated schedules now preserve literal arguments, selected profiles, configuration, and dry-run settings. [#4](https://github.com/agisilaos/todoist-cli/pull/4)
+- Agent commands now stop before dispatching actions if the requested progress log cannot be opened. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- OAuth approval no longer expires at the individual HTTP request timeout. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Fixed `today` with stored credentials; unsupported options and positional arguments now return usage exit 2. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Restored filter operations through Todoist's supported Sync API. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Help remains available with broken configuration or missing mutation arguments, and diagnostics report configuration failures. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Preserved option values such as `--content '--json'` literally instead of interpreting them as global flags. [#5](https://github.com/agisilaos/todoist-cli/pull/5)
+- Fixed zsh activation instructions, including installations with custom filenames, spaces, or quotes. [e981b30](https://github.com/agisilaos/todoist-cli/commit/e981b300bd98c2fc2893dfedde4020099dbc1b92)
+- Fixed invalid Homebrew formula generation and added the MIT license to both macOS archives. [4f45a2a](https://github.com/agisilaos/todoist-cli/commit/4f45a2aecdc54731f8699a97c14941265113ffd7)
+
 ## [v0.7.0] - 2026-02-23
 
 ### Added
