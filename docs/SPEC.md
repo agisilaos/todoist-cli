@@ -171,7 +171,7 @@ Planner context notes:
 ## Output
 
 - Human default for TTY; `--plain` (tab-separated) for stable text.
-- `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Single results, mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
+- `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
 - Supported commands: `task list`, `project list`, `project collaborators`, `section list`, `label list`, `comment list`, `filter list`, `workspace list`, `reminder list`, `notification list`, `activity`, `completed`, `today`, `upcoming`, bare `inbox`, and `filter show`, including existing `ls` aliases. Collaborators emit user IDs; activity emits event IDs, not object IDs.
 - Preserve command result order (including existing sorting), duplicates, fetching defaults, and `--all` behavior. Validate the whole fetched collection before output: missing IDs or IDs containing whitespace/control characters fail with exit 1.
