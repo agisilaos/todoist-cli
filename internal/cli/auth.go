@@ -256,14 +256,18 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 		return err
 	}
 
+	payload := map[string]any{
+		"profile":                  ctx.Profile,
+		"stored":                   true,
+		"backend":                  info.Backend,
+		"authorization":            report,
+		"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
+	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"profile":                  ctx.Profile,
-			"stored":                   true,
-			"backend":                  info.Backend,
-			"authorization":            report,
-			"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
-		}, output.Meta{})
+		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+	}
+	if ctx.Mode == output.ModeNDJSON {
+		return output.WriteNDJSON(ctx.Stdout, []any{payload})
 	}
 	fmt.Fprintf(ctx.Stdout, "stored token for profile %q; backend: %s; %s\n", ctx.Profile, info.Backend, report.Summary())
 	if os.Getenv("TODOIST_TOKEN") != "" {
@@ -332,12 +336,16 @@ func authLogout(ctx *Context) error {
 	if err := profileStore(ctx).Delete(req, ctx.Profile); err != nil {
 		return err
 	}
+	payload := map[string]any{
+		"profile":                  ctx.Profile,
+		"removed":                  true,
+		"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
+	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
-			"profile":                  ctx.Profile,
-			"removed":                  true,
-			"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
-		}, output.Meta{})
+		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+	}
+	if ctx.Mode == output.ModeNDJSON {
+		return output.WriteNDJSON(ctx.Stdout, []any{payload})
 	}
 	fmt.Fprintf(ctx.Stdout, "removed token for profile %q\n", ctx.Profile)
 	if os.Getenv("TODOIST_TOKEN") != "" {

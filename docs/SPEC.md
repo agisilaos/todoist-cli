@@ -233,3 +233,5 @@ Config file: `~/.config/todoist/config.json`
 The complete accepted transaction, isolation, and verification contract is in [credential-store-design.md](credential-store-design.md).
 
 Auth status and logout accept no positional arguments or command-specific flags other than help. Select profiles with `--profile`. Help is informational and never removes credentials; invalid arguments fail with usage exit 2 before mutation.
+
+Successful auth login and logout support `--ndjson`, emitting one JSON record with the same fields as `--json`. Tokens are excluded except for the explicit login `--print-env` export.
