@@ -121,9 +121,8 @@ func filterAdd(ctx *Context, args []string) error {
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "filter add", body)
 	}
-	var filter api.Filter
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/filters", nil, body, &filter, true)
+	filter, reqID, err := ctx.Client.AddFilter(reqCtx, body)
 	cancel()
 	if err != nil {
 		return err
@@ -180,9 +179,8 @@ func filterUpdate(ctx *Context, args []string) error {
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "filter update", map[string]any{"id": filter.ID, "payload": body})
 	}
-	var out api.Filter
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/filters/"+filter.ID, nil, body, &out, true)
+	out, reqID, err := ctx.Client.UpdateFilter(reqCtx, filter.ID, body)
 	cancel()
 	if err != nil {
 		return err
@@ -225,7 +223,7 @@ func filterDelete(ctx *Context, args []string) error {
 		return writeDryRun(ctx, "filter delete", map[string]any{"id": filter.ID})
 	}
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Delete(reqCtx, "/filters/"+filter.ID, nil)
+	reqID, err := ctx.Client.DeleteFilter(reqCtx, filter.ID)
 	cancel()
 	if err != nil {
 		return err
@@ -277,8 +275,7 @@ func listAllFilters(ctx *Context) ([]api.Filter, string, error) {
 		return cloneSlice(cache.filters), ctx.RequestID, nil
 	}
 	reqCtx, cancel := requestContext(ctx)
-	var filters []api.Filter
-	reqID, err := ctx.Client.Get(reqCtx, "/filters", nil, &filters)
+	filters, reqID, err := ctx.Client.FetchFilters(reqCtx)
 	cancel()
 	if err != nil {
 		return nil, reqID, err

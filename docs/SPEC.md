@@ -58,6 +58,8 @@ todoist task delete --id <id> --yes
 
 ### Filter commands
 
+Saved filters are read and mutated through `/sync`. Mutations require a successful per-command acknowledgement; deleted filters are omitted from lists.
+
 ```
 todoist filter list
 todoist filter show <id|name>

@@ -14,11 +14,11 @@ import (
 
 func TestResolveFilterRefAmbiguous(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/filters" {
+		if r.URL.Path != "/sync" {
 			http.NotFound(w, r)
 			return
 		}
-		_, _ = w.Write([]byte(`[{"id":"f1","name":"Today","query":"today"},{"id":"f2","name":"Today Focus","query":"today & @focus"}]`))
+		_, _ = w.Write([]byte(`{"filters":[{"id":"f1","name":"Today","query":"today"},{"id":"f2","name":"Today Focus","query":"today & @focus"}]}`))
 	}))
 	defer ts.Close()
 
@@ -194,11 +194,11 @@ func TestResolveProjectIDPropagatesLookupErrors(t *testing.T) {
 
 func TestResolveFilterRefFromURL(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/filters" {
+		if r.URL.Path != "/sync" {
 			http.NotFound(w, r)
 			return
 		}
-		_, _ = w.Write([]byte(`[{"id":"f1","name":"Today","query":"today"}]`))
+		_, _ = w.Write([]byte(`{"filters":[{"id":"f1","name":"Today","query":"today"}]}`))
 	}))
 	defer ts.Close()
 

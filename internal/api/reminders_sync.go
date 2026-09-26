@@ -24,6 +24,7 @@ type Reminder struct {
 }
 
 type reminderSyncResponse struct {
+	Filters       []filterSyncItem  `json:"filters"`
 	Reminders     []Reminder        `json:"reminders"`
 	TempIDMapping map[string]string `json:"temp_id_mapping"`
 	SyncStatus    map[string]any    `json:"sync_status"`

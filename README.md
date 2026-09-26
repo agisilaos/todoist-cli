@@ -279,6 +279,8 @@ todoist project collaborators <id|name>
 
 ### Filters
 
+Saved filters use the [Todoist Sync API](https://developer.todoist.com/api/v1/). List/show read the filters resource; add/update/delete check the Sync command acknowledgement before reporting success.
+
 ```
 todoist filter list
 todoist filter show <id|name>
