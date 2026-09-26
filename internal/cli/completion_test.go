@@ -2,13 +2,298 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
+
+func TestCompletionPowerShellAndPwshSelectIdenticalScript(t *testing.T) {
+	powerShell, err := completionScript("powershell")
+	if err != nil {
+		t.Fatalf("completionScript(powershell): %v", err)
+	}
+	pwsh, err := completionScript("pwsh")
+	if err != nil {
+		t.Fatalf("completionScript(pwsh): %v", err)
+	}
+	if powerShell != pwsh {
+		t.Fatal("powershell and pwsh selected different scripts")
+	}
+	if !strings.HasPrefix(powerShell, powerShellCompletionMarker+"\n") {
+		t.Fatalf("PowerShell completion missing ownership marker: %q", powerShell[:min(len(powerShell), 80)])
+	}
+	if !strings.Contains(powerShell, "Register-ArgumentCompleter -Native -CommandName todoist") {
+		t.Fatal("PowerShell completion does not register todoist")
+	}
+
+	var canonicalOut bytes.Buffer
+	canonicalCtx := &Context{Stdout: &canonicalOut, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	if err := completionCommand(canonicalCtx, []string{"powershell"}); err != nil {
+		t.Fatalf("completion powershell: %v", err)
+	}
+	var aliasOut bytes.Buffer
+	aliasCtx := &Context{Stdout: &aliasOut, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	if err := completionCommand(aliasCtx, []string{"pwsh"}); err != nil {
+		t.Fatalf("completion pwsh: %v", err)
+	}
+	if canonicalOut.String() != aliasOut.String() {
+		t.Fatal("powershell and pwsh commands produced different output")
+	}
+}
+
+func TestDefaultPowerShellCompletionPath(t *testing.T) {
+	t.Run("xdg", func(t *testing.T) {
+		xdg := filepath.Join(t.TempDir(), "data")
+		t.Setenv("XDG_DATA_HOME", xdg)
+		want := filepath.Join(xdg, "todoist", "completions", "todoist.ps1")
+		for _, shell := range []string{"powershell", "pwsh"} {
+			if got := defaultCompletionPath(shell); got != want {
+				t.Fatalf("defaultCompletionPath(%s) = %q, want %q", shell, got, want)
+			}
+		}
+	})
+
+	t.Run("home fallback", func(t *testing.T) {
+		home := t.TempDir()
+		t.Setenv("XDG_DATA_HOME", "")
+		t.Setenv("HOME", home)
+		want := filepath.Join(home, ".local", "share", "todoist", "completions", "todoist.ps1")
+		if got := defaultCompletionPath("powershell"); got != want {
+			t.Fatalf("defaultCompletionPath(powershell) = %q, want %q", got, want)
+		}
+	})
+}
+
+func TestDetectShellRecognizesPowerShellWithoutShell(t *testing.T) {
+	tests := []struct {
+		name         string
+		shell        string
+		modulePath   string
+		distribution string
+	}{
+		{name: "module path", modulePath: "/opt/microsoft/powershell/Modules"},
+		{name: "distribution channel", distribution: "PSGitHub"},
+		{name: "pwsh basename", shell: "/usr/local/bin/pwsh"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("SHELL", tt.shell)
+			t.Setenv("PSModulePath", tt.modulePath)
+			t.Setenv("POWERSHELL_DISTRIBUTION_CHANNEL", tt.distribution)
+			if got := detectShell(); got != "powershell" {
+				t.Fatalf("detectShell() = %q, want powershell", got)
+			}
+		})
+	}
+}
+
+func TestCompletionInstallPowerShellHumanOutputAndProfileSafety(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_DATA_HOME", "")
+
+	profile := filepath.Join(home, ".config", "powershell", "Microsoft.PowerShell_profile.ps1")
+	if err := os.MkdirAll(filepath.Dir(profile), 0o755); err != nil {
+		t.Fatalf("create profile dir: %v", err)
+	}
+	const profileContents = "# existing profile content\n"
+	if err := os.WriteFile(profile, []byte(profileContents), 0o644); err != nil {
+		t.Fatalf("seed profile: %v", err)
+	}
+
+	var out bytes.Buffer
+	ctx := &Context{Stdout: &out, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	if err := completionCommand(ctx, []string{"install", "pwsh"}); err != nil {
+		t.Fatalf("completion install pwsh: %v", err)
+	}
+	installedPath := defaultCompletionPath("powershell")
+	if _, err := os.Stat(installedPath); err != nil {
+		t.Fatalf("installed completion: %v", err)
+	}
+	profileAfter, err := os.ReadFile(profile)
+	if err != nil {
+		t.Fatalf("read profile: %v", err)
+	}
+	if string(profileAfter) != profileContents {
+		t.Fatalf("PowerShell profile changed: %q", string(profileAfter))
+	}
+	if !strings.Contains(out.String(), "Installed powershell completion") {
+		t.Fatalf("install output did not use canonical shell: %q", out.String())
+	}
+	if !strings.Contains(out.String(), "Activate now: . '") || !strings.Contains(out.String(), "$PROFILE") {
+		t.Fatalf("install output missing activation instructions: %q", out.String())
+	}
+}
+
+func TestCompletionInstallPowerShellQuotesPath(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "user's files", "todoist.ps1")
+	var out bytes.Buffer
+	ctx := &Context{Stdout: &out, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	if err := completionCommand(ctx, []string{"install", "--path", path, "powershell"}); err != nil {
+		t.Fatalf("completion install: %v", err)
+	}
+	wantCommand := ". '" + strings.ReplaceAll(path, "'", "''") + "'"
+	if !strings.Contains(out.String(), wantCommand) {
+		t.Fatalf("activation output %q does not contain %q", out.String(), wantCommand)
+	}
+}
+
+func TestCompletionInstallPowerShellJSONIsCleanAndCanonical(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "todoist.ps1")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	ctx := &Context{Stdout: &stdout, Stderr: &stderr, Mode: output.ModeJSON}
+	if err := completionCommand(ctx, []string{"install", "--path", path, "pwsh"}); err != nil {
+		t.Fatalf("completion install: %v", err)
+	}
+	var result struct {
+		Shell      string `json:"shell"`
+		Path       string `json:"path"`
+		Activation string `json:"activation"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatalf("decode install JSON %q: %v", stdout.String(), err)
+	}
+	if result.Shell != "powershell" || result.Path != path {
+		t.Fatalf("unexpected install JSON: %+v", result)
+	}
+	if result.Activation != completionActivationHint("powershell", path) {
+		t.Fatalf("activation = %q, want %q", result.Activation, completionActivationHint("powershell", path))
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("unexpected stderr: %q", stderr.String())
+	}
+}
+
+func TestCompletionInstallPowerShellIsIdempotentAndUpdatesOwnedFiles(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "todoist.ps1")
+	ctx := &Context{Stdout: &bytes.Buffer{}, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	if err := completionCommand(ctx, []string{"install", "--path", path, "powershell"}); err != nil {
+		t.Fatalf("initial install: %v", err)
+	}
+	oldTime := time.Unix(1_600_000_000, 0)
+	if err := os.Chtimes(path, oldTime, oldTime); err != nil {
+		t.Fatalf("set completion timestamp: %v", err)
+	}
+	if err := completionCommand(ctx, []string{"install", "--path", path, "pwsh"}); err != nil {
+		t.Fatalf("idempotent install: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat completion: %v", err)
+	}
+	if !info.ModTime().Equal(oldTime) {
+		t.Fatalf("identical reinstall rewrote file: modtime = %v, want %v", info.ModTime(), oldTime)
+	}
+
+	if err := os.WriteFile(path, []byte(powerShellCompletionMarker+"\n# stale\n"), 0o644); err != nil {
+		t.Fatalf("seed stale completion: %v", err)
+	}
+	if err := completionCommand(ctx, []string{"install", "--path", path, "powershell"}); err != nil {
+		t.Fatalf("upgrade owned completion: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read upgraded completion: %v", err)
+	}
+	if string(data) != powerShellCompletion {
+		t.Fatal("owned completion was not upgraded")
+	}
+}
+
+func TestCompletionInstallPowerShellRefusesUnrecognizedFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "todoist.ps1")
+	const contents = "# unrelated script\n"
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatalf("seed file: %v", err)
+	}
+	ctx := &Context{Stdout: &bytes.Buffer{}, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	err := completionCommand(ctx, []string{"install", "--path", path, "powershell"})
+	if err == nil || !strings.Contains(err.Error(), "refusing to overwrite") {
+		t.Fatalf("install error = %v, want overwrite refusal", err)
+	}
+	data, readErr := os.ReadFile(path)
+	if readErr != nil {
+		t.Fatalf("read preserved file: %v", readErr)
+	}
+	if string(data) != contents {
+		t.Fatalf("unrecognized file changed: %q", string(data))
+	}
+}
+
+func TestCompletionUninstallPowerShellAliasesAndOwnership(t *testing.T) {
+	for _, shell := range []string{"powershell", "pwsh"} {
+		t.Run(shell, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "todoist.ps1")
+			if err := os.WriteFile(path, []byte(powerShellCompletion), 0o644); err != nil {
+				t.Fatalf("seed completion: %v", err)
+			}
+			ctx := &Context{Stdout: &bytes.Buffer{}, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+			if err := completionCommand(ctx, []string{"uninstall", "--path", path, shell}); err != nil {
+				t.Fatalf("completion uninstall %s: %v", shell, err)
+			}
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Fatalf("owned completion still exists: %v", err)
+			}
+		})
+	}
+
+	path := filepath.Join(t.TempDir(), "todoist.ps1")
+	const contents = "# unrelated script\n"
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatalf("seed unrelated file: %v", err)
+	}
+	ctx := &Context{Stdout: &bytes.Buffer{}, Stderr: &bytes.Buffer{}, Mode: output.ModeHuman}
+	err := completionCommand(ctx, []string{"uninstall", "--path", path, "powershell"})
+	if err == nil || !strings.Contains(err.Error(), "refusing to remove") {
+		t.Fatalf("uninstall error = %v, want ownership refusal", err)
+	}
+	if data, readErr := os.ReadFile(path); readErr != nil || string(data) != contents {
+		t.Fatalf("unrelated file was not preserved: data=%q err=%v", string(data), readErr)
+	}
+}
+
+func TestCompletionUninstallPowerShellJSONNoop(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.ps1")
+	var stdout bytes.Buffer
+	ctx := &Context{Stdout: &stdout, Stderr: &bytes.Buffer{}, Mode: output.ModeJSON}
+	if err := completionCommand(ctx, []string{"uninstall", "--path", path, "pwsh"}); err != nil {
+		t.Fatalf("completion uninstall: %v", err)
+	}
+	var result struct {
+		Removed []string `json:"removed"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatalf("decode uninstall JSON %q: %v", stdout.String(), err)
+	}
+	if result.Removed == nil || len(result.Removed) != 0 {
+		t.Fatalf("removed = %#v, want empty array", result.Removed)
+	}
+}
+
+func TestCompletionUninstallTargetsIncludePowerShell(t *testing.T) {
+	xdg := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", xdg)
+	targets, err := completionUninstallTargets("", "")
+	if err != nil {
+		t.Fatalf("completionUninstallTargets: %v", err)
+	}
+	wantPath := filepath.Join(xdg, "todoist", "completions", "todoist.ps1")
+	found := false
+	for _, target := range targets {
+		if target.shell == "powershell" && target.path == wantPath {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("PowerShell target %q missing from %#v", wantPath, targets)
+	}
+}
 
 func TestCompletionInstallWritesFile(t *testing.T) {
 	dir := t.TempDir()
