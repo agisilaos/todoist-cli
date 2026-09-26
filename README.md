@@ -170,21 +170,25 @@ Flag parsing notes:
 Manage Todoist credentials and profiles.
 
 ```
-todoist auth login [--token-stdin] [--print-env]
+todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
 todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
 todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
                   [--oauth-authorize-url <url>] [--oauth-token-url <url>]
                   [--oauth-device-url <url>] [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 todoist auth status
 todoist auth logout
+todoist auth migrate --credential-store=native|file
+todoist auth repair
 ```
 
-- `auth login` prompts for a token (TTY) or reads from stdin with `--token-stdin`. Stores tokens in `~/.config/todoist/credentials.json` (0600).
+- `auth login` prompts for a token without echoing it (TTY) or reads from stdin with `--token-stdin`. New profiles default to native storage (macOS Keychain); select `--credential-store=file` explicitly for portable plaintext storage. Existing profiles retain their backend. See [credential storage and recovery](#credential-storage-and-recovery).
 - OAuth defaults use Todoist’s documented `https://app.todoist.com/oauth/authorize` and `https://api.todoist.com/oauth/access_token` endpoints. Endpoint override flags and environment variables remain available.
 - `auth login --oauth` runs OAuth PKCE via local callback (`http://127.0.0.1:8765/callback` by default). If browser auto-open fails, the command prints a warning and continues waiting for callback so you can open the URL manually.
 - `auth login --oauth-device` prints a verification URL/code and polls until authorized. The configurable client flow is protocol-tested; live Todoist support remains unverified.
 - `auth status` reports the selected profile, credential source, authorization mode, scope evidence, and write capability without contacting Todoist.
-- `auth logout` deletes the selected stored credential and its authorization metadata. An environment token remains active.
+- `auth logout` disables the selected profile before deleting its token and authorization metadata. An environment token remains active.
+- `auth migrate --credential-store=native|file` explicitly changes the selected profile’s backend after verifying the destination.
+- `auth repair` reconciles interrupted credential transactions or retries pending cleanup.
 - Use `--print-env` to emit `TODOIST_TOKEN=...` for piping into other tools (`--json`/`--ndjson` return structured output with the export string).
 
 ### Tasks
@@ -761,7 +765,7 @@ See `RELEASING.md` for the full runbook. Release scripts are `scripts/changelog-
 ## Notes
 
 - This CLI uses Todoist REST API v1 endpoints under `https://api.todoist.com/api/v1`.
-- Keychain integration is not implemented; tokens are stored in a local credentials file.
+- Native credential storage currently supports macOS Keychain. Other platforms use explicitly selected file storage; see [credential storage and recovery](#credential-storage-and-recovery).
 - Some Todoist surfaces (for example skill/update) are not implemented yet.
 - Todoist is a trademark of Doist; this project is an independent, unofficial CLI.
 - Shell completions are bundled via `todoist completion`.
