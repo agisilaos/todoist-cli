@@ -33,14 +33,15 @@ type oauthToken struct {
 }
 
 type oauthConfig struct {
-	ReadOnly     bool
-	ClientID     string
-	AuthorizeURL string
-	TokenURL     string
-	DeviceURL    string
-	RedirectURI  string
-	ListenAddr   string
-	NoBrowser    bool
+	RequestTimeout time.Duration
+	ReadOnly       bool
+	ClientID       string
+	AuthorizeURL   string
+	TokenURL       string
+	DeviceURL      string
+	RedirectURI    string
+	ListenAddr     string
+	NoBrowser      bool
 }
 
 func buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
@@ -302,10 +303,16 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 	if expiresInSec <= 0 {
 		expiresInSec = 600
 	}
-	deadline := time.Now().Add(time.Duration(expiresInSec) * time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(expiresInSec)*time.Second)
+	defer cancel()
+	requestTimeout := cfg.RequestTimeout
+	if requestTimeout <= 0 {
+		requestTimeout = 10 * time.Second
+	}
+	client := &http.Client{Timeout: requestTimeout}
 
 	for {
-		if time.Now().After(deadline) {
+		if ctx.Err() != nil {
 			return oauthToken{}, fmt.Errorf("oauth device flow timed out")
 		}
 		form := url.Values{}
@@ -318,7 +325,7 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 			return oauthToken{}, err
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			return oauthToken{}, err
 		}

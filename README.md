@@ -65,7 +65,7 @@ todoist --profile reader auth status --json
 todoist --profile reader task list
 ```
 
-Both `--oauth` (PKCE) and `--oauth-device` accept `--read-only`, requesting exactly `data:read`. OAuth without this flag requests `data:read_write,data:delete,project:delete`. The existing configurable device-flow client is protocol-tested, but live Todoist device authorization support is unverified. Token refresh is not implemented; saved authorization metadata does not extend token validity.
+Both `--oauth` (PKCE) and `--oauth-device` accept `--read-only`, requesting exactly `data:read`. OAuth without this flag requests `data:read_write,data:delete,project:delete`. The existing configurable device-flow client is protocol-tested, but live Todoist device authorization support is unverified. Token refresh is not implemented; saved authorization metadata does not extend token validity. `--timeout` bounds each OAuth HTTP request, not human approval: PKCE allows three minutes for its callback, and device authorization honors the provider’s code lifetime.
 
 Read-only credentials can read Todoist, construct plans, and run previews. The CLI blocks mutations, including `agent apply/run`, before a mutation request is sent. `--force` and `--on-error=continue` do not override this restriction. External planners are trusted programs and are not sandboxed.
 

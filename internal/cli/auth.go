@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -201,12 +202,12 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 			fmt.Fprintln(ctx.Stderr, "Open the OAuth authorization URL manually to continue.")
 		}
 	}
-	reqCtx, cancel := requestContext(ctx)
-	defer cancel()
-	code, err := waitForOAuthCodeFn(reqCtx, cfg, state, 3*time.Minute)
+	code, err := waitForOAuthCodeFn(context.Background(), cfg, state, 3*time.Minute)
 	if err != nil {
 		return oauthToken{}, err
 	}
+	reqCtx, cancel := requestContext(ctx)
+	defer cancel()
 	token, err := exchangeOAuthTokenFn(reqCtx, cfg, code, verifier)
 	if err != nil {
 		return oauthToken{}, err
@@ -218,6 +219,7 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	reqCtx, cancel := requestContext(ctx)
 	defer cancel()
 	deviceCode, userCode, verifyURL, verifyURLComplete, intervalSec, expiresInSec, err := startOAuthDeviceFlow(reqCtx, cfg)
+	cancel()
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -229,7 +231,8 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 		fmt.Fprintf(ctx.Stderr, "Code: %s\n", userCode)
 	}
 	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
-	token, err := pollOAuthDeviceToken(reqCtx, cfg, deviceCode, intervalSec, expiresInSec)
+	cfg.RequestTimeout = time.Duration(ctx.Config.TimeoutSeconds) * time.Second
+	token, err := pollOAuthDeviceToken(context.Background(), cfg, deviceCode, intervalSec, expiresInSec)
 	if err != nil {
 		return oauthToken{}, err
 	}
