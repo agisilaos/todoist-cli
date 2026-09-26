@@ -73,8 +73,12 @@ The explicit collection of tasks selected at the start of a review and accounted
 _Avoid_: Today view, batch
 
 **Disposition**:
-The deliberate outcome assigned to a task during a review: kept, changed, completed, or skipped.
+The intended outcome chosen for a task during a review: keep, change, complete, or skip. Choosing a disposition does not mean its changes have been applied to Todoist.
 _Avoid_: Action, status
+
+**Review plan**:
+The proposed task changes derived from a review set's dispositions, awaiting confirmation before application.
+_Avoid_: Review result, applied changes
 
 **Applied action**:
 An agent-plan action whose Todoist mutation succeeded and whose replay record was stored. Until both occur, the CLI does not report the action as successful.
