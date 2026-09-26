@@ -43,9 +43,23 @@ func authCommand(ctx *Context, args []string) error {
 		return authLogin(ctx, args[1:])
 	case "migrate", "repair":
 		return authStorageCommand(ctx, args[0], args[1:])
-	case "status":
-		return authStatus(ctx)
-	case "logout":
+	case "status", "logout":
+		fs := newFlagSet("auth " + args[0])
+		var help bool
+		bindHelpFlag(fs, &help)
+		if err := parseFlagSetInterspersed(fs, args[1:]); err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
+		if help {
+			printAuthHelp(ctx.Stdout)
+			return nil
+		}
+		if len(fs.Args()) != 0 {
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("auth %s accepts no positional arguments; select a profile with --profile", args[0])}
+		}
+		if args[0] == "status" {
+			return authStatus(ctx)
+		}
 		return authLogout(ctx)
 	default:
 		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown auth subcommand: %s", args[0])}

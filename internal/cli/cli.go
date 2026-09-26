@@ -136,8 +136,8 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	}
 	if opts.Help {
 		if opts.IDsOnly {
-			// Route informational requests directly, including for commands whose
-			// handlers otherwise ignore --help (such as auth logout).
+			// Route informational requests directly without applying IDs-only
+			// command eligibility restrictions to help.
 			err := helpCommand(ctx, rest[:1])
 			writeError(ctx, err)
 			return toExitCode(err)

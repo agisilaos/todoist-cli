@@ -231,3 +231,5 @@ Config file: `~/.config/todoist/config.json`
 - No plaintext downgrade copy is retained. Older binaries cannot use migrated profiles and may discard references if they rewrite their files. Removing the current token does not erase external backups/snapshots.
 
 The complete accepted transaction, isolation, and verification contract is in [credential-store-design.md](credential-store-design.md).
+
+Auth status and logout accept no positional arguments or command-specific flags other than help. Select profiles with `--profile`. Help is informational and never removes credentials; invalid arguments fail with usage exit 2 before mutation.
