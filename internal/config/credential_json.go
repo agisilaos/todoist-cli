@@ -1,6 +1,9 @@
 package config
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
 // Preserve fields owned by newer versions when modifying a different profile.
 func (c *Credential) UnmarshalJSON(data []byte) error {
@@ -13,9 +16,7 @@ func (c *Credential) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &c.extra); err != nil {
 		return err
 	}
-	delete(c.extra, "token")
-	delete(c.extra, "authorization")
-	delete(c.extra, "storage")
+	removeKnownJSONFields(c.extra, "token", "authorization", "storage")
 	return nil
 }
 
@@ -44,7 +45,7 @@ func (c *Credentials) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &c.extra); err != nil {
 		return err
 	}
-	delete(c.extra, "profiles")
+	removeKnownJSONFields(c.extra, "profiles")
 	return nil
 }
 
@@ -56,6 +57,19 @@ func (c Credentials) MarshalJSON() ([]byte, error) {
 	}
 	fields["profiles"] = profiles
 	return json.Marshal(fields)
+}
+
+// Match encoding/json's case-insensitive field lookup, including Unicode folds.
+// Recognized aliases must not survive as stale copies when typed fields change.
+func removeKnownJSONFields(fields map[string]json.RawMessage, names ...string) {
+	for key := range fields {
+		for _, name := range names {
+			if strings.EqualFold(key, name) {
+				delete(fields, key)
+				break
+			}
+		}
+	}
 }
 
 func copyJSONFields(in map[string]json.RawMessage) map[string]json.RawMessage {

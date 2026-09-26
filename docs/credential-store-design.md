@@ -36,6 +36,8 @@ CLI workflows depend on a platform-neutral profile store rather than credential 
 
 Keep the existing profiles mapping in credentials.json and reuse the authorization object unchanged. A per-profile versioned storage descriptor records the concrete backend and, for native profiles, the namespace and native-entry reference. Its initial version is 1, independent of authorization metadata version 1. Absence of a descriptor is the legacy file case, not permission to ignore a present invalid or unsupported descriptor. Native records contain no plaintext token. File records retain the existing token representation. Unknown fields on unrelated profiles survive updates; migration preserves the selected profile's authorization data without inferring or weakening it.
 
+Recognized JSON field names retain Go's case-insensitive decoding behavior, including Unicode case folds. Writes use canonical field names and discard their alternate spellings, so migration, replacement, and logout cannot preserve stale credential copies as unknown fields. Profile names and genuinely unknown fields remain unchanged.
+
 The selector native resolves to concrete backend keychain on supported macOS builds; recorded backend identity remains keychain rather than changing meaning across platforms. Metadata inspection and enumeration return no tokens or token-derived fingerprints. Enumeration is a store capability; a new list command is not required by this feature.
 
 ## Replacement, migration, commit, and recovery
