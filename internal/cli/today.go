@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-
-	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func todayCommand(ctx *Context, args []string) error {
@@ -12,10 +10,8 @@ func todayCommand(ctx *Context, args []string) error {
 		return nil
 	}
 	filter := "overdue | today"
-	if ctx.Mode == output.ModeIDsOnly {
-		if err := ensureClient(ctx); err != nil {
-			return err
-		}
+	if err := ensureClient(ctx); err != nil {
+		return err
 	}
 	return taskListFiltered(ctx, filter, "", 50, true, false)
 }

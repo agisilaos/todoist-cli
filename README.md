@@ -310,7 +310,7 @@ Examples:
 
 ### Today
 
-Quick list of tasks due today and overdue.
+Quick list of tasks due today and overdue. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available.
 
 ```
 todoist today
