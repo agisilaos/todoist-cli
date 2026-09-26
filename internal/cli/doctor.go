@@ -56,6 +56,13 @@ func doctorCommand(ctx *Context, args []string) error {
 }
 
 func runDoctorChecks(ctx *Context) []doctorCheck {
+	if ctx.ConfigErr != nil {
+		checks := []doctorCheck{{Name: "config", Status: "fail", Message: "cannot load configuration", Details: map[string]any{"error": safeErrorText(ctx, ctx.ConfigErr)}}}
+		for _, name := range []string{"credentials", "api", "planner", "policy", "replay"} {
+			checks = append(checks, doctorCheck{Name: name, Status: "warn", Message: "skipped because configuration could not be loaded"})
+		}
+		return checks
+	}
 	return []doctorCheck{
 		checkConfigFiles(ctx),
 		checkCredentials(ctx),
@@ -116,7 +123,7 @@ func checkCredentials(ctx *Context) doctorCheck {
 		check.Details["error"] = safeErrorText(ctx, err)
 	}
 
-	if strings.TrimSpace(ctx.Token) == "" {
+	if !configuredCredential(ctx) {
 		check.Status = "warn"
 		check.Message = "no token resolved; run `todoist auth login`"
 	}
@@ -126,12 +133,26 @@ func checkCredentials(ctx *Context) doctorCheck {
 	if report.CheckCredential() != nil {
 		check.Status = "fail"
 	}
+	check.Details["backend"] = credentialBackend(ctx)
+	check.Details["accessibility"] = "unchecked"
+	check.Details["recovery"] = ctx.CredentialInfo.Recovery
+	storageErr := ctx.CredentialErr
+	if storageErr == nil && ctx.TokenSource != "env" && ctx.CredentialInfo.Configured {
+		req, cancel := requestContext(ctx)
+		storageErr = profileStore(ctx).Probe(req, ctx.Profile)
+		cancel()
+	}
+	if storageErr != nil {
+		check.Status = "fail"
+		check.Message = storageErr.Error()
+	}
+
 	return check
 }
 
 func checkAPIConnectivity(ctx *Context) doctorCheck {
 	check := doctorCheck{Name: "api", Status: "warn", Message: "token not configured; connectivity skipped"}
-	if ctx == nil || strings.TrimSpace(ctx.Token) == "" {
+	if ctx == nil || (!configuredCredential(ctx) && ctx.CredentialErr == nil) {
 		return check
 	}
 	if err := ensureClient(ctx); err != nil {
@@ -235,8 +256,8 @@ func checkReplayJournal(ctx *Context) doctorCheck {
 }
 
 func writeDoctorReport(ctx *Context, checks []doctorCheck, warnCount, failCount int) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"checks": checks,
 			"summary": map[string]any{
 				"ok":    len(checks) - warnCount - failCount,

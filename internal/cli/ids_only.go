@@ -42,9 +42,5 @@ func writeIDs[T any](ctx *Context, items []T, idOf func(T) string, cursor string
 			return err
 		}
 	}
-	if cursor != "" {
-		_, err := fmt.Fprintf(ctx.Stderr, "More available. Use --cursor %q\n", cursor)
-		return err
-	}
-	return nil
+	return writeCursorNotice(ctx, cursor)
 }

@@ -1,5 +1,5 @@
 Usage:
-  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
   todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
   todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
                     [--oauth-authorize-url <url>] [--oauth-token-url <url>]
@@ -7,6 +7,7 @@ Usage:
                     [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 
 Flags:
+  --credential-store          New-profile backend: native or file (existing profiles require migration)
   --token-stdin                Read token from stdin
   --print-env                  Print token export instead of saving profile credentials
   --oauth                      Authenticate using OAuth PKCE flow

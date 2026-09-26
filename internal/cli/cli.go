@@ -13,6 +13,7 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -65,8 +66,14 @@ type Context struct {
 	Config     config.Config
 	Profile    string
 	ConfigPath string
+	ConfigErr  error
 	Fuzzy      bool
 	Accessible bool
+
+	Credentials    credentials.Store
+	CredentialInfo credentials.Info
+	CredentialErr  error
+	SavingBackend  string
 
 	Token         string
 	TokenSource   string
@@ -116,27 +123,32 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		writeError(ctx, fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')"))
 		return exitUsage
 	}
-	if sink, err := newProgressSink(opts.ProgressJSONL, stderr); err == nil {
-		ctx.Progress = sink
-		defer sink.Close()
+	helpArgs := rest
+	showHelp := opts.Help || len(rest) == 0
+	if len(rest) > 0 && rest[0] == "help" {
+		helpArgs, showHelp = rest[1:], true
+	} else if len(rest) > 1 && rest[1] == "help" {
+		helpArgs = append([]string{rest[0]}, rest[2:]...)
+		showHelp = true
 	}
-	if err := loadConfig(ctx); err != nil {
+	if showHelp {
+		err := helpCommand(ctx, helpArgs)
 		writeError(ctx, err)
 		return toExitCode(err)
 	}
-	if len(rest) == 0 {
-		printRootHelp(stdout)
-		return exitOK
+	sink, err := newProgressSink(opts.ProgressJSONL, stderr)
+	if err != nil {
+		writeError(ctx, fmt.Errorf("open progress log: %w", err))
+		return exitError
 	}
-	if opts.Help {
-		if opts.IDsOnly {
-			// Route informational requests directly, including for commands whose
-			// handlers otherwise ignore --help (such as auth logout).
-			err := helpCommand(ctx, rest[:1])
+	ctx.Progress = sink
+	defer sink.Close()
+	if err := loadConfig(ctx); err != nil {
+		if rest[0] != "doctor" {
 			writeError(ctx, err)
 			return toExitCode(err)
 		}
-		rest = append(rest, "--help")
+		ctx.ConfigErr = err
 	}
 
 	code := dispatch(ctx, rest)
@@ -251,6 +263,11 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			}
 		default:
 			rest = append(rest, arg)
+			name, hasValue := splitFlagName(arg)
+			if !hasValue && commandFlagTakesValue(name) && i+1 < len(args) {
+				i++
+				rest = append(rest, args[i])
+			}
 		}
 	}
 	if parseErr != nil {
@@ -283,11 +300,11 @@ func loadConfig(ctx *Context) error {
 
 	userCfg, _, err := config.LoadConfig(configPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("load config %s: %w", configPath, err)
 	}
 	projectCfg, _, err := config.LoadConfig(projectConfigPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("load config %s: %w", projectConfigPath, err)
 	}
 	cfg := config.MergeConfig(userCfg, projectCfg)
 	applyEnvString("TODOIST_BASE_URL", &cfg.BaseURL)
@@ -328,17 +345,7 @@ func loadConfig(ctx *Context) error {
 		report := authorization.Resolve(nil, "env", true)
 		ctx.Authorization = &report
 	} else {
-		credsPath := config.CredentialsPathFromConfig(configPath)
-		creds, _, err := config.LoadCredentials(credsPath)
-		if err != nil {
-			return err
-		}
-		if cred, ok := creds.Profiles[ctx.Profile]; ok && cred.Token != "" {
-			ctx.Token = cred.Token
-			ctx.TokenSource = "credentials"
-			report := authorization.Resolve(cred.Authorization, "credentials", true)
-			ctx.Authorization = &report
-		}
+		inspectProfile(ctx)
 	}
 	if ctx.Token != "" {
 		ctx.Client = api.NewClient(cfg.BaseURL, ctx.Token, time.Duration(cfg.TimeoutSeconds)*time.Second, currentAuthorization(ctx))
@@ -355,6 +362,15 @@ func isTTYFile(w io.Writer) bool {
 }
 
 func ensureClient(ctx *Context) error {
+	if ctx.CredentialErr != nil && ctx.TokenSource != "env" {
+		return ctx.CredentialErr
+	}
+	if err := currentAuthorization(ctx).CheckCredential(); err != nil {
+		return err
+	}
+	if err := resolveStoredToken(ctx); err != nil {
+		return err
+	}
 	if err := currentAuthorization(ctx).CheckCredential(); err != nil {
 		return err
 	}
@@ -383,6 +399,13 @@ func (e *CodeError) Unwrap() error {
 func toExitCode(err error) int {
 	if err == nil {
 		return exitOK
+	}
+	var storageErr *credentials.Error
+	if errors.As(err, &storageErr) {
+		if storageErr.Kind == credentials.Selection {
+			return exitUsage
+		}
+		return exitAuth
 	}
 	var authorizationErr *authorization.Error
 	if errors.As(err, &authorizationErr) {

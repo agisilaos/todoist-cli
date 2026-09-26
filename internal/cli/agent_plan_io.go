@@ -72,7 +72,7 @@ func isPlanFileNotFoundError(err error) bool {
 }
 
 func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
-	if ctx.Mode == output.ModeJSON {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		payload := map[string]any{
 			"plan":          plan,
 			"dry_run":       dryRun,
@@ -80,7 +80,7 @@ func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 			"action_count":  len(plan.Actions),
 			"summary":       plan.Summary,
 		}
-		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "Authorization: %s\n", currentAuthorization(ctx).Summary())
 	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
@@ -143,7 +143,7 @@ func toAnySlice[T any](items []T) []any {
 }
 
 func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyErr error) error {
-	if ctx.Mode == output.ModeJSON {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		type resultJSON struct {
 			Action Action `json:"action"`
 			Error  string `json:"error,omitempty"`
@@ -166,7 +166,7 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 			}
 			out.Results = append(out.Results, entry)
 		}
-		return output.WriteJSON(ctx.Stdout, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+		return writeStructuredValue(ctx, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
 	}
 	okCount, failedCount, skippedReplay := summarizeApplyResults(results)
 	if skippedReplay == len(results) {

@@ -15,6 +15,7 @@ const (
 )
 
 type Config struct {
+	CredentialStore    string   `json:"credential_store,omitempty"`
 	BaseURL            string   `json:"base_url"`
 	TimeoutSeconds     int      `json:"timeout_seconds"`
 	DefaultProfile     string   `json:"default_profile"`
@@ -33,6 +34,7 @@ type Credential struct {
 	extra         map[string]json.RawMessage
 	Token         string          `json:"token"`
 	Authorization json.RawMessage `json:"authorization,omitempty"`
+	Storage       json.RawMessage `json:"storage,omitempty"`
 }
 
 func DefaultUserConfigPath() (string, error) {

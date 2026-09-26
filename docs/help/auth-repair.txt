@@ -1,0 +1,7 @@
+Usage: todoist auth repair
+
+Recover the selected profile's interrupted credential transaction or retry cleanup.
+Does not reconstruct corrupt files or access another directory's native entries.
+
+Options:
+  -h, --help  Show help

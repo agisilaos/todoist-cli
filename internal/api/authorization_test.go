@@ -35,6 +35,12 @@ func TestReadOnlyAuthorizationCoversRESTAndEverySyncMutationFamily(t *testing.T)
 		blocked("delete"+path, func() error { _, err := client.Delete(ctx, path, nil); return err })
 	}
 	blocked("quick-add", func() error { _, _, err := client.QuickAdd(ctx, "proposed"); return err })
+	blocked("filter-add", func() error {
+		_, _, err := client.AddFilter(ctx, map[string]any{"name": "Focus", "query": "today"})
+		return err
+	})
+	blocked("filter-update", func() error { _, _, err := client.UpdateFilter(ctx, "f1", map[string]any{"name": "Focus"}); return err })
+	blocked("filter-delete", func() error { _, err := client.DeleteFilter(ctx, "f1"); return err })
 	blocked("reminder-add", func() error { _, _, err := client.AddReminder(ctx, api.ReminderAddInput{ItemID: "task"}); return err })
 	blocked("reminder-update", func() error { _, err := client.UpdateReminder(ctx, api.ReminderUpdateInput{ID: "r"}); return err })
 	blocked("reminder-delete", func() error { _, err := client.DeleteReminder(ctx, "r"); return err })
@@ -81,6 +87,7 @@ func TestReadOnlyAuthorizationAllowsRESTAndSyncReads(t *testing.T) {
 		func() error { _, _, err := client.SyncWorkspaces(ctx); return err },
 		func() error { _, _, err := client.SyncCurrentUserID(ctx); return err },
 		func() error { _, _, err := client.FetchReminders(ctx); return err },
+		func() error { _, _, err := client.FetchFilters(ctx); return err },
 		func() error { _, _, err := client.FetchUserSettings(ctx); return err },
 		func() error { _, _, err := client.FetchLiveNotifications(ctx); return err },
 		func() error { _, _, err := client.FetchProductivityStats(ctx); return err },

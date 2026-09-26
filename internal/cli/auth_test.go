@@ -63,7 +63,7 @@ func TestAuthLoginOAuthStoresToken(t *testing.T) {
 	}
 	got := creds.Profiles[ctx.Profile].Token
 	if got != "oauth-token-123" {
-		t.Fatalf("unexpected stored token: %q", got)
+		t.Fatal("unexpected stored token")
 	}
 }
 
@@ -88,7 +88,7 @@ func TestAuthLoginOAuthDeviceStoresToken(t *testing.T) {
 	}
 	got := creds.Profiles[ctx.Profile].Token
 	if got != "oauth-device-token-123" {
-		t.Fatalf("unexpected stored token: %q", got)
+		t.Fatal("unexpected stored token")
 	}
 }
 
@@ -228,6 +228,7 @@ func newAuthTestContext(t *testing.T) *Context {
 		Stdout:     &bytes.Buffer{},
 		Stderr:     &bytes.Buffer{},
 		Stdin:      strings.NewReader(""),
+		Config:     config.Config{CredentialStore: "file", TimeoutSeconds: 10},
 		Profile:    "default",
 		ConfigPath: filepath.Join(tmp, "config.json"),
 	}

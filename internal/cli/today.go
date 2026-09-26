@@ -2,24 +2,29 @@ package cli
 
 import (
 	"fmt"
-
-	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func todayCommand(ctx *Context, args []string) error {
-	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help") {
+	fs := newFlagSet("today")
+	var help bool
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if help {
 		printTodayHelp(ctx.Stdout)
 		return nil
 	}
+	if len(fs.Args()) != 0 {
+		return &CodeError{Code: exitUsage, Err: fmt.Errorf("today accepts no positional arguments")}
+	}
 	filter := "overdue | today"
-	if ctx.Mode == output.ModeIDsOnly {
-		if err := ensureClient(ctx); err != nil {
-			return err
-		}
+	if err := ensureClient(ctx); err != nil {
+		return err
 	}
 	return taskListFiltered(ctx, filter, "", 50, true, false)
 }
 
 func printTodayHelp(out interface{ Write([]byte) (int, error) }) {
-	fmt.Fprint(out, "Usage:\n  todoist today [--ids-only]\n\nNotes:\n  - Shows tasks due today and overdue (across all projects).\n")
+	fmt.Fprint(out, "Usage:\n  todoist today [--ids-only]\n\nNotes:\n  - Shows tasks due today and overdue (across all projects).\n  - Accepts global flags only; use task list for custom filtering or limits.\n")
 }

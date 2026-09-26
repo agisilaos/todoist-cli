@@ -1,9 +1,16 @@
 Usage:
-  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
   todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
   todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
   todoist auth status
   todoist auth logout
+  todoist auth migrate --credential-store=native|file
+  todoist auth repair
+
+Storage:
+  New profiles require native storage by default; file storage is an explicit fallback.
+  Existing profiles keep their backend. Status reads metadata without retrieving secrets.
+  Keychain never prompts; unlock or adjust it externally, then retry.
 
 Examples:
   todoist auth login

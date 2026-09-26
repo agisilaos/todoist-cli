@@ -108,8 +108,8 @@ func notificationView(ctx *Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, n, output.Meta{RequestID: ctx.RequestID})
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, n, output.Meta{RequestID: ctx.RequestID})
 	}
 	if ctx.Mode == output.ModePlain {
 		rows := [][]string{
@@ -330,6 +330,11 @@ func writeNotificationList(ctx *Context, out appnotifications.ListResult) error 
 			return err
 		}
 		return nil
+	}
+	if out.HasMore && (ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON) {
+		if _, err := fmt.Fprintf(ctx.Stderr, "More available. Use --offset %d\n", out.Offset+out.Limit); err != nil {
+			return err
+		}
 	}
 	items := out.Items
 	if items == nil {

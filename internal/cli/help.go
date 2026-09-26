@@ -87,7 +87,29 @@ func helpCommand(ctx *Context, args []string) error {
 		printRootHelp(ctx.Stdout)
 		return nil
 	}
+	if args[0] == "auth" && len(args) > 1 {
+		switch args[1] {
+		case "login":
+			printAuthLoginHelp(ctx.Stdout)
+			return nil
+		case "migrate", "repair":
+			printAuthStorageHelp(ctx.Stdout, args[1])
+			return nil
+		}
+	}
+	if args[0] == "agent" && len(args) > 1 {
+		switch args[1] {
+		case "planner":
+			printAgentPlannerHelp(ctx.Stdout)
+			return nil
+		case "schedule":
+			printAgentScheduleHelp(ctx.Stdout)
+			return nil
+		}
+	}
 	switch args[0] {
+	case "inbox":
+		printInboxHelp(ctx.Stdout)
 	case "auth":
 		printAuthHelp(ctx.Stdout)
 	case "add":
@@ -147,11 +169,18 @@ func helpCommand(ctx *Context, args []string) error {
 
 func printAuthHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
   todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
   todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
   todoist auth status
   todoist auth logout
+  todoist auth migrate --credential-store=native|file
+  todoist auth repair
+
+Storage:
+  New profiles require native storage by default; file storage is an explicit fallback.
+  Existing profiles keep their backend. Status reads metadata without retrieving secrets.
+  Keychain never prompts; unlock or adjust it externally, then retry.
 
 Examples:
   todoist auth login
@@ -166,7 +195,7 @@ Examples:
 
 func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist auth login [--token-stdin] [--print-env]
+  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
   todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
   todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
                     [--oauth-authorize-url <url>] [--oauth-token-url <url>]
@@ -174,6 +203,7 @@ func printAuthLoginHelp(out interface{ Write([]byte) (int, error) }) {
                     [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 
 Flags:
+  --credential-store          New-profile backend: native or file (existing profiles require migration)
   --token-stdin                Read token from stdin
   --print-env                  Print token export instead of saving profile credentials
   --oauth                      Authenticate using OAuth PKCE flow
@@ -325,12 +355,13 @@ func printCommentHelp(out interface{ Write([]byte) (int, error) }) {
 
 func printReminderHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `Usage:
-  todoist reminder list [task] [--task <ref>] [--ids-only]
-  todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
-  todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
-  todoist reminder delete [id] [--id <id>] [--yes]
+  todoist reminder list (<task> | --task <ref>) [--ids-only]
+  todoist reminder add (<task> | --task <ref>) (--before <duration> | --at <datetime>)
+  todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime>)
+  todoist reminder delete (<id> | --id <id>) [--yes]
 
 Notes:
+  - List and add require a task; update and delete require a reminder ID.
   - Task refs support id:<id>, text references, and Todoist task URLs.
   - --before accepts values like 30m, 1h, 2h15m.
   - --at accepts RFC3339, YYYY-MM-DD HH:MM, or YYYY-MM-DD.
@@ -486,4 +517,26 @@ Examples:
   todoist add --content - --strict
   echo "From stdin" | todoist add --content -
 `)
+}
+
+func printAuthStorageHelp(w interface{ Write([]byte) (int, error) }, operation string) {
+	if operation == "migrate" {
+		fmt.Fprintln(w, `Usage: todoist auth migrate --credential-store=native|file
+
+Move the selected profile after verifying destination storage.
+Native migration removes its plaintext token. No automatic fallback occurs.
+Older CLI versions cannot use native profiles; explicitly migrate to file first.
+
+Options:
+  --credential-store native|file  Required destination backend
+  -h, --help                      Show help`)
+	} else {
+		fmt.Fprintln(w, `Usage: todoist auth repair
+
+Recover the selected profile's interrupted credential transaction or retry cleanup.
+Does not reconstruct corrupt files or access another directory's native entries.
+
+Options:
+  -h, --help  Show help`)
+	}
 }

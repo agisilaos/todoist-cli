@@ -7,7 +7,7 @@ Go-based CLI for Todoist. Binary name: `todoist`. Designed for humans and script
 ## Authentication
 
 - **Primary**: `TODOIST_TOKEN` environment variable
-- **Fallback**: `~/.config/todoist/credentials.json`
+- **Stored profile**: when `TODOIST_TOKEN` is absent, load the selected profile from its recorded backend. New profiles default to macOS Keychain; portable file storage requires explicit selection. Profile metadata and native references remain in `~/.config/todoist/credentials.json`; only file-backed profiles store tokens there. See [credential storage](#credential-storage-contract).
 - Profiles supported via `--profile` / `TODOIST_PROFILE`
 - OAuth PKCE login supported via `todoist auth login --oauth` (client ID from `--client-id` or `TODOIST_OAUTH_CLIENT_ID`)
 - The existing configurable device-flow client is available via `todoist auth login --oauth-device`; live Todoist device support is unverified.
@@ -58,6 +58,8 @@ todoist task delete --id <id> --yes
 
 ### Filter commands
 
+Saved filters are read and mutated through `/sync`. Mutations require a successful per-command acknowledgement; deleted filters are omitted from lists.
+
 ```
 todoist filter list
 todoist filter show <id|name>
@@ -85,10 +87,10 @@ todoist project delete --id <id>
 ### Reminder commands
 
 ```
-todoist reminder list [task] [--task <ref>]
-todoist reminder add [task] [--task <ref>] (--before <duration> | --at <datetime>)
-todoist reminder update [id] [--id <id>] (--before <duration> | --at <datetime>)
-todoist reminder delete [id] [--id <id>] [--yes]
+todoist reminder list (<task> | --task <ref>)
+todoist reminder add (<task> | --task <ref>) (--before <duration> | --at <datetime>)
+todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime>)
+todoist reminder delete (<id> | --id <id>) [--yes]
 ```
 
 ### Notification commands
@@ -171,7 +173,7 @@ Planner context notes:
 ## Output
 
 - Human default for TTY; `--plain` (tab-separated) for stable text.
-- `--json` emits raw arrays/objects; `--ndjson` emits one JSON object per line.
+- `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
 - Supported commands: `task list`, `project list`, `project collaborators`, `section list`, `label list`, `comment list`, `filter list`, `workspace list`, `reminder list`, `notification list`, `activity`, `completed`, `today`, `upcoming`, bare `inbox`, and `filter show`, including existing `ls` aliases. Collaborators emit user IDs; activity emits event IDs, not object IDs.
 - Preserve command result order (including existing sorting), duplicates, fetching defaults, and `--all` behavior. Validate the whole fetched collection before output: missing IDs or IDs containing whitespace/control characters fail with exit 1.
@@ -195,6 +197,8 @@ Planner context notes:
 
 - Global flags may appear before or after commands/subcommands.
 - `--ids-only` is parsed globally and validated against command eligibility. Like existing boolean global flags, it accepts the exact spelling, not `--ids-only=true`; global parsing stops at `--`.
+- Help remains available when configuration cannot be loaded. `doctor` reports a failing config check with its path and skips dependent checks; repair the JSON or file access before retrying other commands.
+- Explicit `--help`/`-h` requests show command usage before validating mutation arguments or contacting the API.
 - Existing informational precedence applies: version wins over output conflicts, conflicts precede help, and root/command help remains available with `--ids-only` (an exception to ID-only stdout).
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
 - Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.
@@ -216,3 +220,22 @@ Planner context notes:
 Precedence: flags > env > project config > user config.
 
 Config file: `~/.config/todoist/config.json`
+
+## Credential storage contract
+
+- New profiles default to native storage; the first native backend is macOS Keychain through cgo/Security.framework. Unsupported platforms/builds return a stable unavailable error. Explicit file storage remains portable under ADR-0001; native failure never selects plaintext automatically.
+- Login accepts `--credential-store=native|file`. The user-only `credential_store` configuration selects the default for new profiles. Project config cannot override it. Existing profile descriptors select their backend; changing defaults does not migrate them. Conflicting login flags are usage errors.
+- `todoist auth migrate --credential-store=native` explicitly migrates the selected profile; `--credential-store=file` explicitly restores portable plaintext storage. Verify the native destination before atomically publishing its reference and removing the plaintext token. Preserve authorization metadata, unrelated profiles, and unknown fields.
+- `todoist auth repair` reconciles an interrupted transaction or retries cleanup for the selected profile. Writers serialize with a bounded wait. Recovery records contain identifiers but no tokens. Before publication the original remains active; after a confirmed switch the new credential remains active even if obsolete-entry cleanup fails. Uncertain publication returns recovery required.
+- Logout durably disables the profile before native deletion. A failed deletion is cleanup pending, never successful removal; repeated logout retries it. Environment tokens remain independent.
+- Native records use a versioned per-profile storage descriptor in credentials.json alongside the existing authorization object, with no plaintext token. Descriptors bind opaque native entries to canonical configuration directory and profile. Moving/copying the directory requires a new login; symlink aliases share the namespace. Unsupported or malformed descriptors are not legacy records.
+- `auth status` keeps its existing fields and adds `backend`, `accessibility` (`unchecked`), and `recovery` (empty, `cleanup`, or `rollback`). Configured means a profile is recorded. Status, help and local commands never retrieve native secrets. Doctor reports backend health and retains its API probe; neither operation may trigger Keychain UI. Environment overrides bypass native access.
+- Auth/storage failures exit 3 with stable symbolic codes: `CREDENTIAL_MISSING`, `CREDENTIAL_STORE_UNAVAILABLE`, `CREDENTIAL_STORE_DENIED`, `CREDENTIAL_STORE_INTERACTION_REQUIRED`, `CREDENTIAL_STORE_LOCKED`, `CREDENTIAL_STORE_CORRUPT`, `CREDENTIAL_STORE_UNSUPPORTED`, `CREDENTIAL_STORE_NAMESPACE_MISMATCH`, `CREDENTIAL_STORE_BUSY`, `CREDENTIAL_STORE_IO`, `CREDENTIAL_CLEANUP_PENDING`, and `CREDENTIAL_RECOVERY_REQUIRED`. Conflicting backend selection is `CREDENTIAL_STORE_SELECTION_CONFLICT`, exit 2. Cleanup errors expose `details.committed=true` only after the switch is established. Existing JSON/quiet-JSON envelopes, human/NDJSON error conventions and doctor exit rules remain intact.
+- Native errors are classified before rendering; raw OS errors, malformed metadata and tokens never appear in diagnostics, subprocess arguments or test failures. Existing `auth login --print-env` remains the explicit token-output exception, including its structured export format, without persistence.
+- No plaintext downgrade copy is retained. Older binaries cannot use migrated profiles and may discard references if they rewrite their files. Removing the current token does not erase external backups/snapshots.
+
+The complete accepted transaction, isolation, and verification contract is in [credential-store-design.md](credential-store-design.md).
+
+Auth status and logout accept no positional arguments or command-specific flags other than help. Select profiles with `--profile`. Help is informational and never removes credentials; invalid arguments fail with usage exit 2 before mutation.
+
+Successful auth login and logout support `--ndjson`, emitting one JSON record with the same fields as `--json`. Tokens are excluded except for the explicit login `--print-env` export.

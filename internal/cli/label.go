@@ -200,6 +200,11 @@ func labelDelete(ctx *Context, args []string) error {
 }
 
 func writeLabelList(ctx *Context, labels []api.Label, cursor string) error {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		if err := writeCursorNotice(ctx, cursor); err != nil {
+			return err
+		}
+	}
 	if ctx.Mode == output.ModeIDsOnly {
 		return writeIDs(ctx, labels, func(item api.Label) string { return item.ID }, cursor)
 	}

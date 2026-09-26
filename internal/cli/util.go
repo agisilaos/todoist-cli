@@ -15,6 +15,7 @@ import (
 	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/authorization"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -117,9 +118,17 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 	return resolvedID, nil
 }
 
+// writeStructuredValue emits a single result, preserving the JSON payload in NDJSON.
+func writeStructuredValue(ctx *Context, value any, meta output.Meta) error {
+	if ctx.Mode == output.ModeNDJSON {
+		return output.WriteNDJSON(ctx.Stdout, []any{value})
+	}
+	return output.WriteJSON(ctx.Stdout, value, meta)
+}
+
 func writeDryRun(ctx *Context, action string, payload any) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"action":        action,
 			"payload":       payload,
 			"dry_run":       true,
@@ -131,8 +140,8 @@ func writeDryRun(ctx *Context, action string, payload any) error {
 }
 
 func writeSimpleResult(ctx *Context, status, id string) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"id":     id,
 			"status": status,
 		}, output.Meta{RequestID: ctx.RequestID})
@@ -191,6 +200,11 @@ func writeError(ctx *Context, err error) {
 			if authorizationErr.Reason != "" {
 				details["reason"] = authorizationErr.Reason
 			}
+		}
+		var storageErr *credentials.Error
+		if errors.As(err, &storageErr) {
+			payload["code"] = storageErr.Kind
+			details = storageErrorDetails(err)
 		}
 		if details != nil {
 			payload["details"] = details

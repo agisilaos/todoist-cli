@@ -123,7 +123,7 @@ func isReadRequest(req *http.Request, path string) bool {
 	}
 	for _, resource := range resources {
 		switch resource {
-		case "workspaces", "user", "user_settings", "live_notifications", "reminders":
+		case "workspaces", "user", "user_settings", "live_notifications", "reminders", "filters":
 		default:
 			return false
 		}

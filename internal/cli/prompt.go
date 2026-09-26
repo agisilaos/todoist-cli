@@ -3,12 +3,12 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
-
-	"io"
+	"golang.org/x/term"
 )
 
 func readLine(r io.Reader) (string, error) {
@@ -52,4 +52,19 @@ func isTTYReader(r io.Reader) bool {
 		return false
 	}
 	return output.IsTTY(f)
+}
+
+// Raw mode lets the password reader handle cancellation without leaving echo disabled.
+func readSecret(input *os.File, output io.Writer, prompt string) (string, error) {
+	fd := int(input.Fd())
+	state, err := term.MakeRaw(fd)
+	if err != nil {
+		return "", err
+	}
+	defer term.Restore(fd, state)
+	terminal := term.NewTerminal(struct {
+		io.Reader
+		io.Writer
+	}{input, output}, "")
+	return terminal.ReadPassword(prompt)
 }

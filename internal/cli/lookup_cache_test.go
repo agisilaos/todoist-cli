@@ -48,12 +48,12 @@ func TestListAllProjectsUsesCache(t *testing.T) {
 func TestListAllFiltersUsesCache(t *testing.T) {
 	hits := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/filters" {
+		if r.URL.Path != "/sync" {
 			http.NotFound(w, r)
 			return
 		}
 		hits++
-		_, _ = w.Write([]byte(`[{"id":"f1","name":"Today","query":"today"}]`))
+		_, _ = w.Write([]byte(`{"filters":[{"id":"f1","name":"Today","query":"today"}]}`))
 	}))
 	defer ts.Close()
 

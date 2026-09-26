@@ -75,8 +75,8 @@ func completionInstall(ctx *Context, args []string) error {
 	if err := writeCompletionFile(shell, path, script); err != nil {
 		return err
 	}
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"shell":      shell,
 			"path":       path,
 			"activation": completionActivationHint(shell, path),
@@ -113,8 +113,8 @@ func completionUninstall(ctx *Context, args []string) error {
 		return err
 	}
 	if len(targets) == 0 {
-		if ctx.Mode == output.ModeJSON {
-			return output.WriteJSON(ctx.Stdout, map[string]any{
+		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+			return writeStructuredValue(ctx, map[string]any{
 				"removed": []string{},
 			}, output.Meta{})
 		}
@@ -144,8 +144,8 @@ func completionUninstall(ctx *Context, args []string) error {
 		}
 		removed = append(removed, target.path)
 	}
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, map[string]any{
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, map[string]any{
 			"removed": removed,
 		}, output.Meta{})
 	}

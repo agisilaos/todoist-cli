@@ -84,8 +84,8 @@ func taskMove(ctx *Context, args []string) error {
 			setRequestID(ctx, reqID)
 			moved++
 		}
-		if ctx.Mode == output.ModeJSON {
-			return output.WriteJSON(ctx.Stdout, map[string]any{
+		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+			return writeStructuredValue(ctx, map[string]any{
 				"filter": resolved.Filter,
 				"moved":  moved,
 				"failed": failed,
@@ -172,8 +172,8 @@ func taskComplete(ctx *Context, args []string) error {
 			setRequestID(ctx, reqID)
 			completed++
 		}
-		if ctx.Mode == output.ModeJSON {
-			return output.WriteJSON(ctx.Stdout, map[string]any{
+		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+			return writeStructuredValue(ctx, map[string]any{
 				"filter":    resolved.Filter,
 				"completed": completed,
 				"failed":    failed,

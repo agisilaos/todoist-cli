@@ -53,10 +53,26 @@ for the success boundary and persistence limitations.
 
 ## Authorization boundary
 
-`internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` preserves the optional raw metadata per credential profile, including unsupported records in inactive profiles, and replaces credentials through a same-directory temporary file. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.
+`internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` defines credential records and preserves optional raw metadata, including unsupported records in inactive profiles. `internal/credentials` owns profile persistence, atomic replacement, and recovery across file and native storage. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.
 
 Constructing an API client requires an explicit resolved authorization report, preventing callers from silently dropping profile metadata. Every Todoist resource request passes through `internal/api.Client.dispatch`. Its underlying HTTP client is private; embedding/tests can supply a transport without gaining an unguarded dispatch API. Known GET resource routes and command-free Sync resource reads are classified as reads. All other operations require write capability. Redirects pass through the same policy before the next request is sent; destinations outside the configured API origin/path are unclassified. Sync POSTs are inspected because the same endpoint supports reads and mutations. OAuth exchange uses its separate credential-acquisition transport.
 
 The API guard is authoritative. Agent preflight calls the same authorization policy before dispatching any pending action, and authorization errors abort even under continue mode. Bulk task commands propagate these errors instead of converting them to a successful partial-failure summary. Replay skips perform no mutation and remain available with a read-only credential. Planning and previews report current authorization without putting authority into executable plans.
 
 Unknown credential compatibility is deliberate; see [ADR-0003](adr/0003-preserve-write-capability-for-unknown-credentials.md). The [authorization contract](authorization-design.md) separates metadata absence from invalid metadata and describes the machine output contract. External planners and older CLI binaries are outside the guard's enforcement boundary.
+
+## Credential storage boundary
+
+`internal/credentials` owns profile persistence and recovery. CLI workflows use its
+Store interface for load/save/delete, metadata inspection, enumeration, migration,
+repair and health. A smaller Secrets adapter handles native secret CRUD/probing;
+file persistence is injectable for failure tests. Selection uses user configuration
+and explicit auth flags outside resource workflows. Secret retrieval is lazy at
+the authenticated client boundary, so help/status/local work needs no native access.
+
+Keychain entries use immutable generations. A durable token-free transaction record
+identifies staged/obsolete entries; the atomic local profile replacement selects
+token and authorization together. Recovery confirms file durability before deleting
+an obsolete entry. Native calls serialize process-global interaction policy and
+never display dialogs. Build-tagged stubs preserve portable compilation without cgo.
+See [ADR-0004](adr/0004-select-credential-storage-explicitly.md).

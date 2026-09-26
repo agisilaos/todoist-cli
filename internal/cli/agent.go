@@ -263,7 +263,7 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 
 func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, hasPlan bool, plan *Plan) error {
 	status := appagent.Service{}.BuildStatus(plannerCmd, plannerSource, planPath, hasPlan)
-	if ctx.Mode == output.ModeJSON {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		payload := map[string]any{
 			"planner_cmd":      status.PlannerCmd,
 			"planner_source":   status.PlannerSource,
@@ -274,7 +274,7 @@ func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, 
 		if status.LastPlanExists && plan != nil {
 			payload["plan"] = *plan
 		}
-		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "Current authorization: %s\n", currentAuthorization(ctx).Summary())
 	if status.PlannerCmd == "" {

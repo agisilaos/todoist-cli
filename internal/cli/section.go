@@ -194,6 +194,11 @@ func sectionDelete(ctx *Context, args []string) error {
 }
 
 func writeSectionList(ctx *Context, sections []api.Section, cursor string) error {
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		if err := writeCursorNotice(ctx, cursor); err != nil {
+			return err
+		}
+	}
 	if ctx.Mode == output.ModeIDsOnly {
 		return writeIDs(ctx, sections, func(item api.Section) string { return item.ID }, cursor)
 	}

@@ -26,3 +26,5 @@ completed.txt	completed --help
 upcoming.txt	upcoming --help
 auth-login.txt	auth login --help
 agent-schedule.txt	agent schedule --help
+auth-migrate.txt	auth migrate --help
+auth-repair.txt	auth repair --help

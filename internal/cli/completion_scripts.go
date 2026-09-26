@@ -41,13 +41,19 @@ _todoist() {
       return 0
       ;;
     auth)
-      local subs="login status logout"
+      local subs="login status logout migrate repair"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
+      if [[ "$prev" == "--credential-store" ]]; then
+        COMPREPLY=( $(compgen -W "native file" -- "$cur") ); return 0
+      fi
+      if [[ ${COMP_WORDS[2]} == "migrate" ]]; then
+        COMPREPLY=( $(compgen -W "--credential-store ${global_flags}" -- "$cur") ); return 0
+      fi
       if [[ ${COMP_WORDS[2]} == "login" ]]; then
-        COMPREPLY=( $(compgen -W "--token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri ${global_flags}" -- "$cur") )
+        COMPREPLY=( $(compgen -W "--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri ${global_flags}" -- "$cur") )
         return 0
       fi
       ;;
@@ -230,7 +236,7 @@ case $words[1] in
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
   auth)
-    _arguments '2:subcommand:(login status logout)' '*:flags:(--token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
+    _arguments '2:subcommand:(login status logout migrate repair)' '*:flags:(--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
     _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
@@ -319,7 +325,8 @@ complete -c todoist -l progress-jsonl -d "Emit progress events as JSONL"
 complete -c todoist -l base-url -d "Override API base URL"
 
 # auth
-complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_use_subcommand' -a 'login status logout'
+complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_seen_subcommand_from login migrate' -l credential-store -r -a 'native file' -d "Credential storage backend"
+complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_use_subcommand' -a 'login status logout migrate repair'
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l token-stdin -d "Read token from stdin"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l print-env -d "Print TODOIST_TOKEN export"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth -d "Authenticate via OAuth PKCE flow"

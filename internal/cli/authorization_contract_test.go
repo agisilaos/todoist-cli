@@ -430,7 +430,7 @@ func TestAuthorizationCorruptCredentialFileUsesStructuredError(t *testing.T) {
 	os.WriteFile(filepath.Join(filepath.Dir(path), "credentials.json"), []byte(`{"profiles":`), 0600)
 	code, out, errOut := executeAuthorization(t, path, "auth", "status", "--json", "--quiet-json")
 	var failure map[string]any
-	if code != 1 || out != "" || json.Unmarshal([]byte(errOut), &failure) != nil || failure["error"] == nil || strings.Count(errOut, "\n") != 1 {
+	if code != 3 || out != "" || json.Unmarshal([]byte(errOut), &failure) != nil || failure["error"] == nil || strings.Count(errOut, "\n") != 1 {
 		t.Fatalf("corrupt-file error %d %s %s", code, out, errOut)
 	}
 }

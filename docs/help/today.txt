@@ -3,3 +3,4 @@ Usage:
 
 Notes:
   - Shows tasks due today and overdue (across all projects).
+  - Accepts global flags only; use task list for custom filtering or limits.

@@ -70,10 +70,8 @@ func TestContractIDsOnlySupportedCommands(t *testing.T) {
 			fmt.Fprint(w, `{"results":[{"id":"comment-id"}]}`)
 		case "/activities":
 			fmt.Fprint(w, `{"results":[{"id":"event-id","object_id":"task-id"}]}`)
-		case "/filters":
-			fmt.Fprint(w, `[{"id":"filter-id","name":"Test","query":"today"}]`)
 		case "/sync":
-			fmt.Fprint(w, `{"workspaces":[{"id":"workspace-id"}],"reminders":[{"id":"reminder-id","item_id":"task-id"}],"live_notifications":[{"id":"notification-id","notification_type":"item_assigned","is_unread":true}]}`)
+			fmt.Fprint(w, `{"filters":[{"id":"filter-id","name":"Test","query":"today"}],"workspaces":[{"id":"workspace-id"}],"reminders":[{"id":"reminder-id","item_id":"task-id"}],"live_notifications":[{"id":"notification-id","notification_type":"item_assigned","is_unread":true}]}`)
 		default:
 			t.Errorf("unexpected request: %s", r.URL)
 			http.NotFound(w, r)
