@@ -7,7 +7,7 @@ import (
 
 func fetchPaginated[T any](ctx *Context, path string, query url.Values, all bool) ([]T, string, error) {
 	q := cloneQuery(query)
-	var items []T
+	items := make([]T, 0)
 	var next string
 	for {
 		var page struct {
