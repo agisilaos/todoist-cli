@@ -42,11 +42,13 @@ brew install todoist-cli
 
 ## Auth
 
-Use a personal API token from Todoist settings.
+Copy your personal API token from Todoist settings. Run the command below and paste only the token into the hidden prompt, without quotes or a `Bearer` prefix.
 
 ```bash
 todoist auth login
 ```
+
+Login checks the token with a read-only Todoist request before saving it. On success, run `todoist today`. A rejected token or connection failure leaves existing credentials unchanged; follow the error guidance and rerun login. Manual login (including `--print-env`) now requires API connectivity.
 
 Other options:
 

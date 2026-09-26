@@ -70,6 +70,9 @@ func TestNativeStatusAndHelpNeverRetrieveSecrets(t *testing.T) {
 }
 
 func TestCredentialCLISelectionMigrationAndRecoveryCommands(t *testing.T) {
+	probe := newAuthTestContext(t)
+	authValidationServer(t, probe, 200, "cli-synthetic-token")
+	t.Setenv("TODOIST_BASE_URL", probe.Config.BaseURL)
 	t.Setenv("TODOIST_TOKEN", "")
 	t.Setenv("TODOIST_PROFILE", "")
 	dir := t.TempDir()
@@ -152,6 +155,7 @@ func TestProjectConfigurationCannotSelectCredentialBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx.Stdin = strings.NewReader("synthetic-file-token\n")
+	authValidationServer(t, ctx, 200, "synthetic-file-token")
 	if err := authLogin(ctx, []string{"--token-stdin"}); err != nil {
 		t.Fatal(err)
 	}

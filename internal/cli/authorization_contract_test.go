@@ -393,6 +393,9 @@ func TestAuthorizationReadOnlyHelpCompletionsAndOrdinaryPreview(t *testing.T) {
 
 func TestAuthorizationManualReplacementRepairsMetadataAndLogoutRemovesIt(t *testing.T) {
 	path := authorizationFixture(t, `{"version":99}`)
+	probe := newAuthTestContext(t)
+	authValidationServer(t, probe, 200, "manual-secret")
+	t.Setenv("TODOIST_BASE_URL", probe.Config.BaseURL)
 	input, err := os.CreateTemp(t.TempDir(), "stdin")
 	if err != nil {
 		t.Fatal(err)
