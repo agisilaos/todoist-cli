@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
+## [v0.9.0] - 2026-09-27
+
+### Upgrade notes
+
+- **Manual login now requires connectivity:** `auth login`, including `--print-env`, verifies the supplied token with Todoist before saving or exporting it. Rejected tokens and connection failures leave existing credentials unchanged. [#6](https://github.com/agisilaos/todoist-cli/pull/6)
+- Apply saved review plans only with this version or newer, using the same configuration, account, and API endpoint. Do not edit recovery plans or apply them with older binaries; uncertain writes require inspection and a fresh review. Run only one applying process at a time. [#11](https://github.com/agisilaos/todoist-cli/pull/11)
+- Unknown help targets now return usage exit 2 instead of successfully falling back to broader help. Valid help remains available without credentials and with broken configuration. [#8](https://github.com/agisilaos/todoist-cli/pull/8)
+
+### Added
+
+- Added `todoist review` to work through overdue and today's tasks, choose what to keep, change, complete, or skip, and inspect a plan before confirming changes. Read-only credentials and dry runs stop at preview; interactive review requires terminal input. [#11](https://github.com/agisilaos/todoist-cli/pull/11)
+- Daily review saves recovery plans before applying changes, checks for stale tasks, and reports applied, failed, partial, and unattempted work. Retrying a definite failure skips recorded successes; application is not transactional and does not guarantee exactly-once writes. [#11](https://github.com/agisilaos/todoist-cli/pull/11)
+
+### Changed
+
+- Task capture now prints a human-readable receipt with returned content, destination, due date, recurrence, priority, labels, and correction guidance. Dry-run feedback distinguishes submitted values from Todoist's interpretation; JSON, NDJSON, plain, and quiet capture output retain their existing contracts. [#9](https://github.com/agisilaos/todoist-cli/pull/9)
+- Subcommand help now focuses on the selected operation, and human command errors suggest nearby names without executing them. Root help and the quickstart lead with everyday workflows and explain Inbox scope versus pagination. [#8](https://github.com/agisilaos/todoist-cli/pull/8), [#10](https://github.com/agisilaos/todoist-cli/pull/10)
+- Implicit Inbox lists now show an `Inbox` label in human output, including empty results; quiet and machine output remain unchanged. [#10](https://github.com/agisilaos/todoist-cli/pull/10)
+
+### Fixed
+
+- Bare `inbox` now reports an authentication error instead of panicking when credentials are missing. Inbox lookup failures stop before fetching tasks rather than silently returning tasks from other projects. [#10](https://github.com/agisilaos/todoist-cli/pull/10)
+
 ## [v0.8.0] - 2026-09-26
 
 ### Upgrade notes
