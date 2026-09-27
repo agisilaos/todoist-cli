@@ -58,6 +58,39 @@ todoist task complete --id <id>
 todoist task delete --id <id> --yes
 ```
 
+### Task capture feedback
+
+Successful `add`, `add --strict`, `task add` (including `--natural`/`--quick`), and
+`inbox add` produce a capture receipt in human output unless `--quiet` is set.
+The receipt uses returned task state: content, project, optional section, due,
+recurrence, priority, labels, and full ID. Name lookup is best-effort; failures show
+returned IDs with `name unavailable` without failing creation. It adds no mutation
+or follow-up task fetch, and introduces no prompt.
+
+- Display priorities match Todoist's p1–p4 (`p2` → `Priority: 2`). API priorities
+  remain 4–1 respectively. Numeric input flags and machine output remain unchanged.
+- An explicit null due shows `No due date`; omitted due or other unavailable values
+  show `Not returned`. An empty labels array shows `None`; missing/null labels are unknown.
+- Dates/times are shown as returned, with the returned timezone where supplied,
+  without local conversion. A time without an offset or timezone is labeled as such.
+  Recurrence uses the returned boolean and, when recurring, its expression; an
+  omitted recurrence flag stays unknown. A due expression alone is not a resolved date.
+- Full text is retained and terminal control characters are escaped. Labeled lines
+  wrap naturally without column truncation and do not depend on color or symbols.
+- Recovery points to `task view id:<full-id>`, `task update --help`, and `task move
+  --help`. No URL is invented. A response without an ID asks the user to verify in
+  Todoist before retrying, rather than claiming confirmed creation.
+- JSON remains a one-item task array, NDJSON one object, and plain/default piped
+  output the existing TSV row. Response facts retained for receipts do not add
+  serialized fields. IDs-only eligibility/rejection, errors, aliases, and exit codes
+  are unchanged. Quiet retains its previous output, including the human table.
+- Human capture dry runs show submitted text or structured fields and state that no
+  task was created. Quick-add interpretation and natural-language due expressions
+  remain unverified until submitted. Machine and quiet preview payloads/wording,
+  authorization checks, and required name-resolution reads are unchanged.
+
+Other task output, including list/view priority rendering, is unchanged.
+
 ### Filter commands
 
 Saved filters are read and mutated through `/sync`. Mutations require a successful per-command acknowledgement; deleted filters are omitted from lists.

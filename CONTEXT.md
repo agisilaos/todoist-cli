@@ -16,6 +16,10 @@ _Avoid_: Bot, automation user
 The documented structured output and error behavior that machine clients can rely on across compatible releases.
 _Avoid_: JSON mode, agent output
 
+**Capture receipt**:
+A human-readable account of a newly created task, based on the state returned by Todoist. Missing returned information remains unknown; a dry run is a preview, not a capture receipt.
+_Avoid_: Parsed input, creation preview
+
 **Authentication**:
 Establishing that Todoist accepts a credential. Authentication alone does not establish which permissions the credential has.
 _Avoid_: Authorization, write access

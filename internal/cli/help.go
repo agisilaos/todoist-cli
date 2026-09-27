@@ -281,6 +281,9 @@ Notes:
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
+  Task add prints a capture receipt in a terminal (except --quiet), including a view command.
+  Receipt priority matches p1..p4; numeric --priority uses API values (1 normal, 4 urgent).
+  Add --dry-run shows proposed fields; Todoist must still interpret natural-language due expressions.
   Task updates/completions/deletes accept IDs or text references.
   Use --content - to read task content from stdin.
   Use id:<id> to explicitly reference a task ID.
@@ -498,6 +501,9 @@ Flags:
 
 Notes:
   - Uses Inbox project automatically.
+  - A terminal capture receipt shows returned task details and a view command (except --quiet).
+  - Receipt priority uses Todoist 1..4; numeric --priority uses API values (1 normal, 4 urgent).
+  - --dry-run shows proposed fields, not a saved task; due expressions still need Todoist interpretation.
   - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
   - Use --content - to read task content from stdin.
   - Positional text is accepted when --content is omitted.
@@ -509,11 +515,18 @@ func printAddHelp(out interface{ Write([]byte) (int, error) }) {
   todoist add <text> [flags]
 
 Notes:
-  - Default uses the API v1 quick-add endpoint (full natural language parsing).
-  - Use --strict to disable parsing and use the REST add endpoint.
+  - Default lets Todoist interpret project, labels, priority, and natural-language dates.
+  - Use --strict for literal content and explicit creation fields.
   - Quick add does not support --section or project IDs; use --strict for those.
   - In --strict mode, pass --project as a name/id (no "#"), --label as names (no "@"), and --due without "due:".
   - If --content is omitted, remaining args are treated as task content.
+  - A terminal receipt shows returned content, destination, due, recurrence, priority, labels, and a view command.
+  - Receipt priority matches p1..p4 (p2 shows Priority: 2); numeric --priority uses API values (1 normal, 4 urgent).
+  - Missing response fields show Not returned; an explicit empty due shows No due date.
+  - --dry-run shows submitted text/fields, not confirmed interpretation; no task is created.
+  - --strict leaves content literal; --due expressions still need Todoist interpretation.
+  - JSON/NDJSON/plain and --quiet output are unchanged; --ids-only rejects creation.
+  - Correct fields with task update; change destination with task move. Use either command's --help.
 
 Examples:
   todoist add "Pay rent"
