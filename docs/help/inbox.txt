@@ -19,6 +19,7 @@ Flags:
 
 Notes:
   - Lists all pages of active Inbox tasks, regardless of due date.
+  - Stops with an error if Inbox cannot be resolved.
   - Uses Inbox project automatically.
   - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
   - Use --content - to read task content from stdin.

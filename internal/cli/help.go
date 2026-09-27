@@ -286,6 +286,7 @@ Notes:
   Use --all-projects or --filter to list across projects.
   --all fetches every page; --all-projects alone does not.
   inbox lists every page of Inbox tasks.
+  Inbox lookup failures stop the list; they never select all projects.
   --strict belongs to top-level "todoist add", not "todoist task add".
   Aliases: ls=list, show=view, rm/del=delete.
   Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
@@ -511,6 +512,7 @@ Flags:
 
 Notes:
   - Lists all pages of active Inbox tasks, regardless of due date.
+  - Stops with an error if Inbox cannot be resolved.
   - Uses Inbox project automatically.
   - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
   - Use --content - to read task content from stdin.

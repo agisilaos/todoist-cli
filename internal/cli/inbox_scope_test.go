@@ -112,16 +112,20 @@ func TestImplicitInboxScopeOutput(t *testing.T) {
 			} else {
 				err = taskCommand(ctx, args)
 			}
-			if (err != nil) != tc.tasksFail {
+			if (err != nil) != (tc.tasksFail || tc.lookupFail || tc.noInbox) {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if taskRequests != 1 {
-				t.Fatalf("task requests = %d", taskRequests)
+			wantRequests := 1
+			if tc.lookupFail || tc.noInbox {
+				wantRequests = 0
+			}
+			if taskRequests != wantRequests {
+				t.Fatalf("task requests = %d, want %d", taskRequests, wantRequests)
 			}
 			if got := strings.HasPrefix(out.String(), "Inbox\n"); got != tc.wantLabel {
 				t.Fatalf("label=%t, want %t; output=%q", got, tc.wantLabel, out.String())
 			}
-			if tc.tasksFail && out.Len() != 0 {
+			if err != nil && out.Len() != 0 {
 				t.Fatalf("failed request emitted stdout: %q", out.String())
 			}
 			if tc.mode == output.ModeJSON && !json.Valid(out.Bytes()) {
@@ -129,6 +133,54 @@ func TestImplicitInboxScopeOutput(t *testing.T) {
 			}
 			if tc.mode == output.ModeIDsOnly && out.String() != "101\n" {
 				t.Fatalf("changed ID output: %q", out.String())
+			}
+		})
+	}
+}
+
+func TestInboxLookupFailureNeverListsOtherProjects(t *testing.T) {
+	for _, response := range []struct {
+		name   string
+		status int
+		body   string
+		code   int
+	}{
+		{"lookup failure", http.StatusBadRequest, `{"error":"lookup failed"}`, exitError},
+		{"auth failure", http.StatusUnauthorized, `{"error":"invalid token"}`, exitAuth},
+		{"missing Inbox", http.StatusOK, `{"results":[{"id":"200","name":"Work"}]}`, exitNotFound},
+	} {
+		t.Run(response.name, func(t *testing.T) {
+			taskRequests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/projects" {
+					w.WriteHeader(response.status)
+					fmt.Fprint(w, response.body)
+					return
+				}
+				taskRequests++
+				fmt.Fprint(w, `{"results":[{"id":"201","content":"Work task","project_id":"200"}]}`)
+			}))
+			defer server.Close()
+			t.Setenv("TODOIST_TOKEN", "synthetic-token")
+			t.Setenv("TODOIST_BASE_URL", server.URL)
+			for _, command := range [][]string{{"inbox"}, {"task", "list"}, {"task", "ls"}} {
+				for _, mode := range []string{"--json", "--ids-only", "--plain", "--ndjson"} {
+					args := append(append([]string{}, command...), "--no-input", mode)
+					code, out, errOut := executeAuthorization(t, filepath.Join(t.TempDir(), "config.json"), args...)
+					if code != response.code || out != "" || errOut == "" {
+						t.Fatalf("%v: exit=%d stdout=%q stderr=%q", args, code, out, errOut)
+					}
+					if (mode == "--json" || mode == "--ids-only") && !json.Valid([]byte(errOut)) {
+						t.Fatalf("invalid JSON error: %q", errOut)
+					}
+				}
+			}
+			if taskRequests != 0 {
+				t.Fatalf("Inbox lookup failures dispatched %d task requests", taskRequests)
+			}
+			code, out, errOut := executeAuthorization(t, filepath.Join(t.TempDir(), "config.json"), "task", "list", "--all-projects", "--json")
+			if code != 0 || !strings.Contains(out, "201") || errOut != "" || taskRequests != 1 {
+				t.Fatalf("explicit all-projects: exit=%d stdout=%q stderr=%q requests=%d", code, out, errOut, taskRequests)
 			}
 		})
 	}

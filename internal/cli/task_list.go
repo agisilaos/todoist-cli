@@ -95,10 +95,14 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 	implicitInbox := false
 	if project == "" && section == "" && parent == "" && label == "" && ids == "" && !allProjects {
 		id, err := inboxProjectID(ctx)
-		if err == nil && id != "" {
-			project = id
-			implicitInbox = true
+		if err != nil {
+			return fmt.Errorf("cannot resolve Inbox project: %w", err)
 		}
+		if id == "" {
+			return &CodeError{Code: exitNotFound, Err: errors.New("Inbox project not found; run 'todoist project list' to check available projects")}
+		}
+		project = id
+		implicitInbox = true
 	}
 	if project != "" {
 		id, err := resolveProjectID(ctx, project)

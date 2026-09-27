@@ -32,6 +32,8 @@ todoist task list --all-projects --all   # active tasks, including undated tasks
 Bare `todoist task list` is **Inbox-only**, with one page by default.
 `--all-projects` changes the scope; `--all` fetches every page. `inbox`, `today`,
 and `upcoming` already fetch every page. Upcoming uses UTC dates.
+If Inbox cannot be resolved, `inbox` and bare `task list` stop with an error
+instead of returning tasks from other projects.
 
 For a machine client with credentials configured:
 

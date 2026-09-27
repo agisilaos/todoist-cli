@@ -67,8 +67,9 @@ including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
 A successfully resolved implicit Inbox selection prints `Inbox` before the human
 table, including empty selections. `--quiet` suppresses this label. Explicit
 selections, redirected default output, and all machine output modes retain their
-existing formats. Inbox lookup failure retains the existing unscoped fallback
-and does not print an Inbox label.
+existing formats. Inbox lookup failure stops before fetching tasks and preserves
+the underlying error exit code. A successful project lookup without an Inbox returns exit 4.
+Both failures leave stdout empty; neither falls back to all projects.
 
 Root help introduces everyday commands before organization, automation, and
 setup/reference commands. Every supported root command remains listed, with a
