@@ -29,7 +29,7 @@ func sectionCommand(ctx *Context, args []string) error {
 	case "delete":
 		return sectionDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown section subcommand: %s", args[0])}
+		return unknownCommand("section", args[0])
 	}
 }
 

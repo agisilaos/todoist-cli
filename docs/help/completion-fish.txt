@@ -1,0 +1,15 @@
+Usage:
+  todoist completion fish
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Prints shell source only. Use completion install fish for installation and activation guidance.
+
+Examples:
+  todoist completion fish > todoist.fish

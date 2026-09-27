@@ -122,7 +122,7 @@ func taskAdd(ctx *Context, args []string) error {
 		return err
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "task add", body)
+		return writeCapturePreview(ctx, "task add", body)
 	}
 	var task api.Task
 	reqCtx, cancel := requestContext(ctx)
@@ -132,7 +132,7 @@ func taskAdd(ctx *Context, args []string) error {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeTaskList(ctx, []api.Task{task}, "", false)
+	return writeCaptureReceipt(ctx, task)
 }
 
 func taskUpdate(ctx *Context, args []string) error {

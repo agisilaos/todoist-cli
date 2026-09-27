@@ -6,8 +6,11 @@ availability is recorded in [CHANGELOG.md](../CHANGELOG.md).
 ## Implemented
 
 - Guided daily review with task edits, moves, confirmed plans, and replay recovery
+- Everyday entry points in help and quickstart, with human Inbox scope labels
 - Quick add with natural language parsing
+- Human capture receipts with returned task details and explicit dry-run parsing limits
 - NDJSON task/project/section/label/comment lists and output schemas
+- Focused leaf-command help and human command-typo recovery
 - IDs-only output for supported lists
 - Task updates by ID or text reference
 - OAuth PKCE and device-flow login

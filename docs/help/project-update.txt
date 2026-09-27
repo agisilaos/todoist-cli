@@ -1,0 +1,22 @@
+Usage:
+  todoist project update --id <id> [flags]
+
+Flags:
+  --id <id>                         Project ID
+  --name <name>                     Project name
+  --description <text>              Description
+  --color <color>                   Color
+  --favorite                        Favorite
+  --view <style>                    View style
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Requires --id; find IDs with project list. Use project move to change workspace.
+
+Examples:
+  todoist project update --id 234 --name "Home Projects"

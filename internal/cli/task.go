@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/agisilaos/todoist-cli/internal/api"
 )
 
 type priorityFlag int
@@ -156,7 +154,7 @@ func taskCommand(ctx *Context, args []string) error {
 	case "delete":
 		return taskDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown task subcommand: %s", args[0])}
+		return unknownCommand("task", args[0])
 	}
 }
 
@@ -236,7 +234,7 @@ func quickAddCommand(ctx *Context, args []string) error {
 		return err
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "task add", map[string]any{"text": text, "sync_quick_add": true})
+		return writeCapturePreview(ctx, "task add", map[string]any{"text": text, "sync_quick_add": true})
 	}
 	reqCtx, cancel := requestContext(ctx)
 	task, reqID, err := ctx.Client.QuickAdd(reqCtx, text)
@@ -245,5 +243,5 @@ func quickAddCommand(ctx *Context, args []string) error {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeTaskList(ctx, []api.Task{task}, "", false)
+	return writeCaptureReceipt(ctx, task)
 }

@@ -32,7 +32,7 @@ func filterCommand(ctx *Context, args []string) error {
 	case "delete":
 		return filterDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown filter subcommand: %s", args[0])}
+		return unknownCommand("filter", args[0])
 	}
 }
 

@@ -1,0 +1,24 @@
+Usage:
+  todoist task complete <ref>
+  todoist task complete --id <id>
+  todoist task complete --filter <query> --yes
+
+Flags:
+  --id <id>                         Task ID
+  --filter <query>                  Filter query for bulk complete
+  --yes                             Required for bulk complete
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Use task list to find a task, then id:<id> for an exact reference; quoted task text also works.
+  Bulk completion requires --yes (or global --force). Preview with --dry-run; previews may read Todoist.
+  To undo a completion, use todoist task reopen --id <id>.
+
+Examples:
+  todoist task complete id:123456
+  todoist task complete --filter "@work & overdue" --yes --dry-run

@@ -2,8 +2,8 @@ Usage:
   todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide] [--ids-only]
 
 Notes:
-  - Shows tasks due from today through the next N days (default 7).
-  - Includes tasks with due dates/datetimes only (tasks without due are excluded).
+  - Shows N days including today (default 7: today and the next 6 days, UTC).
+  - Excludes overdue tasks and tasks without a due date.
 
 Examples:
   todoist upcoming

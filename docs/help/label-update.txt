@@ -1,0 +1,22 @@
+Usage:
+  todoist label update --id <id> [flags]
+
+Flags:
+  --id <id>                         Label ID
+  --name <name>                     Label name
+  --color <color>                   Label color
+  --order <n>                       Order
+  --favorite                        Favorite
+  --unfavorite                      Unfavorite
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Requires a label ID from label list. --favorite and --unfavorite are mutually exclusive.
+
+Examples:
+  todoist label update --id 456 --name deep-work

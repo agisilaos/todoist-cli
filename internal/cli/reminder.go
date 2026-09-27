@@ -30,7 +30,7 @@ func reminderCommand(ctx *Context, args []string) error {
 	case "delete":
 		return reminderDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown reminder subcommand: %s", args[0])}
+		return unknownCommand("reminder", args[0])
 	}
 }
 

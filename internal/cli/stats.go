@@ -22,7 +22,7 @@ func statsCommand(ctx *Context, args []string) error {
 			printStatsHelp(ctx.Stdout)
 			return nil
 		default:
-			return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown stats subcommand: %s", args[0])}
+			return unknownCommand("stats", args[0])
 		}
 	}
 	fs := newFlagSet("stats")

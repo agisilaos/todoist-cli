@@ -213,8 +213,11 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
 	got := stdout.String()
-	if !strings.Contains(got, "Agentic Todoist CLI") {
+	if !strings.Contains(got, "A terminal companion for Todoist") {
 		t.Fatalf("expected root help output, got %q", got)
+	}
+	if !strings.Contains(got, "review        Guided daily task review") {
+		t.Fatalf("expected review command in root help, got %q", got)
 	}
 	if !strings.Contains(got, "completed") {
 		t.Fatalf("expected completed command in root help, got %q", got)
@@ -240,8 +243,8 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 	if !strings.Contains(got, "--fuzzy") || !strings.Contains(got, "--no-fuzzy") || !strings.Contains(got, "--accessible") {
 		t.Fatalf("expected global accessibility/fuzzy flags in help, got %q", got)
 	}
-	if !strings.Contains(got, "Note for AI/LLM agents:") || !strings.Contains(got, "--quiet-json") {
-		t.Fatalf("expected agent guidance note in root help, got %q", got)
+	if !strings.Contains(got, "Machine clients:") || !strings.Contains(got, "--quiet-json") {
+		t.Fatalf("expected machine-client guidance in root help, got %q", got)
 	}
 }
 

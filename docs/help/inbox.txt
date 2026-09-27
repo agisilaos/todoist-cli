@@ -18,7 +18,12 @@ Flags:
   --assignee <id>         Assignee ID
 
 Notes:
+  - Lists all pages of active Inbox tasks, regardless of due date.
+  - Stops with an error if Inbox cannot be resolved.
   - Uses Inbox project automatically.
+  - A terminal capture receipt shows returned task details and a view command (except --quiet).
+  - Receipt priority uses Todoist 1..4; numeric --priority uses API values (1 normal, 4 urgent).
+  - --dry-run shows proposed fields, not a saved task; due expressions still need Todoist interpretation.
   - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
   - Use --content - to read task content from stdin.
   - Positional text is accepted when --content is omitted.

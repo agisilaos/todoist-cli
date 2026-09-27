@@ -1,0 +1,18 @@
+Usage:
+  todoist auth status
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --profile <name>      Select the credential profile
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Reports the selected profile offline without retrieving native secrets.
+  Configured does not verify token accessibility or authentication; use todoist doctor for health checks.
+
+Examples:
+  todoist auth status --json

@@ -35,7 +35,7 @@ func agentCommand(ctx *Context, args []string) error {
 	case "planner":
 		return agentPlanner(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown agent subcommand: %s", args[0])}
+		return unknownCommand("agent", args[0])
 	}
 }
 

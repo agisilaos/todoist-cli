@@ -1,0 +1,22 @@
+Usage:
+  todoist project list [--archived] [flags]
+
+Aliases: ls
+
+Flags:
+  --archived                        List archived projects
+  --cursor <cursor>                 Cursor
+  --limit <n>                       Limit
+  --all                             Fetch all pages
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  --ids-only            Print one raw ID per result
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Use --archived for archived projects. Use --all or the returned cursor to read additional pages.
+
+Examples:
+  todoist project list --all --json

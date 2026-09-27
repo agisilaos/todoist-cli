@@ -1,0 +1,29 @@
+Usage:
+  todoist settings update [flags]
+
+Flags:
+  --timezone <value>                Timezone (for example UTC, Europe/London)
+  --time-format <value>             Time format: 12 or 24
+  --date-format <value>             Date format: us or intl
+  --start-day <value>               Week start day
+  --theme <value>                   Theme name
+  --auto-reminder <value>           Default reminder minutes
+  --next-week <value>               "Next week" day
+  --start-page <value>              Start page
+  --reminder-push <value>           Push reminders on/off
+  --reminder-desktop <value>        Desktop reminders on/off
+  --reminder-email <value>          Email reminders on/off
+  --completed-sound-desktop <value> Desktop completion sound on/off
+  --completed-sound-mobile <value>  Mobile completion sound on/off
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Supply at least one setting. Use settings view to inspect current values and settings themes for theme names.
+
+Examples:
+  todoist settings update --timezone Europe/Berlin --dry-run

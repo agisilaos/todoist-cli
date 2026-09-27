@@ -1,6 +1,6 @@
 # todoist-cli
 
-Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports task, project, section, label, and comment management, plus an agent plan/apply workflow that can be wired to an external planner.
+A terminal companion for Todoist: capture ideas and see what needs doing without leaving the terminal. Scripts and agents get stable structured output and explicit commands; see [machine output](#output) and [planner integration](#agent-planner-integration).
 
 ## Why this CLI
 
@@ -10,22 +10,43 @@ Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports ta
 
 See `docs/SPEC.md` for the CLI contract and `docs/ROADMAP.md` for planned features.
 
-## Why agents
-
-- Batch changes with human review via plan/apply.
-- Safer automation with `--dry-run`, `--confirm`, and `--on-error`.
-- Easy scheduling without running a daemon.
-
 ## Quickstart
 
 ```bash
 brew install agisilaos/tap/todoist-cli
 todoist --version
 todoist auth login                 # prompts for token (or use --token-stdin)
-todoist add "Review PR 42"
-todoist task list                  # lists Inbox tasks in a table
-todoist review                     # guided overdue/today review; confirm before changes
+todoist add "Review PR 42 today"
+todoist inbox                     # see the captured task in Inbox
+todoist review                    # guided review; confirm before changes
 ```
+
+Choose what to view:
+
+```bash
+todoist inbox                           # Inbox, including undated tasks
+todoist today                           # due today + overdue, across projects
+todoist upcoming                        # today + next 6 days; excludes overdue
+todoist task list --all-projects --all   # active tasks, including undated tasks
+```
+
+Bare `todoist task list` is **Inbox-only**, with one page by default.
+`--all-projects` changes the scope; `--all` fetches every page. `inbox`, `today`,
+and `upcoming` already fetch every page. Upcoming uses UTC dates.
+If Inbox cannot be resolved, `inbox` and bare `task list` stop with an error
+instead of returning tasks from other projects.
+
+For a machine client with credentials configured:
+
+```bash
+todoist task list --all-projects --all --no-input --json
+```
+
+In a terminal, successful capture prints a receipt with the saved task content,
+destination, due date, recurrence, priority, labels, and a command to view the task.
+For example, `todoist add "Review report #Home tomorrow p2 @work"` shows the
+returned Home project, absolute due date, and `Priority: 2`. Check these values
+after capture; Todoist interprets the natural-language text.
 
 ## Install
 
@@ -166,6 +187,38 @@ Flag parsing notes:
 - Common aliases: `ls`=`list`, `rm`/`del`=`delete` (`task`, `project`, `section`, `label`, `comment`), and `show`=`view` (`task`).
 - Prefer `--json` or `--ndjson` for scripts/agents.
 
+### Command help and typo recovery
+
+Start with `todoist --help` for the command overview and global flags. Group help
+such as `todoist task --help` lists related commands; a leaf page describes just
+one operation:
+
+```bash
+todoist task complete --help
+todoist help task complete
+todoist task help complete
+todoist task show --help           # same page as task view
+todoist agent schedule print --help
+```
+
+`-h` and `--help` work before or after the command path. Global flags retain their
+normal placement rules. A flag value that happens to be `--help` stays literal;
+for example, `--content "--help"` supplies task content. Help is available before
+authentication, with broken configuration, and without required mutation
+arguments. It does not run the command or write local files.
+
+To complete a task, run `todoist task list`, copy its ID, and run
+`todoist task complete id:123456`, replacing `123456` with that ID. Use
+`todoist task complete --help` to discover bulk completion and preview options.
+
+Misspellings such as `todoist todai` or `todoist task complet` return usage exit 2,
+with nearby command suggestions and a pointer to the relevant help page. No
+suggestion is executed. Unknown help targets also return exit 2. Suggestions
+apply to command names, not task references or option values. Explicit machine
+flags retain their existing error behavior without added suggestions; use
+`--json --quiet-json` for compact JSON errors (`--quiet-json` alone does not
+select JSON).
+
 ## Commands
 
 ### Auth
@@ -213,7 +266,7 @@ todoist task delete <ref> --yes
 
 Task flags:
 
-By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or a filter to list across projects.
+By default, `todoist task list` shows one page of your Inbox tasks. Use `--all-projects` or a filter to list across projects, and `--all` to fetch every page. Human output labels a successfully resolved default Inbox selection with `Inbox`, including empty results; `--quiet` suppresses that label. Redirected and explicit machine output have no scope label.
 
 ```
 --content <text>           Task content ("-" reads stdin)
@@ -294,9 +347,10 @@ todoist filter delete <id|name> --yes
 
 ### Inbox
 
-Quick add to Inbox with optional defaults.
+List all active Inbox tasks, or add to Inbox with optional defaults.
 
 ```
+todoist inbox
 todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-date <date>|--due-datetime <datetime>] [--priority <1-4>] [--description <text>] [--section <id|name>]
 ```
 
@@ -313,9 +367,55 @@ Examples:
 - `todoist add "Pay rent #Home p2 due:tomorrow"`
 - `todoist inbox` (list inbox tasks)
 
+#### Capture feedback and corrections
+
+`add`, `add --strict`, `task add`, and `inbox add` show a capture receipt in a
+terminal. It reports Todoist's returned state, rather than guessing from the input:
+
+- `No due date` means Todoist explicitly returned no due date. `Not returned`
+  means the response did not establish that value. Empty returned labels show `None`.
+- Dates are absolute. Times retain the returned offset or timezone without conversion
+  to the computer's timezone. A time without either is labeled accordingly. Recurrence
+  is reported separately; its returned expression is included when available.
+- Priority numbers match Todoist's `p1`–`p4`: `p2` displays as `Priority: 2`.
+  Numeric `--priority 1`–`4` flags retain their API meaning (1 = normal, 4 = urgent);
+  prefer `--priority p2` with `add` or `task add`. `inbox add` accepts numeric priorities only.
+- Project and section names are resolved when available, with returned IDs as a fallback.
+  Full content is retained on narrow terminals; control characters are escaped.
+  Text labels work with `--accessible`, `--no-color`, and screen readers.
+
+Use the exact view command from the receipt, keeping the same global options and
+environment as capture (especially `--profile`, `--config`, and `--base-url` if used).
+To correct a task, substitute its full returned ID below. Change destination with `task move`; `task update --project`
+only scopes assignee lookup.
+
+```bash
+todoist task view id:123456
+todoist task update --id 123456 --due "next Monday" --priority p2
+todoist task move --id 123456 --project Home
+```
+
+Natural-language and structured capture use the same receipt. `--strict` leaves
+content literal and uses explicit fields; a `--due` expression still needs Todoist's
+interpretation. Human `--dry-run` shows the submitted text or proposed fields and
+says no task was created. It cannot confirm Todoist's interpretation or the saved
+result, and may perform reads to resolve names.
+
+```bash
+todoist add "Review report #Home tomorrow p2 @work" --dry-run
+todoist add "Review report" --strict --project Home --due tomorrow --priority p2 --label work
+todoist add "Review report #Home tomorrow p2 @work" --json
+```
+
+Receipts do not change machine output: JSON remains a one-task array, NDJSON a
+single task object, and plain or piped output the existing TSV row with API priority
+numbers. `--ids-only` still rejects creation. `--quiet` retains the existing task
+table on a terminal and the existing dry-run summary, without the new receipt or
+recovery hints. Other task tables and views retain their existing priority display.
+
 ### Today
 
-Quick list of tasks due today and overdue. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
+Quick list of tasks due today and overdue across projects, including Inbox. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
 
 ```
 todoist today
@@ -380,7 +480,7 @@ todoist completed [--completed-by completion|due] [--since <date>] [--until <dat
 
 ### Upcoming
 
-List tasks due in the next N days (default 7).
+List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks.
 
 ```
 todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]
@@ -673,7 +773,7 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 
 ## Output
 
-- TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
+- TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
@@ -741,6 +841,12 @@ schema, and existing JSON schemas remain unchanged.
 - Errors return human-readable messages; `--json` and `--ids-only` errors include `{"error": "...", "meta": {"request_id": "..."}}`.
 
 ## Agent Planner Integration
+
+### Why agents
+
+- Batch changes with human review via plan/apply.
+- Safer automation with `--dry-run`, `--confirm`, and `--on-error`.
+- Easy scheduling without running a daemon.
 
 `todoist agent plan` delegates planning to an external command defined by `TODOIST_PLANNER_CMD` or `--planner`. The command must read JSON from stdin and output a plan JSON document to stdout.
 

@@ -2,19 +2,15 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
-	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func inboxCommand(ctx *Context, args []string) error {
 	if len(args) == 0 {
-		if ctx.Mode == output.ModeIDsOnly {
-			if err := ensureClient(ctx); err != nil {
-				return err
-			}
+		if err := ensureClient(ctx); err != nil {
+			return err
 		}
 		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, "")
 	}
@@ -26,7 +22,7 @@ func inboxCommand(ctx *Context, args []string) error {
 	case "add":
 		return inboxAdd(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown inbox subcommand: %s", args[0])}
+		return unknownCommand("inbox", args[0])
 	}
 }
 
@@ -146,7 +142,7 @@ func inboxAdd(ctx *Context, args []string) error {
 		body["assignee_id"] = assignee
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "inbox add", body)
+		return writeCapturePreview(ctx, "inbox add", body)
 	}
 	var task api.Task
 	reqCtx, cancel := requestContext(ctx)
@@ -156,5 +152,5 @@ func inboxAdd(ctx *Context, args []string) error {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeTaskList(ctx, []api.Task{task}, "", false)
+	return writeCaptureReceipt(ctx, task)
 }

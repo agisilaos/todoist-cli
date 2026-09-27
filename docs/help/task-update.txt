@@ -1,0 +1,33 @@
+Usage:
+  todoist task update <ref> [flags]
+  todoist task update --id <id> [flags]
+
+Flags:
+  --id <id>                         Task ID
+  --content <text>                  Task content
+  --description <text>              Task description
+  --label <name>                    Label (repeatable)
+  --priority <1-4>                  Priority (accepts p1..p4)
+  --due <text>                      Due string
+  --due-date <YYYY-MM-DD>           Due date
+  --due-datetime <RFC3339>          Due datetime
+  --due-lang <code>                 Due language
+  --duration <n>                    Duration
+  --duration-unit <minute|day>      Duration unit
+  --deadline <YYYY-MM-DD>           Deadline date
+  --assignee <ref>                  Assignee reference (id, me, name, email)
+  --project <ref>                   Project (used for assignee name/email resolution)
+  --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Use id:<id> for an exact task or a quoted text reference; list tasks first if a reference is ambiguous.
+  Use task move to change location; --project here scopes assignee name/email resolution.
+
+Examples:
+  todoist task update id:123456 --due tomorrow

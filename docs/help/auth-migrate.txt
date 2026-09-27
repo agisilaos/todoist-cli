@@ -1,9 +1,20 @@
-Usage: todoist auth migrate --credential-store=native|file
+Usage:
+  todoist auth migrate --credential-store <native|file>
 
-Move the selected profile after verifying destination storage.
-Native migration removes its plaintext token. No automatic fallback occurs.
-Older CLI versions cannot use native profiles; explicitly migrate to file first.
+Flags:
+  --credential-store <native|file>  Destination: native or file
 
-Options:
-  --credential-store native|file  Required destination backend
-  -h, --help                      Show help
+Global flags:
+  -h, --help             Show help without running the command
+  --profile <name>      Select the credential profile
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Verifies the destination before switching storage. Existing authorization is preserved.
+  Native migration removes the plaintext token; no automatic fallback occurs.
+  Older binaries cannot use native profiles; migrate explicitly to file before downgrading.
+  If obsolete-entry cleanup is pending, use todoist auth repair. File storage is plaintext.
+
+Examples:
+  todoist --profile work auth migrate --credential-store native
