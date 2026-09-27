@@ -27,6 +27,12 @@ todoist task list                  # lists Inbox tasks in a table
 todoist task complete --help       # focused usage, flags, and examples
 ```
 
+In a terminal, successful capture prints a receipt with the saved task content,
+destination, due date, recurrence, priority, labels, and a command to view the task.
+For example, `todoist add "Review report #Home tomorrow p2 @work"` shows the
+returned Home project, absolute due date, and `Priority: 2`. Check these values
+after capture; Todoist interprets the natural-language text.
+
 ## Install
 
 ```bash
@@ -345,6 +351,52 @@ Examples:
 - `todoist add "Pay rent #Home p2 due:tomorrow"`
 - `todoist inbox` (list inbox tasks)
 
+#### Capture feedback and corrections
+
+`add`, `add --strict`, `task add`, and `inbox add` show a capture receipt in a
+terminal. It reports Todoist's returned state, rather than guessing from the input:
+
+- `No due date` means Todoist explicitly returned no due date. `Not returned`
+  means the response did not establish that value. Empty returned labels show `None`.
+- Dates are absolute. Times retain the returned offset or timezone without conversion
+  to the computer's timezone. A time without either is labeled accordingly. Recurrence
+  is reported separately; its returned expression is included when available.
+- Priority numbers match Todoist's `p1`–`p4`: `p2` displays as `Priority: 2`.
+  Numeric `--priority 1`–`4` flags retain their API meaning (1 = normal, 4 = urgent);
+  prefer `--priority p2` with `add` or `task add`. `inbox add` accepts numeric priorities only.
+- Project and section names are resolved when available, with returned IDs as a fallback.
+  Full content is retained on narrow terminals; control characters are escaped.
+  Text labels work with `--accessible`, `--no-color`, and screen readers.
+
+Use the exact view command from the receipt, keeping the same global options and
+environment as capture (especially `--profile`, `--config`, and `--base-url` if used).
+To correct a task, substitute its full returned ID below. Change destination with `task move`; `task update --project`
+only scopes assignee lookup.
+
+```bash
+todoist task view id:123456
+todoist task update --id 123456 --due "next Monday" --priority p2
+todoist task move --id 123456 --project Home
+```
+
+Natural-language and structured capture use the same receipt. `--strict` leaves
+content literal and uses explicit fields; a `--due` expression still needs Todoist's
+interpretation. Human `--dry-run` shows the submitted text or proposed fields and
+says no task was created. It cannot confirm Todoist's interpretation or the saved
+result, and may perform reads to resolve names.
+
+```bash
+todoist add "Review report #Home tomorrow p2 @work" --dry-run
+todoist add "Review report" --strict --project Home --due tomorrow --priority p2 --label work
+todoist add "Review report #Home tomorrow p2 @work" --json
+```
+
+Receipts do not change machine output: JSON remains a one-task array, NDJSON a
+single task object, and plain or piped output the existing TSV row with API priority
+numbers. `--ids-only` still rejects creation. `--quiet` retains the existing task
+table on a terminal and the existing dry-run summary, without the new receipt or
+recovery hints. Other task tables and views retain their existing priority display.
+
 ### Today
 
 Quick list of tasks due today and overdue. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
@@ -656,7 +708,7 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 
 ## Output
 
-- TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible.
+- TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.

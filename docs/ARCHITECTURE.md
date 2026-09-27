@@ -57,6 +57,12 @@ machine-error compatibility, and absence of help side effects.
 
 ## CLI-local orchestration
 
+Task creation shares a capture receipt renderer in `internal/cli`; other task
+rendering and machine output remain separate. The API task decoder retains due
+field presence, recurrence, and timezone as response-only facts excluded from
+existing JSON/NDJSON serialization. Receipts use best-effort destination name
+lookups and never infer saved state from capture input.
+
 Agent apply and replay persistence remain in `internal/cli`; the app layer plans
 requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
 for the success boundary and persistence limitations.

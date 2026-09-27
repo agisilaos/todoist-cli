@@ -145,7 +145,10 @@ var commandHelpCatalog = map[string]commandHelp{
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)`,
 		examples: `  todoist task add --content "Review launch notes" --project Home --due tomorrow`,
 		notes: `  Use --content - to read stdin. --quick delegates to Inbox defaults; use top-level add for --strict.
-  Priority accepts 1-4 (4 is highest) or p1-p4 (p1 is highest). Labels are repeatable.`,
+  Priority accepts 1-4 (4 is highest) or p1-p4 (p1 is highest). Labels are repeatable.
+  Human capture prints returned task details and a view command, except with --quiet.
+  Receipt priority matches p1-p4; machine output and numeric input retain API priorities.
+  --dry-run shows proposed fields, not a saved task; due expressions still need Todoist interpretation.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},
@@ -810,7 +813,10 @@ var commandHelpCatalog = map[string]commandHelp{
   --assignee <ref>                  Assignee ID`,
 		examples: `  todoist inbox add --content "Review launch notes" --due tomorrow`,
 		notes: `  Adds to Inbox using configured label/due defaults where not explicitly supplied.
-  Positional text is also accepted; --content - reads stdin. Priority is numeric 1-4.`,
+  Positional text is also accepted; --content - reads stdin. Priority is numeric 1-4 (4 is highest).
+  Human capture prints returned task details and a view command, except with --quiet.
+  Receipt priority matches Todoist p1-p4; machine output retains API priorities.
+  --dry-run shows proposed fields, not a saved task; due expressions still need Todoist interpretation.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},

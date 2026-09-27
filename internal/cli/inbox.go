@@ -145,7 +145,7 @@ func inboxAdd(ctx *Context, args []string) error {
 		body["assignee_id"] = assignee
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "inbox add", body)
+		return writeCapturePreview(ctx, "inbox add", body)
 	}
 	var task api.Task
 	reqCtx, cancel := requestContext(ctx)
@@ -155,5 +155,5 @@ func inboxAdd(ctx *Context, args []string) error {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeTaskList(ctx, []api.Task{task}, "", false)
+	return writeCaptureReceipt(ctx, task)
 }

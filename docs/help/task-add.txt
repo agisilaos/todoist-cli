@@ -29,6 +29,9 @@ Global flags:
 Notes:
   Use --content - to read stdin. --quick delegates to Inbox defaults; use top-level add for --strict.
   Priority accepts 1-4 (4 is highest) or p1-p4 (p1 is highest). Labels are repeatable.
+  Human capture prints returned task details and a view command, except with --quiet.
+  Receipt priority matches p1-p4; machine output and numeric input retain API priorities.
+  --dry-run shows proposed fields, not a saved task; due expressions still need Todoist interpretation.
 
 Examples:
   todoist task add --content "Review launch notes" --project Home --due tomorrow

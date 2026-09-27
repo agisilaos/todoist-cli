@@ -23,12 +23,17 @@ type Task struct {
 	CompletedAt string   `json:"completed_at"`
 	UpdatedAt   string   `json:"updated_at"`
 	NoteCount   int      `json:"note_count"`
+	// DueReturned distinguishes an omitted due field from an explicit null.
+	// Response-only facts never extend the existing machine output contract.
+	DueReturned bool `json:"-"`
 }
 
 type Due struct {
-	Date     string `json:"date,omitempty"`
-	Datetime string `json:"datetime,omitempty"`
-	String   string `json:"string,omitempty"`
+	Date        string  `json:"date,omitempty"`
+	Datetime    string  `json:"datetime,omitempty"`
+	String      string  `json:"string,omitempty"`
+	Timezone    *string `json:"-"`
+	IsRecurring *bool   `json:"-"`
 }
 
 type Project struct {

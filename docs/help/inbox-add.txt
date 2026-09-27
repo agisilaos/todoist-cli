@@ -24,7 +24,10 @@ Global flags:
 
 Notes:
   Adds to Inbox using configured label/due defaults where not explicitly supplied.
-  Positional text is also accepted; --content - reads stdin. Priority is numeric 1-4.
+  Positional text is also accepted; --content - reads stdin. Priority is numeric 1-4 (4 is highest).
+  Human capture prints returned task details and a view command, except with --quiet.
+  Receipt priority matches Todoist p1-p4; machine output retains API priorities.
+  --dry-run shows proposed fields, not a saved task; due expressions still need Todoist interpretation.
 
 Examples:
   todoist inbox add --content "Review launch notes" --due tomorrow
