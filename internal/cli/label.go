@@ -31,7 +31,7 @@ func labelCommand(ctx *Context, args []string) error {
 	case "delete":
 		return labelDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown label subcommand: %s", args[0])}
+		return unknownCommand("label", args[0])
 	}
 }
 

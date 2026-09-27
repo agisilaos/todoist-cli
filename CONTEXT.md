@@ -28,6 +28,10 @@ _Avoid_: Inbox, daily review
 Active tasks across projects, including the Inbox and tasks without a due date.
 _Avoid_: All history, today view
 
+**Capture receipt**:
+A human-readable account of a newly created task, based on the state returned by Todoist. Missing returned information remains unknown; a dry run is a preview, not a capture receipt.
+_Avoid_: Parsed input, creation preview
+
 **Authentication**:
 Establishing that Todoist accepts a credential. Authentication alone does not establish which permissions the credential has.
 _Avoid_: Authorization, write access

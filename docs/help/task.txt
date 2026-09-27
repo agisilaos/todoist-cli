@@ -45,6 +45,9 @@ Notes:
   Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
+  Task add prints a capture receipt in a terminal (except --quiet), including a view command.
+  Receipt priority matches p1..p4; numeric --priority uses API values (1 normal, 4 urgent).
+  Add --dry-run shows proposed fields; Todoist must still interpret natural-language due expressions.
   Task updates/completions/deletes accept IDs or text references.
   Use --content - to read task content from stdin.
   Use id:<id> to explicitly reference a task ID.

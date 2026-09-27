@@ -28,7 +28,7 @@ func agentSchedule(ctx *Context, args []string) error {
 	case "print":
 		return agentSchedulePrint(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown schedule subcommand: %s", args[0])}
+		return unknownCommand("agent schedule", args[0])
 	}
 }
 

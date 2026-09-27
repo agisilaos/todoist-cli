@@ -76,6 +76,39 @@ setup/reference commands. Every supported root command remains listed, with a
 concise machine-client entry point. Help uses plain text without requiring color
 or a pager.
 
+### Task capture feedback
+
+Successful `add`, `add --strict`, `task add` (including `--natural`/`--quick`), and
+`inbox add` produce a capture receipt in human output unless `--quiet` is set.
+The receipt uses returned task state: content, project, optional section, due,
+recurrence, priority, labels, and full ID. Name lookup is best-effort; failures show
+returned IDs with `name unavailable` without failing creation. It adds no mutation
+or follow-up task fetch, and introduces no prompt.
+
+- Display priorities match Todoist's p1–p4 (`p2` → `Priority: 2`). API priorities
+  remain 4–1 respectively. Numeric input flags and machine output remain unchanged.
+- An explicit null due shows `No due date`; omitted due or other unavailable values
+  show `Not returned`. An empty labels array shows `None`; missing/null labels are unknown.
+- Dates/times are shown as returned, with the returned timezone where supplied,
+  without local conversion. A time without an offset or timezone is labeled as such.
+  Recurrence uses the returned boolean and, when recurring, its expression; an
+  omitted recurrence flag stays unknown. A due expression alone is not a resolved date.
+- Full text is retained and terminal control characters are escaped. Labeled lines
+  wrap naturally without column truncation and do not depend on color or symbols.
+- Recovery points to `task view id:<full-id>`, `task update --help`, and `task move
+  --help`. No URL is invented. A response without an ID asks the user to verify in
+  Todoist before retrying, rather than claiming confirmed creation.
+- JSON remains a one-item task array, NDJSON one object, and plain/default piped
+  output the existing TSV row. Response facts retained for receipts do not add
+  serialized fields. IDs-only eligibility/rejection, errors, aliases, and exit codes
+  are unchanged. Quiet retains its previous output, including the human table.
+- Human capture dry runs show submitted text or structured fields and state that no
+  task was created. Quick-add interpretation and natural-language due expressions
+  remain unverified until submitted. Machine and quiet preview payloads/wording,
+  authorization checks, and required name-resolution reads are unchanged.
+
+Other task output, including list/view priority rendering, is unchanged.
+
 ### Filter commands
 
 Saved filters are read and mutated through `/sync`. Mutations require a successful per-command acknowledgement; deleted filters are omitted from lists.
@@ -223,6 +256,43 @@ Planner context notes:
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
 - Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
+
+## Help and command recovery
+
+- Root and explicit group help remain command overviews. All dispatched child
+  leaves, including completion shell selectors and `agent schedule print`, have
+  focused usage, command-specific flags, examples, and relevant recovery advice.
+  Existing standalone command pages remain available. Each leaf points to root
+  help for the complete global flag inventory.
+- `task complete --help`, `--help task complete`, `help task complete`, and
+  `task help complete` select the same page. `-h` also works. Existing aliases
+  select canonical leaf pages; operands after a leaf do not become command paths.
+  This does not introduce a positional `task complete help` syntax or change
+  command-option placement and `--` parsing.
+- Genuine help requests return 0 before configuration loading, credential access,
+  progress-file creation, or command dispatch. They need no required mutation
+  arguments and make no local writes or API calls. Flag-shaped option values stay
+  literal; global parse errors, version, output conflicts, and IDs-only eligibility
+  retain their existing precedence.
+- Unknown help targets return usage exit 2, using the existing error rendering for
+  the selected output mode. This replaces successful fallback to a broader page.
+  The historical `help examples` topic remains supported.
+- Ordinary unknown-command errors retain exit 2. Human recovery prints up to three
+  equally closest canonical command paths within the current group, followed by
+  a pointer to that group's help. Aliases participate in matching but duplicate
+  canonical results are collapsed. No command is corrected or executed automatically.
+- Matching counts insertions, deletions, substitutions, and adjacent transpositions.
+  Input names of 3–5 characters allow one edit, and names of 6–64 characters allow
+  two. Shorter/longer names and flag-shaped input get no suggestions. More than
+  three best matches suppresses suggestions. Ties use alphabetical order.
+- Suggestions are suppressed for explicit `--json`, `--ndjson`, `--plain`,
+  `--ids-only`, or `--quiet-json`. Existing ordinary execution error messages,
+  envelopes, streams, and codes remain unchanged in those modes, including root
+  help on existing text-mode unknown-root errors. `--quiet-json` alone does not
+  select JSON. Ordinary piped invocations without these flags can receive hints.
+- Unknown execution commands retain existing configuration-error precedence.
+  Reference resolution, unknown options, shell operands for completion
+  install/uninstall, and unrelated runtime diagnostics are unchanged.
 
 ## Errors
 

@@ -1,0 +1,30 @@
+Usage:
+  todoist agent schedule print --weekly <day HH:MM> [flags]
+
+Flags:
+  --weekly <day HH:MM>              Weekly schedule, e.g. "sat 09:00"
+  --planner <command>               Planner command
+  --instruction <text>              Instruction to plan/apply
+  --policy <file>                   Policy file path
+  --plan <file>                     Plan file (or - for stdin)
+  --confirm <token>                 Confirmation token
+  --on-error <fail|continue>        On error: fail|continue
+  --plan-version <n>                Expected plan version
+  --context-project <ref>           Project context (repeatable)
+  --context-label <name>            Label context (repeatable)
+  --context-completed <Nd>          Include completed tasks from last Nd (e.g. 7d)
+  --cron                            Print cron entry
+  --bin <path>                      Path to todoist binary (defaults to current executable)
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Prints launchd XML by default or a cron line with --cron; it does not install or run the schedule.
+  Confirmation, profile, config, and preview selections are carried into the generated command.
+
+Examples:
+  todoist agent schedule print --weekly "sat 09:00" --instruction "Review overdue tasks" --force --dry-run --cron

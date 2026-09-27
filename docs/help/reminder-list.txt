@@ -1,0 +1,19 @@
+Usage:
+  todoist reminder list (<task> | --task <ref>)
+
+Aliases: ls
+
+Flags:
+  --task <ref>                      Task reference
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  --ids-only            Print one raw ID per result
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Find the task with task list; use an exact ID if its name is ambiguous.
+
+Examples:
+  todoist reminder list --task id:123456

@@ -1,0 +1,19 @@
+Usage:
+  todoist project view <id|name>
+  todoist project view --id <id|name>
+
+Aliases: show
+
+Flags:
+  --id <id>                         Project ID or name
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Quote multiword names. Use an ID from project list if the name is ambiguous.
+
+Examples:
+  todoist project view "Home"

@@ -30,7 +30,9 @@ func completionCommand(ctx *Context, args []string) error {
 	shell := canonicalCompletionShell(args[0])
 	script, err := completionScript(shell)
 	if err != nil {
-		return err
+		return &CodeError{Code: exitUsage, Err: &unknownCommandError{
+			parent: "completion", input: args[0], message: err.Error(),
+		}}
 	}
 	fmt.Fprint(ctx.Stdout, script)
 	return nil

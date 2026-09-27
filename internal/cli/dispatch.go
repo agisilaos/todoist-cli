@@ -62,13 +62,17 @@ func dispatch(ctx *Context, args []string) int {
 	case "help":
 		err = helpCommand(ctx, rest)
 	default:
-		err = &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown command: %s", cmd)}
+		err = unknownCommand("", cmd)
 		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeIDsOnly {
 			writeError(ctx, err)
 			return exitUsage
 		}
 		fmt.Fprintf(ctx.Stderr, "unknown command: %s\n", cmd)
-		printRootHelp(ctx.Stderr)
+		if humanCommandHints(ctx.Global) {
+			printCommandHints(ctx.Stderr, "", cmd)
+		} else {
+			printRootHelp(ctx.Stderr)
+		}
 		return exitUsage
 	}
 	if err != nil {
