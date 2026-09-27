@@ -101,9 +101,20 @@ func agentRun(ctx *Context, args []string) error {
 		source = "plan_file"
 	}
 	emitAgentPlanLoaded(ctx, "agent run", len(plan.Actions), source)
-	if opts.OutPath != "" && opts.OutPath != "-" {
-		if err := writePlanFile(opts.OutPath, plan); err != nil {
+	if plan.Review != nil && opts.OutPath != "-" {
+		if err := validateReviewOutputPath(ctx, opts.OutPath); err != nil {
 			return err
+		}
+	}
+	if opts.OutPath != "" && opts.OutPath != "-" {
+		var saveErr error
+		if plan.Review != nil {
+			saveErr = saveReviewPlan(opts.OutPath, plan)
+		} else {
+			saveErr = writePlanFile(opts.OutPath, plan)
+		}
+		if saveErr != nil {
+			return saveErr
 		}
 	}
 	if opts.DryRun {
@@ -114,6 +125,9 @@ func agentRun(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		emitProgress(ctx, "agent_run_error", map[string]any{"error": err.Error()})
 		return err
+	}
+	if plan.Review != nil {
+		return applyReviewAndReport(ctx, plan, opts.PlanPath, opts.OnError, "agent run")
 	}
 	applyMode := applyErrorMode(opts.OnError)
 	results, applyErr := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, applyMode)

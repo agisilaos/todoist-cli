@@ -1,0 +1,29 @@
+Usage:
+  todoist review [--filter <query>] [--out <file>]
+
+Review all overdue or today tasks across projects, or an explicit Todoist filter.
+Fetch all pages before prompting; freeze and deduplicate the set, ordered by due,
+priority, then ID. This is not an atomic service snapshot.
+
+Choose keep (intentionally unchanged), change, complete, or skip (defer).
+Change opens a numbered field menu; choose done when finished. Moves are supported.
+Completion advances recurring tasks; ordinary completion also completes subtasks.
+The final preview shows current values and proposed actions before asking yes/no.
+Type cancel at any prompt. EOF fails safely; Ctrl-C cancels before application.
+
+--out <file>  Save finished agent-compatible plan without overwriting a file.
+--dry-run     Review and preview only; no Todoist mutations.
+--json        Final review report on stdout; prompts/previews on stderr.
+--ndjson      One final review report record, with the same JSON payload.
+
+Read-only credentials may review and save plans, but cannot apply mutations.
+--no-input and piped stdin are rejected; use task list and agent plan/apply.
+--force is rejected. Blank input never selects a disposition or confirms changes.
+No session resume or backtracking. Each change can edit fields then move the task.
+Before applying, a recovery plan is saved under the config directory/review-plans.
+Retry a definite failure with agent apply --plan <file> --confirm <token>, using
+this binary, the same config and account. Recorded actions are skipped; pending
+tasks are checked against their original or checkpointed state. Changed/missing
+tasks block application. An uncertain write requires inspection and a fresh review.
+Only one applying process is supported; no transactional/exactly-once guarantee.
+Do not edit saved recovery plans or use older binaries to apply review plans.

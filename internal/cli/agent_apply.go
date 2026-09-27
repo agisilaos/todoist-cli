@@ -35,7 +35,17 @@ func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, o
 	return applyActionsWithReplayStore(ctx, confirmToken, actions, onError, store)
 }
 
+type applyHooks struct {
+	perform func(Action) error
+	before  func(int, Action) error
+	failed  func(int, Action, error) error
+}
+
 func applyActionsWithReplayStore(ctx *Context, confirmToken string, actions []Action, onError applyErrorMode, store replayStore) ([]applyResult, error) {
+	return applyActionsWithHooks(ctx, confirmToken, actions, onError, store, nil)
+}
+
+func applyActionsWithHooks(ctx *Context, confirmToken string, actions []Action, onError applyErrorMode, store replayStore, hooks *applyHooks) ([]applyResult, error) {
 	for idx, action := range actions {
 		if !store.Contains(makeReplayKey(confirmToken, idx, action)) {
 			if err := currentAuthorization(ctx).CheckMutation(); err != nil {
@@ -53,8 +63,20 @@ func applyActionsWithReplayStore(ctx *Context, confirmToken string, actions []Ac
 			emitProgress(ctx, "agent_action_skipped_replay", map[string]any{"index": idx, "action_type": action.Type})
 			continue
 		}
+		if hooks != nil && hooks.before != nil {
+			if err := hooks.before(idx, action); err != nil {
+				return results, err
+			}
+		}
 		emitProgress(ctx, "agent_action_dispatched", map[string]any{"index": idx, "action_type": action.Type})
-		if err := applyAction(ctx, action); err != nil {
+		perform := func(a Action) error { return applyAction(ctx, a) }
+		if hooks != nil && hooks.perform != nil {
+			perform = hooks.perform
+		}
+		if err := perform(action); err != nil {
+			if hooks != nil && hooks.failed != nil {
+				err = hooks.failed(idx, action, err)
+			}
 			results = append(results, applyResult{Action: action, Error: err})
 			emitActionFailure(ctx, idx, action, err, nil)
 			if shouldAbortApply(onError, err) {

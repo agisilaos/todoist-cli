@@ -53,6 +53,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = agentPlanner(ctx, rest)
 	case "add":
 		err = quickAddCommand(ctx, rest)
+	case "review":
+		err = reviewCommand(ctx, rest)
 	case "today":
 		err = todayCommand(ctx, rest)
 	case "completed":

@@ -19,6 +19,7 @@ type PlannerContext struct {
 }
 
 type Plan struct {
+	Review       *Review     `json:"review,omitempty"`
 	Version      int         `json:"version"`
 	Instruction  string      `json:"instruction"`
 	CreatedAt    string      `json:"created_at"`

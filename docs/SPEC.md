@@ -47,6 +47,23 @@ Pattern: `todoist <resource> <action> [args]`
 - `todoist doctor` — run local environment/auth/API health checks
 - `todoist view <url>` — open Todoist web URLs with equivalent CLI commands
 
+### Daily review
+
+```
+todoist review [--filter <query>] [--out <file>] [--dry-run] [--json|--ndjson|--plain]
+```
+
+The [daily-review contract](review-design.md) defines selection, edits/moves,
+confirmation, stale checks, cancellation, recovery, and complete task accounting.
+Default selection is `overdue | today` across all projects and pages. Input must
+be a terminal; `--no-input`, piped input, and `--force` fail with exit 2 before
+API access. Empty sets succeed. Review plans extend agent plan version 1 with
+optional versioned review metadata; existing resource outputs remain unchanged.
+Actual application of review plans through `agent apply/run` emits `review_report`,
+including on failure. Dry-run agent output keeps its existing preview envelope.
+Review plans require fail-fast application. Pending remote uncertainty is retained
+in the replay journal and blocks blind retries. All other exit conventions remain.
+
 ### Task commands
 
 ```

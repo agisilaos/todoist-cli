@@ -5,6 +5,7 @@ availability is recorded in [CHANGELOG.md](../CHANGELOG.md).
 
 ## Implemented
 
+- Guided daily review with task edits, moves, confirmed plans, and replay recovery
 - Quick add with natural language parsing
 - NDJSON task/project/section/label/comment lists and output schemas
 - IDs-only output for supported lists

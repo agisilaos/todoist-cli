@@ -26,10 +26,13 @@ func SummarizeActions(actions []Action) PlanSummary {
 }
 
 func ValidatePlan(plan Plan, expectedVersion int, allowEmptyActions bool) error {
+	if err := ValidateReview(plan); err != nil {
+		return err
+	}
 	if plan.ConfirmToken == "" {
 		return errors.New("plan missing confirm_token (see `todoist schema --name plan --json`)")
 	}
-	if len(plan.Actions) == 0 && !allowEmptyActions {
+	if len(plan.Actions) == 0 && !allowEmptyActions && plan.Review == nil {
 		return errors.New("plan has no actions")
 	}
 	if expectedVersion > 0 && plan.Version != 0 && plan.Version != expectedVersion {

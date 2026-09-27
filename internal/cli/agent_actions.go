@@ -10,6 +10,10 @@ import (
 )
 
 func applyAction(ctx *Context, action Action) error {
+	return applyActionResponse(ctx, action, nil)
+}
+
+func applyActionResponse(ctx *Context, action Action, response any) error {
 	req, err := appagent.BuildActionRequest(action, appagent.ActionDeps{
 		BuildTaskCreatePayload: func(in apptasks.MutationInput) (map[string]any, error) {
 			return buildTaskCreatePayload(ctx, in)
@@ -34,7 +38,7 @@ func applyAction(ctx *Context, action Action) error {
 	defer cancel()
 	switch req.Method {
 	case http.MethodPost:
-		_, err = ctx.Client.Post(reqCtx, req.Path, nil, req.Body, nil, true)
+		_, err = ctx.Client.Post(reqCtx, req.Path, nil, req.Body, response, true)
 		return err
 	case http.MethodDelete:
 		_, err = ctx.Client.Delete(reqCtx, req.Path, nil)

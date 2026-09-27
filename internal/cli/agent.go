@@ -172,6 +172,10 @@ func agentApply(ctx *Context, args []string) error {
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
 	}
+	if plan.Review != nil {
+		return applyReviewAndReport(ctx, plan, planPath, onError, "agent apply")
+	}
+
 	applyMode := applyErrorMode(onError)
 	results, err := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, applyMode)
 	if shouldAbortApply(applyMode, err) {

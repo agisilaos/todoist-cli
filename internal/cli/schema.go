@@ -15,6 +15,7 @@ type schemaDef struct {
 }
 
 var schemas = []schemaDef{
+	{Name: "review_report", Description: "Final report for review and application of review plans", Schema: reviewReportSchema()},
 	{Name: "authorization", Description: "Safe authorization report for the active credential", Schema: authorizationReportSchema()},
 	{Name: "auth_status", Description: "Offline credential presence and authorization from auth status", Schema: authStatusSchema()},
 	{Name: "doctor", Description: "Doctor diagnostics including safe credential authorization", Schema: doctorReportSchema()},
@@ -111,6 +112,7 @@ var schemas = []schemaDef{
 				"created_at":    map[string]string{"type": "string"},
 				"confirm_token": map[string]string{"type": "string"},
 				"applied_at":    map[string]string{"type": "string"},
+				"review":        reviewMetadataSchema(),
 				"summary": map[string]any{
 					"type": "object",
 					"properties": map[string]any{

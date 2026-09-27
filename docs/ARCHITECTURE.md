@@ -51,6 +51,14 @@ Agent apply and replay persistence remain in `internal/cli`; the app layer plans
 requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
 for the success boundary and persistence limitations.
 
+Review selection/snapshot ordering lives in `internal/app/review`; the CLI owns
+line prompts and rendering. Optional `internal/agent.Review` metadata accounts
+for every selected task and maps dispositions to existing actions. Both agent
+application entry points enforce review preconditions through the existing apply
+loop. The replay journal stores review pending markers and post-update snapshots
+alongside ordinary action records. Existing task API output models are unchanged;
+review reads its own snapshot projection. See [daily review](review-design.md).
+
 ## Authorization boundary
 
 `internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` defines credential records and preserves optional raw metadata, including unsupported records in inactive profiles. `internal/credentials` owns profile persistence, atomic replacement, and recovery across file and native storage. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.

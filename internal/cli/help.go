@@ -15,6 +15,7 @@ Usage:
 Commands:
   inbox       List Inbox tasks or add to Inbox
   add         Capture tasks with natural language parsing
+  review      Guided daily task review
   today       Tasks due today and overdue
   completed   Completed task history
   upcoming    Tasks due in the next N days
@@ -114,6 +115,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printAuthHelp(ctx.Stdout)
 	case "add":
 		printAddHelp(ctx.Stdout)
+	case "review":
+		printReviewHelp(ctx.Stdout)
 	case "today":
 		printTodayHelp(ctx.Stdout)
 	case "completed":
