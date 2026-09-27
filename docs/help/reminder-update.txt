@@ -1,0 +1,19 @@
+Usage:
+  todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime>)
+
+Flags:
+  --id <id>                         Reminder ID
+  --before <duration>               Reminder offset before due (e.g. 30m, 1h)
+  --at <datetime>                   Reminder datetime (RFC3339 or YYYY-MM-DD HH:MM)
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Find reminder IDs with reminder list; choose --before or --at.
+
+Examples:
+  todoist reminder update --id 678 --before 1h

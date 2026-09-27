@@ -1,0 +1,15 @@
+Usage:
+  todoist agent examples
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Prints CLI invocation examples without running the planner.
+
+Examples:
+  todoist agent examples

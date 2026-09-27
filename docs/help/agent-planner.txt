@@ -1,0 +1,19 @@
+Usage:
+  todoist agent planner [--set --cmd <command>]
+
+Flags:
+  --cmd <command>                   Planner command to set
+  --set                             Set planner command
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Without --set, reports the configured planner. --set requires --cmd and saves local configuration.
+  The top-level planner command is equivalent. Planner programs are trusted and not sandboxed.
+
+Examples:
+  todoist agent planner
+  todoist agent planner --set --cmd "my-planner"

@@ -1,0 +1,22 @@
+Usage:
+  todoist section list [--project <ref>] [flags]
+
+Aliases: ls
+
+Flags:
+  --project <ref>                   Project
+  --cursor <cursor>                 Cursor
+  --limit <n>                       Limit
+  --all                             Fetch all pages
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  --ids-only            Print one raw ID per result
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Use project list to find project references. Follow the returned cursor or use --all for more results.
+
+Examples:
+  todoist section list --project Home --all

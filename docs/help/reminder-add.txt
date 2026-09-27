@@ -1,0 +1,19 @@
+Usage:
+  todoist reminder add (<task> | --task <ref>) (--before <duration> | --at <datetime>)
+
+Flags:
+  --task <ref>                      Task reference
+  --before <duration>               Reminder offset before due (e.g. 30m, 1h)
+  --at <datetime>                   Reminder datetime (RFC3339 or YYYY-MM-DD HH:MM)
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Choose --before or --at. Relative reminders use the task's due time; absolute times accept RFC3339 or YYYY-MM-DD HH:MM.
+
+Examples:
+  todoist reminder add --task id:123456 --before 30m

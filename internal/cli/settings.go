@@ -26,7 +26,7 @@ func settingsCommand(ctx *Context, args []string) error {
 	case "themes":
 		return settingsThemes(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown settings subcommand: %s", args[0])}
+		return unknownCommand("settings", args[0])
 	}
 }
 

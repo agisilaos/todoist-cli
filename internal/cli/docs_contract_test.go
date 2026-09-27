@@ -53,8 +53,12 @@ func documentedCommandFlags(t *testing.T) (map[string]map[string]bool, map[strin
 					switch name.Name {
 					case "newFlagSet":
 						command = sourceString(call.Args[0])
-					case "requireIDArg", "requireEntityIDArg":
-						command = sourceString(call.Args[0])
+					case "requireIDArg", "requireEntityIDArg", "requireTaskID":
+						index := 0
+						if name.Name == "requireTaskID" {
+							index = 1
+						}
+						command = sourceString(call.Args[index])
 						flags["id"] = true
 					}
 				}
@@ -72,6 +76,13 @@ func documentedCommandFlags(t *testing.T) (map[string]map[string]bool, map[strin
 				commands[command] = flags
 			}
 		}
+	}
+	// These entry points have no local flags or share a dynamic parser.
+	for _, command := range []string{"auth status", "auth logout", "auth repair", "agent status", "agent examples", "completion bash", "completion zsh", "completion fish", "completion powershell"} {
+		commands[command] = map[string]bool{"help": true, "h": true}
+	}
+	for _, command := range []string{"notification accept", "notification reject"} {
+		commands[command] = map[string]bool{"id": true, "help": true, "h": true}
 	}
 	// These entry points delegate to another command's parser.
 	for alias, target := range map[string]string{

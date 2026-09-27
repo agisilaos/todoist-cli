@@ -33,7 +33,7 @@ func notificationCommand(ctx *Context, args []string) error {
 	case "unread":
 		return notificationUnread(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown notification subcommand: %s", args[0])}
+		return unknownCommand("notification", args[0])
 	}
 }
 

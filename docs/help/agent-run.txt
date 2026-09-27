@@ -1,0 +1,28 @@
+Usage:
+  todoist agent run [--plan <file> | --instruction <text>] [flags]
+
+Flags:
+  --plan <file>                     Plan file (or - for stdin)
+  --instruction <text>              Instruction to plan/apply
+  --planner <command>               Planner command
+  --confirm <token>                 Confirmation token
+  --on-error <fail|continue>        On error: fail|continue
+  --plan-version <n>                Expected plan version
+  --out <file>                      Write plan output to file
+  --policy <file>                   Policy file path
+  --context-project <ref>           Project context (repeatable)
+  --context-label <name>            Label context (repeatable)
+  --context-completed <Nd>          Include completed tasks from last Nd (e.g. 7d)
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Combines planning and application. Application and previews need the plan's confirmation token or --force.
+  Dry runs may invoke the external planner and write local plan files; external planners are trusted programs.
+
+Examples:
+  todoist agent run --instruction "Review overdue tasks" --force --dry-run

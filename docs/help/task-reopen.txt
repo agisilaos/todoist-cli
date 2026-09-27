@@ -1,0 +1,18 @@
+Usage:
+  todoist task reopen <ref>
+  todoist task reopen --id <id>
+
+Flags:
+  --id <id>                         ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Use an ID from todoist task list --completed. Text references search active tasks, so prefer a known ID for a completed task.
+
+Examples:
+  todoist task reopen --id 123456

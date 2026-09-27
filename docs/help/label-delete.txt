@@ -1,0 +1,19 @@
+Usage:
+  todoist label delete --id <id>
+
+Aliases: rm del
+
+Flags:
+  --id <id>                         ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Requires a label ID from label list. Prompts in a terminal; --force confirms without prompting.
+
+Examples:
+  todoist label delete --id 456 --dry-run

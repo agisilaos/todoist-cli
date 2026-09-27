@@ -35,7 +35,7 @@ The gate checks:
   no-`Unreleased` policy across root Markdown files and `docs/`.
 - Existing targets for inline relative Markdown links (external URLs and anchors
   are not validated).
-- Exact help snapshots, including every dispatched top-level command. Add a new
+- Exact help snapshots, including every dispatched top-level command and child leaf. Add a new
   command to `scripts/help-snapshots.txt`; snapshots are never refreshed by CI.
 - Global flag inventory in README and root help against the global parser.
 - Shell quoting in README command lines.

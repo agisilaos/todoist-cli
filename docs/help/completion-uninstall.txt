@@ -1,0 +1,16 @@
+Usage:
+  todoist completion uninstall [bash|zsh|fish|powershell|pwsh] [--path <file>]
+
+Flags:
+  --path <file>                     Uninstall path override
+
+Global flags:
+  -h, --help             Show help without running the command
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Omitting the shell removes default scripts for supported shells. --path selects an explicit file.
+  Unrecognized PowerShell files are preserved; shell startup files are not edited.
+
+Examples:
+  todoist completion uninstall zsh

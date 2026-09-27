@@ -1,0 +1,18 @@
+Usage:
+  todoist stats vacation (--on | --off)
+
+Flags:
+  --on                              Enable vacation mode
+  --off                             Disable vacation mode
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Choose exactly one of --on or --off.
+
+Examples:
+  todoist stats vacation --on --dry-run

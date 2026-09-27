@@ -1,0 +1,23 @@
+Usage:
+  todoist notification list [flags]
+
+Aliases: ls
+
+Flags:
+  --type <types>                    Filter by notification type (comma-separated)
+  --unread                          Only unread notifications
+  --read                            Only read notifications
+  --limit <n>                       Max notifications to show
+  --offset <n>                      Skip first N notifications
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  --ids-only            Print one raw ID per result
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  --read and --unread are mutually exclusive. Use --offset for additional results.
+
+Examples:
+  todoist notification list --unread --limit 20

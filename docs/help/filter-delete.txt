@@ -1,0 +1,21 @@
+Usage:
+  todoist filter delete <id|name> --yes
+  todoist filter delete --id <id|name> --yes
+
+Aliases: rm del
+
+Flags:
+  --id <id>                         Filter ID or name
+  --yes                             Skip confirmation
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Requires --yes or global --force. Removes the saved filter, not its matching tasks.
+
+Examples:
+  todoist filter delete "Work today" --yes --dry-run
