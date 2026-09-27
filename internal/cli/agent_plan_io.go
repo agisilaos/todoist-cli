@@ -82,6 +82,13 @@ func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 		}
 		return writeStructuredValue(ctx, payload, output.Meta{})
 	}
+	if plan.Review != nil {
+		previewCtx := *ctx
+		previewCtx.Stderr = ctx.Stdout
+		fmt.Fprintf(ctx.Stdout, "Authorization: %s\n", currentAuthorization(ctx).Summary())
+		showReviewPreview(&previewCtx, plan)
+		return nil
+	}
 	fmt.Fprintf(ctx.Stdout, "Authorization: %s\n", currentAuthorization(ctx).Summary())
 	fmt.Fprintf(ctx.Stdout, "Plan: %s\n", plan.Instruction)
 	if dryRun {

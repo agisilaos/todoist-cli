@@ -11,11 +11,15 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --ids-only --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "review today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help ${global_flags}" -- "$cur") )
     return 0
   fi
 
   case "$cmd" in
+    review)
+      COMPREPLY=( $(compgen -W "--filter --out ${global_flags}" -- "$cur") )
+      return 0
+      ;;
     upcoming)
       local upcoming_flags="--days --project --label --wide --sort --truncate-width"
       COMPREPLY=( $(compgen -W "${upcoming_flags} ${global_flags}" -- "$cur") )
@@ -216,12 +220,15 @@ complete -F _todoist todoist
 const zshCompletion = `#compdef todoist
 _arguments -C \
   '--ids-only[One raw ID per line (supported lists only)]' \
-  '1:command:(today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help)' \
+  '1:command:(review today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help)' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
   inbox)
     _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    ;;
+  review)
+    _arguments '--filter[Todoist filter]:query:' '--out[Save review plan]:file:_files'
     ;;
   today)
     _arguments '--ids-only[One raw ID per line (supported lists only)]'
@@ -293,13 +300,13 @@ case $words[1] in
     _arguments '2:shell:(bash zsh fish)'
     ;;
   help)
-    _arguments '2:command:(today completed upcoming inbox add auth task project section label comment reminder notification activity stats settings view agent completion doctor schema planner help)'
+    _arguments '2:command:(review today completed upcoming inbox add auth task project section label comment reminder notification activity stats settings view agent completion doctor schema planner help)'
     ;;
 esac
 `
 
 const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help'
+complete -c todoist -f -n '__fish_use_subcommand' -a 'review today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -391,6 +398,10 @@ complete -c todoist -n '__fish_seen_subcommand_from settings; and contains updat
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'
 complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
+
+# review
+complete -c todoist -n '__fish_seen_subcommand_from review' -l filter -r
+complete -c todoist -n '__fish_seen_subcommand_from review' -l out -r -F
 
 # today
 complete -c todoist -n '__fish_seen_subcommand_from today'

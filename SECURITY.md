@@ -51,3 +51,18 @@ fall back to the default keychain if a supplied keychain becomes invalid, so the
 private keychain remains alive until testing finishes. Unavailable-store and other
 unsafe-to-induce failures use injected fakes. A native API change that prevents
 isolation must fail the test rather than use the real store.
+
+## Review recovery data
+
+Review plan files and replay checkpoints contain private task fields, including
+content and descriptions, but no tokens. Newly saved plans and replay journals
+use mode 0600 in directories created with mode 0700. Explicit plan paths are never
+overwritten. Recovery files are retained until deliberately removed by the user.
+Deleting replay evidence can permit duplicate writes; do not remove it while a
+plan is still needed. Only one applying process is supported.
+
+Use the current binary, unchanged review plans, and the same configuration,
+account, and API endpoint for retries. Older binaries do not enforce review
+preconditions. Review metadata is not a permission grant or an account binding;
+current credential authorization still governs every mutation. An uncertain
+remote write blocks blind retry and requires inspection before a fresh review.

@@ -216,6 +216,9 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 	if !strings.Contains(got, "A terminal companion for Todoist") {
 		t.Fatalf("expected root help output, got %q", got)
 	}
+	if !strings.Contains(got, "review        Guided daily task review") {
+		t.Fatalf("expected review command in root help, got %q", got)
+	}
 	if !strings.Contains(got, "completed") {
 		t.Fatalf("expected completed command in root help, got %q", got)
 	}

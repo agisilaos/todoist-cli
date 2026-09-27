@@ -3,6 +3,7 @@ package cli
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -25,6 +26,29 @@ func TestMutationHelpRequiresNoTargetOrAPI(t *testing.T) {
 					t.Fatalf("help exit=%d stdout=%q stderr=%q", code, out, errOut)
 				}
 			})
+		}
+	}
+}
+
+func TestReviewHelpRoutingWithBrokenConfig(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("review help made an API request: %s", r.URL.Path)
+		http.Error(w, "unexpected", 500)
+	}))
+	defer server.Close()
+	t.Setenv("TODOIST_TOKEN", "synthetic-help-token")
+	t.Setenv("TODOIST_BASE_URL", server.URL)
+	path := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(path, []byte("{broken"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"review", "--help"}, {"help", "review"}, {"--help", "review"},
+	} {
+		args = append(args, "--no-input", "--progress-jsonl", filepath.Join(path, "cannot-create"))
+		code, out, errOut := executeAuthorization(t, path, args...)
+		if code != 0 || errOut != "" || !strings.Contains(out, "todoist review [--filter <query>]") {
+			t.Fatalf("%v: exit=%d stdout=%q stderr=%q", args, code, out, errOut)
 		}
 	}
 }

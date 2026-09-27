@@ -89,7 +89,7 @@ The explicit collection of tasks selected at the start of a review and accounted
 _Avoid_: Today view, batch
 
 **Disposition**:
-The intended outcome chosen for a task during a review: keep, change, complete, or skip. Choosing a disposition does not mean its changes have been applied to Todoist.
+The intended outcome chosen for a task during a review: keep, change, complete, or skip. Keep means intentionally unchanged after review; skip means deferred without deciding; choosing any disposition does not mean changes have been applied to Todoist.
 _Avoid_: Action, status
 
 **Review plan**:

@@ -27,6 +27,7 @@ var commandHelpCatalog = map[string]commandHelp{
 	"planner":        {},
 	"add":            {},
 	"today":          {},
+	"review":         {},
 	"completed":      {},
 	"upcoming":       {},
 	"help":           {},

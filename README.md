@@ -18,6 +18,7 @@ todoist --version
 todoist auth login                 # prompts for token (or use --token-stdin)
 todoist add "Review PR 42 today"
 todoist inbox                     # see the captured task in Inbox
+todoist review                    # guided review; confirm before changes
 ```
 
 Choose what to view:
@@ -419,6 +420,55 @@ Quick list of tasks due today and overdue across projects, including Inbox. Uses
 ```
 todoist today
 ```
+
+### Daily review
+
+```bash
+todoist review
+todoist review --filter "overdue | today" --out review-plan.json
+todoist review --dry-run
+```
+
+Review fetches all matching pages, freezes the task set, and orders tasks by due,
+priority, then ID. For each task type `keep`, `change`, `complete`, or `skip`.
+`change` opens a numbered field menu: choose a field, enter its value, repeat as
+needed, then type `done`. You can edit existing task fields and move to a project,
+section, or parent. A later move choice replaces the earlier destination. Empty
+values leave fields unchanged; new field-clearing operations are not supported.
+
+For example, keep one task; change another with `due-date`, `2026-10-01`, `done`;
+complete a third; skip a fourth. Inspect the full original/proposed preview, then
+type `no` to cancel or `yes` to apply. `cancel` works at any prompt. There is no
+backtracking or session resume. Natural-language due values resolve only during
+application; recurring due edits may change recurrence. Completing a recurring task
+advances its occurrence; ordinary completion also completes subtasks.
+
+Dry runs and read-only credentials stop at preview. `--out` saves the finished plan
+without overwriting a file, even if you subsequently decline application. Otherwise,
+a recovery plan is saved under the config directory before the first mutation.
+Read-only users can hand the plan to a write-capable profile for the same account.
+Plans contain private task data; keep them with the same care as task exports.
+
+Application stops on the first failure. Changed/missing tasks block pending writes.
+A task can be partially applied when its update succeeds but its move fails. For a
+**definite rejection**, retry the unchanged saved plan using the same config/account:
+
+```bash
+todoist agent apply --plan review-plan.json --confirm "$(jq -r .confirm_token review-plan.json)"
+```
+
+Recorded successes are skipped; pending work is checked against the reviewed or
+post-update state. For an **uncertain remote outcome**, inspect the task in Todoist
+and start a fresh review; retrying the old plan is blocked. Use the current binary,
+never edit recovery plans, and run only one applying process at a time. Application
+is not transactional and cannot guarantee exactly-once writes.
+
+`--no-input` and piped stdin are rejected before API access; machine clients should
+use `task list` and `agent plan/apply`. Interactive `review --json` or `--ndjson`
+emits a final report on stdout with prompts on stderr. Reports account for every
+selected task and distinguish kept, skipped, proposed, applied, failed, partially
+applied, and unattempted work. See `todoist help review`, `todoist schema --name
+review_report`, and the [review contract](docs/review-design.md).
 
 ### Completed
 

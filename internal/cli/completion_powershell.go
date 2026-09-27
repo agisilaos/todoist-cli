@@ -4,7 +4,7 @@ const powerShellCompletionMarker = "# todoist completion (powershell)"
 
 const powerShellCompletion = powerShellCompletionMarker + `
 $todoistCommands = @{
-    '' = @('today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
+    '' = @('review', 'today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
     'inbox' = @('add')
     'auth' = @('login', 'status', 'logout', 'migrate', 'repair')
     'task' = @('list', 'ls', 'add', 'view', 'show', 'update', 'move', 'complete', 'reopen', 'delete', 'rm', 'del')
@@ -23,7 +23,7 @@ $todoistCommands = @{
     'completion' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh', 'install', 'uninstall')
     'completion install' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh')
     'completion uninstall' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh')
-    'help' = @('today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
+    'help' = @('review', 'today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
 }
 
 $todoistAliases = @{
@@ -63,6 +63,7 @@ $todoistGlobalFlags = @(
 )
 
 $todoistFlags = @{
+    'review' = @('--filter', '--out')
     'completed' = @('--completed-by', '--since', '--until', '--project', '--section', '--filter', '--cursor', '--limit', '--all', '--wide')
     'upcoming' = @('--days', '--project', '--label', '--wide', '--sort', '--truncate-width')
     'inbox add' = @('--content', '--description', '--section', '--label', '--priority', '--due', '--due-date', '--due-datetime', '--due-lang', '--duration', '--duration-unit', '--deadline', '--assignee')
@@ -130,6 +131,7 @@ $todoistFlags = @{
 
 $todoistValueFlags = @{
     '' = @('--timeout', '--config', '--profile', '--progress-jsonl', '--base-url')
+    'review' = @('--filter', '--out')
     'completed' = @('--completed-by', '--since', '--until', '--project', '--section', '--filter', '--cursor', '--limit')
     'upcoming' = @('--days', '--project', '--label', '--sort', '--truncate-width')
     'inbox add' = @('--content', '--description', '--section', '--label', '--priority', '--due', '--due-date', '--due-datetime', '--due-lang', '--duration', '--duration-unit', '--deadline', '--assignee')
@@ -221,7 +223,7 @@ $todoistValues = @{
     'agent apply|--on-error' = @('fail', 'continue')
     'agent run|--on-error' = @('fail', 'continue')
     'agent schedule print|--on-error' = @('fail', 'continue')
-    'schema|--name' = @('ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
+    'schema|--name' = @('review_report', 'ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
 }
 
 $todoistCompleter = {

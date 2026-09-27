@@ -28,6 +28,7 @@ auth-login.txt	auth login --help
 agent-schedule.txt	agent schedule --help
 auth-migrate.txt	auth migrate --help
 auth-repair.txt	auth repair --help
+review.txt	review --help
 auth-status.txt	auth status --help
 auth-logout.txt	auth logout --help
 task-list.txt	task list --help

@@ -57,9 +57,10 @@ type GlobalOptions struct {
 }
 
 type Context struct {
-	Stdout io.Writer
-	Stderr io.Writer
-	Stdin  io.Reader
+	OperationContext context.Context
+	Stdout           io.Writer
+	Stderr           io.Writer
+	Stdin            io.Reader
 
 	Global     GlobalOptions
 	Mode       output.Mode
@@ -432,7 +433,11 @@ func toExitCode(err error) int {
 }
 
 func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
+	parent := ctx.OperationContext
+	if parent == nil {
+		parent = context.Background()
+	}
+	return context.WithTimeout(parent, time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
 }
 
 func parseIDOrName(input string) string {

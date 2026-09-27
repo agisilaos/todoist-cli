@@ -8,6 +8,7 @@
 - [Architecture decisions](adr/): accepted tradeoffs
 - [Product roadmap](ROADMAP.md): implemented capabilities and future-work tracker
 - [CLI help snapshots](help/): generated from the current binary
+- [Daily review](review-design.md): interaction, review-plan compatibility, and recovery
 
 ## Release
 

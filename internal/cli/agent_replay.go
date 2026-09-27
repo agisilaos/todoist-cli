@@ -18,7 +18,8 @@ type replayStore interface {
 }
 
 type replayJournal struct {
-	Applied map[string]string `json:"applied"`
+	Reviews map[string]reviewCheckpoint `json:"reviews,omitempty"`
+	Applied map[string]string           `json:"applied"`
 }
 
 type fileReplayStore struct {
@@ -81,7 +82,7 @@ func (s *fileReplayStore) RecordApplied(key string, at time.Time) error {
 	if s.Contains(key) {
 		return nil
 	}
-	candidate := replayJournal{Applied: make(map[string]string, len(s.journal.Applied)+1)}
+	candidate := replayJournal{Reviews: s.journal.Reviews, Applied: make(map[string]string, len(s.journal.Applied)+1)}
 	for existingKey, appliedAt := range s.journal.Applied {
 		candidate.Applied[existingKey] = appliedAt
 	}

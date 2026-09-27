@@ -12,6 +12,7 @@ Read-only means remote reads without Todoist mutations. Local-only commands may 
 | `task list/ls`, `task view/show` | Read-only |
 | `task add/update/move/complete/reopen/delete/rm/del` | Remotely mutating, including bulk operations; dry-run previews supported |
 | Top-level `add`, `inbox add` | Remotely mutating; dry-run previews supported |
+| `review` | Selection/planning are read-only; optional local plan persistence. Confirmed pending actions mutate. Dry-run/read-only sessions stop at preview |
 | Bare `inbox`, `today`, `upcoming`, `completed` | Read-only |
 | `project list/ls`, `project view/show`, `project collaborators` | Read-only |
 | `project browse` | Read-only plus local browser opening; dry run suppresses browser opening |
@@ -38,7 +39,7 @@ Read-only means remote reads without Todoist mutations. Local-only commands may 
 | `doctor [--strict]` | Local inspection plus a read-only API probe |
 | `schema [--name ...]` | Local-only |
 
-The command dispatchers contain no current `review` command. The glossary's review plan remains a domain concept distinct from the current agent-plan file format.
+Review plans use the agent-plan format with optional versioned review metadata. Authorization is resolved at application time; saved plans never grant write capability.
 
 ## Agent actions and effects
 
