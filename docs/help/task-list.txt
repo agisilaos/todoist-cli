@@ -1,0 +1,40 @@
+Usage:
+  todoist task list [flags]
+
+Aliases: ls
+
+Flags:
+  --filter <query>                  Filter query
+  --project <ref>                   Project
+  --section <ref>                   Section
+  --parent <id>                     Parent task
+  --label <name>                    Label
+  --id <id>                         Comma-separated task IDs
+  --cursor <cursor>                 Cursor
+  --limit <n>                       Limit
+  --all                             Fetch all pages
+  --all-projects                    List tasks from all projects
+  --completed                       List completed tasks
+  --completed-by <completion|due>   History by completion or due date
+  --since <date>                    Start date (RFC3339 or YYYY-MM-DD)
+  --until <date>                    End date (RFC3339 or YYYY-MM-DD)
+  --wide                            Wider table output
+  --preset <today|overdue|next7>    Shortcut filter: today, overdue, next7
+  --sort <due|priority>             Sort by: due, priority
+  --truncate-width <cols>           Override table width (human output)
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  --ids-only            Print one raw ID per result
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Lists Inbox tasks by default; use --all-projects or --filter for other tasks.
+  Completed listing accepts date hints such as yesterday and "2 weeks ago"; --since without --until ends today.
+  Use --all to fetch all pages where supported, or follow the returned cursor.
+
+Examples:
+  todoist task list
+  todoist task list --all-projects --ids-only
+  todoist task list --completed --since yesterday --json

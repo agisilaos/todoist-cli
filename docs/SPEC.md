@@ -206,6 +206,43 @@ Planner context notes:
 - Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
 
+## Help and command recovery
+
+- Root and explicit group help remain command overviews. All dispatched child
+  leaves, including completion shell selectors and `agent schedule print`, have
+  focused usage, command-specific flags, examples, and relevant recovery advice.
+  Existing standalone command pages remain available. Each leaf points to root
+  help for the complete global flag inventory.
+- `task complete --help`, `--help task complete`, `help task complete`, and
+  `task help complete` select the same page. `-h` also works. Existing aliases
+  select canonical leaf pages; operands after a leaf do not become command paths.
+  This does not introduce a positional `task complete help` syntax or change
+  command-option placement and `--` parsing.
+- Genuine help requests return 0 before configuration loading, credential access,
+  progress-file creation, or command dispatch. They need no required mutation
+  arguments and make no local writes or API calls. Flag-shaped option values stay
+  literal; global parse errors, version, output conflicts, and IDs-only eligibility
+  retain their existing precedence.
+- Unknown help targets return usage exit 2, using the existing error rendering for
+  the selected output mode. This replaces successful fallback to a broader page.
+  The historical `help examples` topic remains supported.
+- Ordinary unknown-command errors retain exit 2. Human recovery prints up to three
+  equally closest canonical command paths within the current group, followed by
+  a pointer to that group's help. Aliases participate in matching but duplicate
+  canonical results are collapsed. No command is corrected or executed automatically.
+- Matching counts insertions, deletions, substitutions, and adjacent transpositions.
+  Input names of 3–5 characters allow one edit, and names of 6–64 characters allow
+  two. Shorter/longer names and flag-shaped input get no suggestions. More than
+  three best matches suppresses suggestions. Ties use alphabetical order.
+- Suggestions are suppressed for explicit `--json`, `--ndjson`, `--plain`,
+  `--ids-only`, or `--quiet-json`. Existing ordinary execution error messages,
+  envelopes, streams, and codes remain unchanged in those modes, including root
+  help on existing text-mode unknown-root errors. `--quiet-json` alone does not
+  select JSON. Ordinary piped invocations without these flags can receive hints.
+- Unknown execution commands retain existing configuration-error precedence.
+  Reference resolution, unknown options, shell operands for completion
+  install/uninstall, and unrelated runtime diagnostics are unchanged.
+
 ## Errors
 
 - Human errors include `request_id` when available.

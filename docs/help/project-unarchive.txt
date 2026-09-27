@@ -1,0 +1,17 @@
+Usage:
+  todoist project unarchive --id <id>
+
+Flags:
+  --id <id>                         ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Find the ID with project list --archived.
+
+Examples:
+  todoist project unarchive --id 234

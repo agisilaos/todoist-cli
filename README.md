@@ -24,6 +24,7 @@ todoist --version
 todoist auth login                 # prompts for token (or use --token-stdin)
 todoist add "Review PR 42"
 todoist task list                  # lists Inbox tasks in a table
+todoist task complete --help       # focused usage, flags, and examples
 ```
 
 ## Install
@@ -164,6 +165,38 @@ Flag parsing notes:
 - Subcommand flags can be mixed with positional refs/content (for example `todoist add "Buy milk" --project Home --dry-run`).
 - Common aliases: `ls`=`list`, `rm`/`del`=`delete` (`task`, `project`, `section`, `label`, `comment`), and `show`=`view` (`task`).
 - Prefer `--json` or `--ndjson` for scripts/agents.
+
+### Command help and typo recovery
+
+Start with `todoist --help` for the command overview and global flags. Group help
+such as `todoist task --help` lists related commands; a leaf page describes just
+one operation:
+
+```bash
+todoist task complete --help
+todoist help task complete
+todoist task help complete
+todoist task show --help           # same page as task view
+todoist agent schedule print --help
+```
+
+`-h` and `--help` work before or after the command path. Global flags retain their
+normal placement rules. A flag value that happens to be `--help` stays literal;
+for example, `--content "--help"` supplies task content. Help is available before
+authentication, with broken configuration, and without required mutation
+arguments. It does not run the command or write local files.
+
+To complete a task, run `todoist task list`, copy its ID, and run
+`todoist task complete id:123456`, replacing `123456` with that ID. Use
+`todoist task complete --help` to discover bulk completion and preview options.
+
+Misspellings such as `todoist todai` or `todoist task complet` return usage exit 2,
+with nearby command suggestions and a pointer to the relevant help page. No
+suggestion is executed. Unknown help targets also return exit 2. Suggestions
+apply to command names, not task references or option values. Explicit machine
+flags retain their existing error behavior without added suggestions; use
+`--json --quiet-json` for compact JSON errors (`--quiet-json` alone does not
+select JSON).
 
 ## Commands
 

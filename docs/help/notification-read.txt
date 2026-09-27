@@ -1,0 +1,22 @@
+Usage:
+  todoist notification read <id>
+  todoist notification read --id <id>
+  todoist notification read --all --yes
+
+Flags:
+  --id <id>                         Notification ID
+  --all                             Mark all notifications as read
+  --yes                             Confirm --all operation
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Find IDs with notification list. Marking all requires --yes or --force, except in --dry-run.
+
+Examples:
+  todoist notification read --id 789
+  todoist notification read --all --yes --dry-run

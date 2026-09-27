@@ -66,7 +66,7 @@ func authCommand(ctx *Context, args []string) error {
 		}
 		return authLogout(ctx)
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown auth subcommand: %s", args[0])}
+		return unknownCommand("auth", args[0])
 	}
 }
 

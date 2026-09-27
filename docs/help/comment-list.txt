@@ -1,0 +1,23 @@
+Usage:
+  todoist comment list (--task <id> | --project <ref>) [flags]
+
+Aliases: ls
+
+Flags:
+  --task <ref>                      Task ID
+  --project <ref>                   Project ID
+  --cursor <cursor>                 Cursor
+  --limit <n>                       Limit
+  --all                             Fetch all pages
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  --ids-only            Print one raw ID per result
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Choose a task or project target. Use --all or the returned cursor for additional comments.
+
+Examples:
+  todoist comment list --task 123456 --all --json

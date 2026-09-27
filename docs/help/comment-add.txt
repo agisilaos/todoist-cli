@@ -1,0 +1,19 @@
+Usage:
+  todoist comment add --content <text> (--task <id> | --project <ref>)
+
+Flags:
+  --content <text>                  Comment content
+  --task <ref>                      Task ID
+  --project <ref>                   Project ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Choose one target. Comment content is passed literally; quote spaces and shell characters.
+
+Examples:
+  todoist comment add --task 123456 --content "Ready for review"

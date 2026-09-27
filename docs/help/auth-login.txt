@@ -1,40 +1,37 @@
 Usage:
-  todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
-  todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
-  todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
-                    [--oauth-authorize-url <url>] [--oauth-token-url <url>]
-                    [--oauth-device-url <url>]
-                    [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
+  todoist auth login [--token-stdin] [--credential-store <native|file>] [flags]
+  todoist auth login --oauth [--read-only] [--client-id <id>] [flags]
+  todoist auth login --oauth-device [--read-only] [--client-id <id>] [flags]
 
 Flags:
-  --credential-store          New-profile backend: native or file (existing profiles require migration)
-  --token-stdin                Read token from stdin
-  --print-env                  Print token export instead of saving profile credentials
-  --oauth                      Authenticate using OAuth PKCE flow
-  --oauth-device               Authenticate using OAuth device flow (headless-friendly)
-  --read-only                  Request data:read; requires --oauth or --oauth-device
-  --no-browser                 Do not auto-open browser for OAuth flow
-  --client-id <id>             OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
-  --oauth-authorize-url <url>  OAuth authorize URL override
-  --oauth-token-url <url>      OAuth token URL override
-  --oauth-device-url <url>     OAuth device code URL override
-  --oauth-listen <host:port>   OAuth callback listen address (default 127.0.0.1:8765)
-  --oauth-redirect-uri <uri>   OAuth redirect URI (default http://<listen>/callback)
+  --credential-store <native|file>  Storage for a new profile: native or file
+  --read-only                       Request read-only OAuth access
+  --token-stdin                     Read token from stdin
+  --print-env                       Print export command instead of saving
+  --oauth                           Authenticate via OAuth PKCE flow
+  --oauth-device                    Authenticate via OAuth device flow
+  --no-browser                      Do not auto-open browser for OAuth flow
+  --client-id <id>                  OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
+  --oauth-authorize-url <url>       OAuth authorize URL
+  --oauth-token-url <url>           OAuth token URL
+  --oauth-device-url <url>          OAuth device code URL
+  --oauth-listen <host:port>        OAuth callback address (default 127.0.0.1:8765)
+  --oauth-redirect-uri <uri>        OAuth redirect URI (default http://<listen>/callback)
+
+Global flags:
+  -h, --help             Show help without running the command
+  --profile <name>      Select the credential profile
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Paste only the API token, without spaces, quotes, or Bearer. Manual login verifies with Todoist before saving or exporting; failed verification leaves credentials unchanged. Rerun login to retry.
+  New profiles use native storage; select file explicitly for portable storage. Existing profiles retain their backend; use auth migrate to change it.
+  OAuth defaults to read-write. --read-only requires OAuth and blocks Todoist mutations; planning and previews remain available.
+  Manual, environment, and legacy tokens have unknown scopes and permit write attempts. --print-env exports a secret and loses local scope evidence on later environment use.
+  Device flow support by Todoist is unverified; token refresh is not implemented.
 
 Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
-  todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist --profile reader auth login --oauth --read-only
-  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
-  todoist auth login --oauth --no-browser --print-env
-
-Notes:
-  Paste only the API token from Todoist settings, without spaces, quotes, or Bearer.
-  Manual tokens are checked with Todoist before saving or --print-env; network access is required.
-  Failed verification leaves existing credentials unchanged. Rerun login to retry.
-  OAuth defaults to read-write; --read-only blocks Todoist mutations, including agent apply/run.
-  Planning, local inspection, and dry runs remain available with read-only credentials.
-  Manual, environment, and legacy tokens have unknown scopes and permit write attempts.
-  --print-env exports only the token; later environment use has unknown authorization.
-  Device flow endpoint support by Todoist is unverified. Token refresh is not implemented.

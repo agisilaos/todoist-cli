@@ -1,0 +1,30 @@
+Usage:
+  todoist inbox add --content <text> [flags]
+
+Flags:
+  --content <text>                  Task content
+  --description <text>              Task description
+  --section <ref>                   Section
+  --label <name>                    Label (repeatable)
+  --priority <1-4>                  Priority
+  --due <text>                      Due string
+  --due-date <YYYY-MM-DD>           Due date
+  --due-datetime <RFC3339>          Due datetime
+  --due-lang <code>                 Due language
+  --duration <n>                    Duration
+  --duration-unit <minute|day>      Duration unit
+  --deadline <YYYY-MM-DD>           Deadline date
+  --assignee <ref>                  Assignee ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Adds to Inbox using configured label/due defaults where not explicitly supplied.
+  Positional text is also accepted; --content - reads stdin. Priority is numeric 1-4.
+
+Examples:
+  todoist inbox add --content "Review launch notes" --due tomorrow

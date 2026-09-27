@@ -7,6 +7,7 @@ availability is recorded in [CHANGELOG.md](../CHANGELOG.md).
 
 - Quick add with natural language parsing
 - NDJSON task/project/section/label/comment lists and output schemas
+- Focused leaf-command help and human command-typo recovery
 - IDs-only output for supported lists
 - Task updates by ID or text reference
 - OAuth PKCE and device-flow login
