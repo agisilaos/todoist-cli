@@ -1,0 +1,17 @@
+Usage:
+  todoist completion powershell
+
+Aliases: pwsh
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Prints shell source only. pwsh is an alias; use completion install powershell for activation guidance.
+
+Examples:
+  todoist completion powershell > todoist.ps1

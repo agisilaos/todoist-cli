@@ -217,6 +217,10 @@ func writeError(ctx *Context, err error) {
 	} else {
 		fmt.Fprintf(ctx.Stderr, "error: %s\n", safeErrorText(ctx, err))
 	}
+	var unknown *unknownCommandError
+	if humanCommandHints(ctx.Global) && errors.As(err, &unknown) {
+		printCommandHints(ctx.Stderr, unknown.parent, unknown.input)
+	}
 	var denied *authorization.Error
 	if errors.As(err, &denied) && denied.Code == "READ_ONLY" {
 		fmt.Fprintln(ctx.Stderr, "Select a write-capable profile, or log in with --oauth without --read-only. --force cannot override authorization.")

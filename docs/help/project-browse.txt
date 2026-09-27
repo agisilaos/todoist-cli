@@ -1,0 +1,17 @@
+Usage:
+  todoist project browse <id|name>
+  todoist project browse --id <id|name>
+
+Flags:
+  --id <id>                         Project ID or name
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Opens the project URL in your browser; --dry-run previews the URL without opening it.
+
+Examples:
+  todoist project browse "Home"

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -26,7 +25,7 @@ func inboxCommand(ctx *Context, args []string) error {
 	case "add":
 		return inboxAdd(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown inbox subcommand: %s", args[0])}
+		return unknownCommand("inbox", args[0])
 	}
 }
 

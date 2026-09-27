@@ -1,10 +1,6 @@
 package cli
 
-import (
-	"fmt"
-
-	"github.com/agisilaos/todoist-cli/internal/output"
-)
+import "fmt"
 
 func printRootHelp(out interface{ Write([]byte) (int, error) }) {
 	fmt.Fprint(out, `todoist - Agentic Todoist CLI
@@ -87,25 +83,25 @@ func helpCommand(ctx *Context, args []string) error {
 		printRootHelp(ctx.Stdout)
 		return nil
 	}
-	if args[0] == "auth" && len(args) > 1 {
-		switch args[1] {
-		case "login":
-			printAuthLoginHelp(ctx.Stdout)
-			return nil
-		case "migrate", "repair":
-			printAuthStorageHelp(ctx.Stdout, args[1])
-			return nil
-		}
+	// Retain the historical help-only examples topic.
+	if args[0] == "examples" {
+		return agentExamples(ctx)
 	}
-	if args[0] == "agent" && len(args) > 1 {
-		switch args[1] {
-		case "planner":
-			printAgentPlannerHelp(ctx.Stdout)
-			return nil
-		case "schedule":
-			printAgentScheduleHelp(ctx.Stdout)
-			return nil
-		}
+	path, err := resolveHelpPath(args)
+	if err != nil {
+		return err
+	}
+	if page, ok := commandHelpCatalog[path]; ok && page.examples != "" {
+		printLeafHelp(ctx.Stdout, path, page)
+		return nil
+	}
+	if path == "agent schedule" {
+		printAgentScheduleHelp(ctx.Stdout)
+		return nil
+	}
+	if path == "" || path == "help" {
+		printRootHelp(ctx.Stdout)
+		return nil
 	}
 	switch args[0] {
 	case "inbox":
@@ -156,12 +152,7 @@ func helpCommand(ctx *Context, args []string) error {
 		printSchemaHelp(ctx.Stdout)
 	case "planner":
 		printAgentPlannerHelp(ctx.Stdout)
-	case "examples":
-		_ = agentExamples(ctx)
 	default:
-		if ctx.Mode == output.ModeIDsOnly && args[0] != "help" {
-			return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown command: %s", args[0])}
-		}
 		printRootHelp(ctx.Stdout)
 	}
 	return nil

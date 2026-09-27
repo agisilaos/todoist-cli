@@ -1,0 +1,19 @@
+Usage:
+  todoist section delete --id <id>
+
+Aliases: rm del
+
+Flags:
+  --id <id>                         ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Requires a section ID from section list. Prompts in a terminal; --force confirms without prompting.
+
+Examples:
+  todoist section delete --id 345 --dry-run

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -17,7 +16,7 @@ func workspaceCommand(ctx *Context, args []string) error {
 	case "list":
 		return workspaceList(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown workspace subcommand: %s", args[0])}
+		return unknownCommand("workspace", args[0])
 	}
 }
 

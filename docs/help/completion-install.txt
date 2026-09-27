@@ -1,0 +1,16 @@
+Usage:
+  todoist completion install [bash|zsh|fish|powershell|pwsh] [--path <file>]
+
+Flags:
+  --path <file>                     Install path override
+
+Global flags:
+  -h, --help             Show help without running the command
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Omitting the shell uses shell detection; pass it explicitly if detection fails.
+  Writes a completion file and prints activation instructions; does not edit shell startup files.
+
+Examples:
+  todoist completion install zsh

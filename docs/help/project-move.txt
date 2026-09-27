@@ -1,0 +1,21 @@
+Usage:
+  todoist project move <id|name> (--to-workspace <ref> | --to-personal) [flags]
+
+Flags:
+  --id <id>                         Project ID or name
+  --to-workspace <ref>              Target workspace
+  --to-personal                     Move project to personal
+  --visibility <restricted|team|public>Workspace visibility (restricted|team|public)
+  --yes                             Confirm move
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Choose exactly one destination. Confirm with --yes, global --force, or an interactive prompt.
+  Use workspace list to find workspace IDs; visibility applies to workspace moves.
+
+Examples:
+  todoist project move "Team Project" --to-personal --yes

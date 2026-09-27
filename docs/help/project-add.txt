@@ -1,0 +1,25 @@
+Usage:
+  todoist project add --name <name> [flags]
+
+Aliases: create
+
+Flags:
+  --name <name>                     Project name
+  --description <text>              Description
+  --parent <id>                     Parent project
+  --color <color>                   Color
+  --favorite                        Favorite
+  --view <style>                    View style
+  --workspace <id>                  Workspace ID
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without Todoist mutations (reads may occur)
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Use --parent for a parent project and --workspace for a workspace ID. Use workspace list to find IDs.
+
+Examples:
+  todoist project add --name "Side Projects" --description "Weekend work"

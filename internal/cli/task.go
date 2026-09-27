@@ -154,7 +154,7 @@ func taskCommand(ctx *Context, args []string) error {
 	case "delete":
 		return taskDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown task subcommand: %s", args[0])}
+		return unknownCommand("task", args[0])
 	}
 }
 

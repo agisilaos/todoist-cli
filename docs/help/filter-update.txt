@@ -1,0 +1,22 @@
+Usage:
+  todoist filter update <id|name> [flags]
+  todoist filter update --id <id|name> [flags]
+
+Flags:
+  --id <id>                         Filter ID or name
+  --name <name>                     Filter name
+  --query <query>                   Filter query
+  --color <color>                   Color
+  --favorite                        Favorite
+  --unfavorite                      Unfavorite
+
+Global flags:
+  -h, --help             Show help without running the command
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Find saved filters with filter list; quote query text and multiword names.
+
+Examples:
+  todoist filter update "Work today" --query "@work & (today | overdue)"

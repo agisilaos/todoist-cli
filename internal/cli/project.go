@@ -46,7 +46,7 @@ func projectCommand(ctx *Context, args []string) error {
 	case "delete":
 		return projectDelete(ctx, args[1:])
 	default:
-		return &CodeError{Code: exitUsage, Err: fmt.Errorf("unknown project subcommand: %s", args[0])}
+		return unknownCommand("project", args[0])
 	}
 }
 

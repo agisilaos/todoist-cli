@@ -45,6 +45,16 @@ Todoist API v1
 - `internal/app/settings`: user settings validation and update payloads.
 - `internal/app/stats`: productivity goals and vacation updates.
 
+## Help routing
+
+The CLI help catalog records canonical command paths, aliases, and leaf-page
+content. It supports help lookup and bounded typo suggestions; existing dispatch
+functions remain the execution authority. Help resolves before configuration or
+credential loading and before opening progress logs. Typed unknown-command
+errors preserve existing error text while allowing human-only recovery hints.
+Behavioral and source-inventory tests check leaf coverage, flags, aliases,
+machine-error compatibility, and absence of help side effects.
+
 ## CLI-local orchestration
 
 Task creation shares a capture receipt renderer in `internal/cli`; other task
