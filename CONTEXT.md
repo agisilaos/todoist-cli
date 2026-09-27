@@ -16,6 +16,18 @@ _Avoid_: Bot, automation user
 The documented structured output and error behavior that machine clients can rely on across compatible releases.
 _Avoid_: JSON mode, agent output
 
+**Inbox**:
+The Todoist project used to collect tasks before organizing them into other projects. Inbox membership is independent of a task's due date.
+_Avoid_: All tasks, today view
+
+**Today view**:
+Active tasks due today or overdue across projects, including the Inbox.
+_Avoid_: Inbox, daily review
+
+**All-project view**:
+Active tasks across projects, including the Inbox and tasks without a due date.
+_Avoid_: All history, today view
+
 **Authentication**:
 Establishing that Todoist accepts a credential. Authentication alone does not establish which permissions the credential has.
 _Avoid_: Authorization, write access

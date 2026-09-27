@@ -18,6 +18,7 @@ Flags:
   --assignee <id>         Assignee ID
 
 Notes:
+  - Lists all pages of active Inbox tasks, regardless of due date.
   - Uses Inbox project automatically.
   - Applies default labels/due from config (default_inbox_labels, default_inbox_due) when not set.
   - Use --content - to read task content from stdin.

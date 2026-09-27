@@ -31,7 +31,11 @@ Task flags:
   --yes                      Required for task deletion and bulk move/complete
 
 Notes:
-  By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
+  By default, task list shows Inbox tasks, with an Inbox label in human output.
+  --quiet suppresses the label. Machine output has no scope label.
+  Use --all-projects or --filter to list across projects.
+  --all fetches every page; --all-projects alone does not.
+  inbox lists every page of Inbox tasks.
   --strict belongs to top-level "todoist add", not "todoist task add".
   Aliases: ls=list, show=view, rm/del=delete.
   Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
@@ -48,7 +52,7 @@ Notes:
 
 Examples:
   todoist task list --filter "today"
-  todoist task list --all-projects
+  todoist task list --all-projects --all
   todoist task add --content "Pay rent" --project Home --due "1st of month"
   todoist add "Pay rent #Home p2 due:tomorrow"
   todoist task list --preset today --sort priority

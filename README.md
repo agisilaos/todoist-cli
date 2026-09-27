@@ -1,6 +1,6 @@
 # todoist-cli
 
-Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports task, project, section, label, and comment management, plus an agent plan/apply workflow that can be wired to an external planner.
+A terminal companion for Todoist: capture ideas and see what needs doing without leaving the terminal. Scripts and agents get stable structured output and explicit commands; see [machine output](#output) and [planner integration](#agent-planner-integration).
 
 ## Why this CLI
 
@@ -10,20 +10,33 @@ Agentic CLI for Todoist using the official Todoist API v1 (REST). It supports ta
 
 See `docs/SPEC.md` for the CLI contract and `docs/ROADMAP.md` for planned features.
 
-## Why agents
-
-- Batch changes with human review via plan/apply.
-- Safer automation with `--dry-run`, `--confirm`, and `--on-error`.
-- Easy scheduling without running a daemon.
-
 ## Quickstart
 
 ```bash
 brew install agisilaos/tap/todoist-cli
 todoist --version
 todoist auth login                 # prompts for token (or use --token-stdin)
-todoist add "Review PR 42"
-todoist task list                  # lists Inbox tasks in a table
+todoist add "Review PR 42 today"
+todoist inbox                     # see the captured task in Inbox
+```
+
+Choose what to view:
+
+```bash
+todoist inbox                           # Inbox, including undated tasks
+todoist today                           # due today + overdue, across projects
+todoist upcoming                        # today + next 6 days; excludes overdue
+todoist task list --all-projects --all   # active tasks, including undated tasks
+```
+
+Bare `todoist task list` is **Inbox-only**, with one page by default.
+`--all-projects` changes the scope; `--all` fetches every page. `inbox`, `today`,
+and `upcoming` already fetch every page. Upcoming uses UTC dates.
+
+For a machine client with credentials configured:
+
+```bash
+todoist task list --all-projects --all --no-input --json
 ```
 
 ## Install
@@ -212,7 +225,7 @@ todoist task delete <ref> --yes
 
 Task flags:
 
-By default, `todoist task list` shows your Inbox tasks. Use `--all-projects` or a filter to list across projects.
+By default, `todoist task list` shows one page of your Inbox tasks. Use `--all-projects` or a filter to list across projects, and `--all` to fetch every page. Human output labels a successfully resolved default Inbox selection with `Inbox`, including empty results; `--quiet` suppresses that label. Redirected and explicit machine output have no scope label.
 
 ```
 --content <text>           Task content ("-" reads stdin)
@@ -293,9 +306,10 @@ todoist filter delete <id|name> --yes
 
 ### Inbox
 
-Quick add to Inbox with optional defaults.
+List all active Inbox tasks, or add to Inbox with optional defaults.
 
 ```
+todoist inbox
 todoist inbox add --content <text> [--label <name> ...] [--due <string>|--due-date <date>|--due-datetime <datetime>] [--priority <1-4>] [--description <text>] [--section <id|name>]
 ```
 
@@ -314,7 +328,7 @@ Examples:
 
 ### Today
 
-Quick list of tasks due today and overdue. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
+Quick list of tasks due today and overdue across projects, including Inbox. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
 
 ```
 todoist today
@@ -330,7 +344,7 @@ todoist completed [--completed-by completion|due] [--since <date>] [--until <dat
 
 ### Upcoming
 
-List tasks due in the next N days (default 7).
+List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks.
 
 ```
 todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]
@@ -691,6 +705,12 @@ schema, and existing JSON schemas remain unchanged.
 - Errors return human-readable messages; `--json` and `--ids-only` errors include `{"error": "...", "meta": {"request_id": "..."}}`.
 
 ## Agent Planner Integration
+
+### Why agents
+
+- Batch changes with human review via plan/apply.
+- Safer automation with `--dry-run`, `--confirm`, and `--on-error`.
+- Easy scheduling without running a daemon.
 
 `todoist agent plan` delegates planning to an external command defined by `TODOIST_PLANNER_CMD` or `--planner`. The command must read JSON from stdin and output a plan JSON document to stdout.
 

@@ -6,15 +6,12 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
-	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func inboxCommand(ctx *Context, args []string) error {
 	if len(args) == 0 {
-		if ctx.Mode == output.ModeIDsOnly {
-			if err := ensureClient(ctx); err != nil {
-				return err
-			}
+		if err := ensureClient(ctx); err != nil {
+			return err
 		}
 		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, "")
 	}
