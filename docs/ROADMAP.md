@@ -5,6 +5,7 @@ availability is recorded in [CHANGELOG.md](../CHANGELOG.md).
 
 ## Implemented
 
+- Everyday entry points in help and quickstart, with human Inbox scope labels
 - Quick add with natural language parsing
 - Human capture receipts with returned task details and explicit dry-run parsing limits
 - NDJSON task/project/section/label/comment lists and output schemas

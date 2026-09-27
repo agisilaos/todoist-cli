@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
+	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func taskList(ctx *Context, args []string) error {
@@ -90,11 +92,17 @@ func taskList(ctx *Context, args []string) error {
 
 func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sortBy string) error {
 	query := url.Values{}
+	implicitInbox := false
 	if project == "" && section == "" && parent == "" && label == "" && ids == "" && !allProjects {
 		id, err := inboxProjectID(ctx)
-		if err == nil && id != "" {
-			project = id
+		if err != nil {
+			return fmt.Errorf("cannot resolve Inbox project: %w", err)
 		}
+		if id == "" {
+			return &CodeError{Code: exitNotFound, Err: errors.New("Inbox project not found; run 'todoist project list' to check available projects")}
+		}
+		project = id
+		implicitInbox = true
 	}
 	if project != "" {
 		id, err := resolveProjectID(ctx, project)
@@ -132,6 +140,11 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 		return err
 	}
 	sortTasks(allTasks, sortBy)
+	if implicitInbox && ctx.Mode == output.ModeHuman && !ctx.Global.Quiet {
+		if _, err := fmt.Fprintln(ctx.Stdout, "Inbox"); err != nil {
+			return err
+		}
+	}
 	return writeTaskList(ctx, allTasks, next, wide)
 }
 

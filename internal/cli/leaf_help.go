@@ -116,9 +116,12 @@ var commandHelpCatalog = map[string]commandHelp{
   --sort <due|priority>             Sort by: due, priority
   --truncate-width <cols>           Override table width (human output)`,
 		examples: `  todoist task list
-  todoist task list --all-projects --ids-only
+  todoist task list --all-projects --all --ids-only
   todoist task list --completed --since yesterday --json`,
-		notes: `  Lists Inbox tasks by default; use --all-projects or --filter for other tasks.
+		notes: `  Lists one page of Inbox tasks by default; --all-projects changes scope, --all fetches every page.
+  Human implicit Inbox lists show an Inbox label, except with --quiet.
+  Failed or missing Inbox lookup stops without fetching tasks from other projects.
+  Use --project or --filter for an explicit selection.
   Completed listing accepts date hints such as yesterday and "2 weeks ago"; --since without --until ends today.
   Use --all to fetch all pages where supported, or follow the returned cursor.`,
 		globals: `  --no-input            Disable prompts

@@ -3,37 +3,43 @@ package cli
 import "fmt"
 
 func printRootHelp(out interface{ Write([]byte) (int, error) }) {
-	fmt.Fprint(out, `todoist - Agentic Todoist CLI
+	fmt.Fprint(out, `todoist - A terminal companion for Todoist
 
 Usage:
   todoist [global flags] <command> [args]
 
-Commands:
-  inbox       List Inbox tasks or add to Inbox
-  add         Capture tasks with natural language parsing
-  today       Tasks due today and overdue
-  completed   Completed task history
-  upcoming    Tasks due in the next N days
-  auth        Authenticate and manage tokens
-  task        Manage tasks
-  filter      Manage filters
-  project     Manage projects
-  workspace   Manage workspaces
-  section     Manage sections
-  label       Manage labels
-  comment     Manage comments
-  reminder    Manage task reminders
-  notification Manage notifications
-  activity    View activity logs
-  stats       View productivity stats
-  settings    Manage user settings
-  view        Open Todoist web URLs in CLI
-  agent       Plan and apply agentic actions
-  completion  Shell completion
-  doctor      Run environment and configuration checks
-  schema      Show output schemas and wire-format contracts
-  planner     Show or set planner command
-  help        Show help for a command
+Everyday:
+  add           Capture tasks with natural language parsing
+  today         Tasks due today and overdue across projects
+  upcoming      Tasks due today and the next 6 days (default)
+  inbox         List Inbox tasks or add to Inbox
+
+Organization:
+  task          Manage tasks (list defaults to Inbox)
+  project       Manage projects
+  workspace     Manage workspaces
+  section       Manage sections
+  label         Manage labels
+  filter        Manage filters
+  comment       Manage comments
+  reminder      Manage task reminders
+  notification  Manage notifications
+  completed     Completed task history
+  activity      View activity logs
+  stats         View productivity stats
+  view          Open Todoist web URLs in CLI
+
+Automation:
+  agent         Plan and apply agentic actions
+  planner       Show or set planner command
+  schema        Show output schemas and wire-format contracts
+
+Setup and reference:
+  auth          Authenticate and manage tokens
+  settings      Manage user settings
+  completion    Shell completion
+  doctor        Run environment and configuration checks
+  help          Show help for a command
 
 Global flags:
   -h, --help            Show help
@@ -60,21 +66,24 @@ Global flags:
 
 Examples:
   todoist auth login
-  todoist task list
-  todoist task list --all-projects
-  todoist task add --content "Pay rent" --project Home --due "1st of month"
+  todoist add "Review PR 42 today"
+  todoist inbox
+  todoist today
+  todoist upcoming
+  todoist task list --all-projects --all
   todoist help task
-  todoist inbox add --content "Capture idea"
 
-Note for AI/LLM agents:
-  Prefer structured commands (e.g., "todoist task add", not top-level "todoist add") for deterministic flags.
-  Use --json or --ndjson for parseable output and --quiet-json for compact machine-readable errors.
-  --ids-only emits no stdout for empty results; pagination notices go to stderr.
-  It conflicts with --json, --plain, and --ndjson (exit 2, JSON error on stderr).
-  Supported: task/project/section/label/comment/filter/workspace/reminder/notification list,
-  project collaborators, activity, completed, today, upcoming, bare inbox, and filter show.
-  Existing ls aliases work. Other commands reject --ids-only; help/version remain available.
-  See: todoist schema --name ids_only
+List scope:
+  task list defaults to Inbox; --all-projects selects across projects.
+  --all fetches every page. inbox, today, and upcoming fetch every page.
+
+Machine clients:
+  Use task add for explicit fields; add uses natural language parsing.
+  Use --no-input with explicit inputs and --json, --ndjson, --plain,
+  or --ids-only for stable output. --quiet-json makes JSON errors compact.
+  Example: todoist task list --all-projects --all --no-input --json
+  Output contracts: todoist schema --name task_list
+  ID output and supported commands: todoist schema --name ids_only
 `)
 }
 
@@ -263,7 +272,12 @@ Task flags:
   --yes                      Required for task deletion and bulk move/complete
 
 Notes:
-  By default, todoist task list shows Inbox tasks. Use --all-projects or --filter to list across projects.
+  By default, task list shows Inbox tasks, with an Inbox label in human output.
+  --quiet suppresses the label. Machine output has no scope label.
+  Use --all-projects or --filter to list across projects.
+  --all fetches every page; --all-projects alone does not.
+  inbox lists every page of Inbox tasks.
+  Inbox lookup failures stop the list; they never select all projects.
   --strict belongs to top-level "todoist add", not "todoist task add".
   Aliases: ls=list, show=view, rm/del=delete.
   Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
@@ -283,7 +297,7 @@ Notes:
 
 Examples:
   todoist task list --filter "today"
-  todoist task list --all-projects
+  todoist task list --all-projects --all
   todoist task add --content "Pay rent" --project Home --due "1st of month"
   todoist add "Pay rent #Home p2 due:tomorrow"
   todoist task list --preset today --sort priority
@@ -491,6 +505,8 @@ Flags:
   --assignee <id>         Assignee ID
 
 Notes:
+  - Lists all pages of active Inbox tasks, regardless of due date.
+  - Stops with an error if Inbox cannot be resolved.
   - Uses Inbox project automatically.
   - A terminal capture receipt shows returned task details and a view command (except --quiet).
   - Receipt priority uses Todoist 1..4; numeric --priority uses API values (1 normal, 4 urgent).

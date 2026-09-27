@@ -16,6 +16,18 @@ _Avoid_: Bot, automation user
 The documented structured output and error behavior that machine clients can rely on across compatible releases.
 _Avoid_: JSON mode, agent output
 
+**Inbox**:
+The Todoist project used to collect tasks before organizing them into other projects. Inbox membership is independent of a task's due date.
+_Avoid_: All tasks, today view
+
+**Today view**:
+Active tasks due today or overdue across projects, including the Inbox.
+_Avoid_: Inbox, daily review
+
+**All-project view**:
+Active tasks across projects, including the Inbox and tasks without a due date.
+_Avoid_: All history, today view
+
 **Capture receipt**:
 A human-readable account of a newly created task, based on the state returned by Todoist. Missing returned information remains unknown; a dry run is a preview, not a capture receipt.
 _Avoid_: Parsed input, creation preview

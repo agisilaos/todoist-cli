@@ -2,7 +2,7 @@
 
 ## Overview
 
-Go-based CLI for Todoist. Binary name: `todoist`. Designed for humans and scripts, with stable `--json`, `--plain`, and `--ndjson` outputs.
+A terminal companion for Todoist. Binary name: `todoist`. Everyday capture and viewing workflows share stable `--json`, `--plain`, `--ndjson`, and `--ids-only` contracts with machine clients.
 
 ## Authentication
 
@@ -39,10 +39,10 @@ Pattern: `todoist <resource> <action> [args]`
 ### Top-level shortcuts
 
 - `todoist add "text"` — Todoist quick add endpoint (full natural language; use `--strict` for REST add semantics)
-- `todoist inbox` — list Inbox tasks
+- `todoist inbox` — list every page of active Inbox tasks; missing credentials return authentication exit 3
 - `todoist today` — list tasks due today + overdue
 - `todoist completed` — shortcut for completed task history (`task list --completed`)
-- `todoist upcoming [days]` — list tasks due from today through the next N days
+- `todoist upcoming [days]` — list tasks due across N dates including today (default 7: today and the next 6 days, UTC), excluding overdue and undated tasks
 - `todoist planner` — show/set planner command alias (same behavior as `todoist agent planner`)
 - `todoist doctor` — run local environment/auth/API health checks
 - `todoist view <url>` — open Todoist web URLs with equivalent CLI commands
@@ -50,13 +50,31 @@ Pattern: `todoist <resource> <action> [args]`
 ### Task commands
 
 ```
-todoist task list [--project X] [--label L] [--filter "query"] [--preset today|overdue|next7] [--json|--ndjson|--plain]
+todoist task list [--project X] [--label L] [--filter "query"] [--preset today|overdue|next7] [--all-projects] [--all] [--json|--ndjson|--plain]
 todoist task add --content "text" [--project X] [--label L] [--due "text"] [--priority 1-4] [--assignee <id|me|name|email>]
 todoist task view <ref> [--full]
 todoist task update --id <id> [flags]
 todoist task complete --id <id>
 todoist task delete --id <id> --yes
 ```
+
+`task list` defaults to one page of active Inbox tasks when no project, section,
+parent, label, task IDs, filter, preset, completed selection, or `--all-projects`
+is supplied. `--all-projects` changes project scope; `--all` fetches every page.
+Use `todoist task list --all-projects --all` for every active task across projects,
+including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
+
+A successfully resolved implicit Inbox selection prints `Inbox` before the human
+table, including empty selections. `--quiet` suppresses this label. Explicit
+selections, redirected default output, and all machine output modes retain their
+existing formats. Inbox lookup failure stops before fetching tasks and preserves
+the underlying error exit code. A successful project lookup without an Inbox returns exit 4.
+Both failures leave stdout empty; neither falls back to all projects.
+
+Root help introduces everyday commands before organization, automation, and
+setup/reference commands. Every supported root command remains listed, with a
+concise machine-client entry point. Help uses plain text without requiring color
+or a pager.
 
 ### Task capture feedback
 

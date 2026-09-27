@@ -59,7 +59,7 @@ func TestContractIDsOnlySupportedCommands(t *testing.T) {
 		case "/tasks/task-id":
 			fmt.Fprint(w, `{"id":"task-id"}`)
 		case "/projects":
-			fmt.Fprint(w, `{"results":[{"id":"project-id","is_inbox_project":true}]}`)
+			fmt.Fprint(w, `{"results":[{"id":"project-id","inbox_project":true}]}`)
 		case "/projects/project-id/collaborators":
 			fmt.Fprint(w, `{"results":[{"id":"user-id"}]}`)
 		case "/sections":
