@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
-## [v0.9.0] - 2026-09-27
+## [v0.9.0] - 2026-09-28
 
 ### Upgrade notes
 
