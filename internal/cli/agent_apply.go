@@ -35,17 +35,19 @@ func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, o
 	return applyActionsWithReplayStore(ctx, confirmToken, actions, onError, store)
 }
 
-type applyHooks struct {
-	perform func(Action) error
-	before  func(int, Action) error
-	failed  func(int, Action, error) error
+// preparedAction binds dispatch and outcome recording to one action. Review
+// preparation must persist pending evidence before returning these operations.
+type preparedAction struct {
+	perform       func() error
+	failed        func(error) error
+	recordApplied func(string, time.Time) error
 }
 
 func applyActionsWithReplayStore(ctx *Context, confirmToken string, actions []Action, onError applyErrorMode, store replayStore) ([]applyResult, error) {
-	return applyActionsWithHooks(ctx, confirmToken, actions, onError, store, nil)
+	return applyActionsWithPreparation(ctx, confirmToken, actions, onError, store, nil)
 }
 
-func applyActionsWithHooks(ctx *Context, confirmToken string, actions []Action, onError applyErrorMode, store replayStore, hooks *applyHooks) ([]applyResult, error) {
+func applyActionsWithPreparation(ctx *Context, confirmToken string, actions []Action, onError applyErrorMode, store replayStore, prepare func(int, Action) (preparedAction, error)) ([]applyResult, error) {
 	for idx, action := range actions {
 		if !store.Contains(makeReplayKey(confirmToken, idx, action)) {
 			if err := currentAuthorization(ctx).CheckMutation(); err != nil {
@@ -63,19 +65,21 @@ func applyActionsWithHooks(ctx *Context, confirmToken string, actions []Action, 
 			emitProgress(ctx, "agent_action_skipped_replay", map[string]any{"index": idx, "action_type": action.Type})
 			continue
 		}
-		if hooks != nil && hooks.before != nil {
-			if err := hooks.before(idx, action); err != nil {
+		attempt := preparedAction{
+			perform:       func() error { return applyAction(ctx, action) },
+			recordApplied: store.RecordApplied,
+		}
+		if prepare != nil {
+			var err error
+			attempt, err = prepare(idx, action)
+			if err != nil {
 				return results, err
 			}
 		}
 		emitProgress(ctx, "agent_action_dispatched", map[string]any{"index": idx, "action_type": action.Type})
-		perform := func(a Action) error { return applyAction(ctx, a) }
-		if hooks != nil && hooks.perform != nil {
-			perform = hooks.perform
-		}
-		if err := perform(action); err != nil {
-			if hooks != nil && hooks.failed != nil {
-				err = hooks.failed(idx, action, err)
+		if err := attempt.perform(); err != nil {
+			if attempt.failed != nil {
+				err = attempt.failed(err)
 			}
 			results = append(results, applyResult{Action: action, Error: err})
 			emitActionFailure(ctx, idx, action, err, nil)
@@ -88,7 +92,7 @@ func applyActionsWithHooks(ctx *Context, confirmToken string, actions []Action, 
 		if ctx != nil && ctx.Now != nil {
 			nowFn = ctx.Now
 		}
-		if err := store.RecordApplied(replayKey, nowFn()); err != nil {
+		if err := attempt.recordApplied(replayKey, nowFn()); err != nil {
 			recordErr := &replayStoreError{err: fmt.Errorf("todoist action succeeded but replay recording failed; rerunning may duplicate it: %w", err)}
 			results = append(results, applyResult{Action: action, Error: recordErr})
 			emitActionFailure(ctx, idx, action, recordErr, map[string]any{

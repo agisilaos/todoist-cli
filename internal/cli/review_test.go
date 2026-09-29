@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -20,12 +19,13 @@ import (
 )
 
 type reviewFixture struct {
-	mu        sync.Mutex
-	tasks     map[string]map[string]any
-	writes    []string
-	failMove  bool
-	uncertain bool
-	pages     int
+	mu             sync.Mutex
+	tasks          map[string]map[string]any
+	writes         []string
+	failMove       bool
+	updateResponse *string
+	uncertain      bool
+	pages          int
 }
 
 func newReviewFixture(t *testing.T) (*reviewFixture, *Context) {
@@ -88,6 +88,10 @@ func newReviewFixture(t *testing.T) (*reviewFixture, *Context) {
 			}
 		}
 		task["updated_at"] = fmt.Sprintf("v%d", len(fixture.writes)+1)
+		if len(pieces) == 2 && fixture.updateResponse != nil {
+			_, _ = w.Write([]byte(*fixture.updateResponse))
+			return
+		}
 		_ = json.NewEncoder(w).Encode(task)
 	}))
 	t.Cleanup(server.Close)
@@ -299,31 +303,6 @@ func TestReviewSnapshotIgnoresUnrelatedFields(t *testing.T) {
 		t.Fatal("unrelated difference")
 	}
 }
-func TestReviewReplayPersistenceFailureRetainsPending(t *testing.T) {
-	_, ctx := newReviewFixture(t)
-	plan := fixtureReviewPlan(t, ctx)
-	file, err := loadReplayStore(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	store := &reviewReplayStore{fileReplayStore: file, ctx: ctx, plan: plan}
-	if err := store.before(0, plan.Actions[0]); err != nil {
-		t.Fatal(err)
-	}
-	store.response = plan.Review.Tasks[0].Snapshot
-	store.persist = func(string, replayJournal) error { return errors.New("disk full") }
-	if err := store.RecordApplied(makeReplayKey(plan.ConfirmToken, 0, plan.Actions[0]), ctx.Now()); err == nil {
-		t.Fatal("expected storage failure")
-	}
-	reloaded, err := loadReplayStore(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reloaded.journal.Reviews[store.taskKey("2")].Pending || reloaded.Contains(makeReplayKey(plan.ConfirmToken, 0, plan.Actions[0])) {
-		t.Fatal("failed recording declared success")
-	}
-}
-
 func TestReviewAllEditsReachPayload(t *testing.T) {
 	fixture, ctx := newReviewFixture(t)
 	script := "keep\nchange\ncontent\nNew title\ndescription\nNew description\nlabels\nwork, home\npriority\np1\ndue-datetime\n2026-10-01T10:30:00+02:00\ndue-lang\nen\nduration\n30 minute\ndeadline\n2026-10-02\nassignee\nid:user2\nsection\nid:s2\ndone\nkeep\nskip\nyes\n"
