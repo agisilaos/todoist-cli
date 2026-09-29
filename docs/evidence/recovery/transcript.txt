@@ -1,0 +1,188 @@
+Actual PTY capture; CR normalized. Revision 4c0946e. Local fixture only.
+
+$ todoist review --help
+Usage:
+  todoist review [--filter <query>] [--out <file>]
+
+Review all overdue or today tasks across projects, or an explicit Todoist filter.
+Fetch all pages before prompting; freeze and deduplicate the set, ordered by due,
+priority, then ID. This is not an atomic service snapshot.
+
+Choose keep (intentionally unchanged), change, complete, or skip (defer).
+Change opens a numbered field menu; choose done when finished. Moves are supported.
+Completion advances recurring tasks; ordinary completion also completes subtasks.
+The final preview shows current values and proposed actions before asking yes/no.
+Type cancel at any prompt. EOF fails safely; Ctrl-C cancels before application.
+
+--out <file>  Save finished agent-compatible plan without overwriting a file.
+--dry-run     Review and preview only; no Todoist mutations.
+--json        Final review report on stdout; prompts/previews on stderr.
+--ndjson      One final review report record, with the same JSON payload.
+
+Read-only credentials may review and save plans, but cannot apply mutations.
+--no-input and piped stdin are rejected; use task list and agent plan/apply.
+--force is rejected. Blank input never selects a disposition or confirms changes.
+No session resume or backtracking. Each change can edit fields then move the task.
+Before applying, a recovery plan is saved under the config directory/review-plans.
+Retry a definite failure with agent apply --plan <file> --confirm <token>, using
+this binary, the same config and account. Recorded actions are skipped; pending
+tasks are checked against their original or checkpointed state. Changed/missing
+tasks block application. An uncertain write requires inspection and a fresh review.
+Only one applying process is supported; no transactional/exactly-once guarantee.
+Do not edit saved recovery plans or use older binaries to apply review plans.
+
+[exit 0]
+
+$ todoist today --no-input
+error: missing auth token; run 'todoist auth login' or set TODOIST_TOKEN
+The authenticated operation did not start.
+Keep the same --config, --profile and --base-url selections. TODOIST_TOKEN overrides stored credentials; login does not replace that environment value.
+For noninteractive login, supply a token file: todoist auth login --no-input --token-stdin < token.txt
+Protect token.txt as a secret. For a new profile requiring portable plaintext storage, explicitly add --credential-store=file.
+
+[exit 3]
+
+$ todoist auth login --no-input --token-stdin < token.txt
+Connected to Todoist. Token saved in the credential file for profile "work".
+Run `todoist --profile work today` to see your tasks.
+
+[exit 0]
+
+$ todoist review --out review-plan.json
+Review set: 1 tasks. Nothing changes until final confirmation. Type cancel at any prompt.
+Authorization: unknown; writes allowed for compatibility; scopes unknown; origin: manual; evidence: none
+
+Task 1 of 1
+id: "fixture-task"
+content: "Review release notes"
+description: "Local fixture; no live Todoist access"
+project_id: "fixture-project"
+section_id: null
+parent_id: null
+labels: []
+priority: 1
+assignee_id: null
+responsible_uid: null
+due: null
+deadline: null
+duration: null
+Due dates without a time are all-day; a time without a timezone is floating local time. Priority uses API 4 (p1, highest) through 1 (p4).
+Disposition [keep/change/complete/skip]: change
+Edit fields (name or number); done finishes. Empty values leave the field unchanged; clearing fields is not supported.
+1 content
+2 description
+3 labels
+4 priority
+5 due
+6 due-date
+7 due-datetime
+8 due-lang
+9 duration
+10 deadline
+11 assignee
+12 project
+13 section
+14 parent
+Field [done]: content
+Review release notes carefully
+done
+content value: Edit fields (name or number); done finishes. Empty values leave the field unchanged; clearing fields is not supported.
+1 content
+2 description
+3 labels
+4 priority
+5 due
+6 due-date
+7 due-datetime
+8 due-lang
+9 duration
+10 deadline
+11 assignee
+12 project
+13 section
+14 parent
+Field [done]: 
+REVIEW PLAN — proposed only; no mutations yet.
+fixture-task "Review release notes": change
+Before:
+id: "fixture-task"
+content: "Review release notes"
+description: "Local fixture; no live Todoist access"
+project_id: "fixture-project"
+section_id: null
+parent_id: null
+labels: []
+priority: 1
+assignee_id: null
+responsible_uid: null
+due: null
+deadline: null
+duration: null
+Due dates without a time are all-day; a time without a timezone is floating local time. Priority uses API 4 (p1, highest) through 1 (p4).
+Proposed: {"type":"task_update","task_id":"fixture-task","content":"Review release notes carefully"}
+Natural-language due values are unresolved until Todoist applies them. Recurring due edits may change recurrence. Application is not transactional; only one applying process is supported.
+Saved plan: review-plan.json
+Apply this plan? [yes/no]: yes
+Recovery plan: review-plan.json
+Retry definite failures with: todoist agent apply --plan "review-plan.json" --confirm "f6cef7a67e989150aafce7313827eea0"
+Use the same --config, profile/account and base URL. Inspect uncertain outcomes before starting a fresh review.
+Review application stopped: 1 selected tasks
+fixture-task	change	failed	"Review release notes"
+  1 task_update: failed — remote outcome uncertain; inspect Todoist before a fresh review: context canceled — remote outcome uncertain; inspect before fresh review
+Plan: review-plan.json
+Stopped: remote outcome uncertain; inspect Todoist before a fresh review: context canceled
+A Todoist mutation may have happened. Do not reapply this plan or force resubmission. Keep the saved review plan and replay evidence.
+Use the same --config, --profile, credential source (including TODOIST_TOKEN), and --base-url for inspection.
+Inspect with todoist task view --full --no-input and this literal reference: "id:fixture-task"
+Compare current fields with the saved plan and reported applied actions. A missing task or an advanced recurring due date is not proof of completion; verify the exact task in Todoist's completed history/activity.
+Only after manual reconciliation, start a fresh review for remaining changes. There is no automatic reconciliation command; preserve the old plan and replay evidence. --no-input cannot start an interactive review.
+error: remote outcome uncertain; inspect Todoist before a fresh review: context canceled
+
+[exit 1]
+
+$ todoist task view --full --no-input id:fixture-task
+ID: fixture-task
+Content: Review release notes carefully
+Description: Local fixture; no live Todoist access
+Project: fixture-project
+Priority: 1
+Completed: false
+Added: 
+Updated: after
+CompletedAt: 
+NoteCount: 0
+
+[exit 0]
+
+$ todoist review
+Review set: 1 tasks. Nothing changes until final confirmation. Type cancel at any prompt.
+Authorization: unknown; writes allowed for compatibility; scopes unknown; origin: manual; evidence: none
+
+Task 1 of 1
+id: "fixture-task"
+content: "Review release notes carefully"
+description: "Local fixture; no live Todoist access"
+project_id: "fixture-project"
+section_id: null
+parent_id: null
+labels: []
+priority: 1
+assignee_id: null
+responsible_uid: null
+due: null
+deadline: null
+duration: null
+Due dates without a time are all-day; a time without a timezone is floating local time. Priority uses API 4 (p1, highest) through 1 (p4).
+Disposition [keep/change/complete/skip]: keep
+
+REVIEW PLAN — proposed only; no mutations yet.
+fixture-task "Review release notes carefully": keep
+Natural-language due values are unresolved until Todoist applies them. Recurring due edits may change recurrence. Application is not transactional; only one applying process is supported.
+Review preview: 1 selected tasks
+fixture-task	keep	kept	"Review release notes carefully"
+
+[exit 0]
+
+Fixture mutation count: 1
+Replay SHA-256: 00a42643e6a39332611657bc72c6a086cbc74525ba87ef7989b3f337abddd905
+Replay unchanged by inspection and blocked retry.
