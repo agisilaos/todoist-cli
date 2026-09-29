@@ -58,6 +58,17 @@ try {
         Assert-OmitsCompletion 'todoist filter list --n' '--name'
         Assert-ContainsCompletion 'todoist task add --priority p' 'p1'
         Assert-ContainsCompletion 'todoist task add --priority=p' '--priority=p1'
+        # Both partitions contribute suggestions; only value-taking flags skip
+        # the next token while resolving command paths.
+        Assert-ContainsCompletion 'todoist task add --qu' '--quick'
+        Assert-ContainsCompletion 'todoist task add --quick --pr' '--priority'
+        Assert-ContainsCompletion 'todoist review --f' '--filter'
+        Assert-ContainsCompletion 'todoist stats vacation --o' '--on'
+        Assert-ContainsCompletion 'todoist --profile task task add --pr' '--priority'
+        Assert-ContainsCompletion "todoist task add --content 'two words' --pr" '--priority'
+        Assert-ContainsCompletion 'todoist task show --i' '--id'
+        Assert-OmitsCompletion 'todoist task add -- --pr' '--priority'
+
         Assert-ContainsCompletion 'todoist task list --sort ' 'priority'
         Assert-ContainsCompletion 'todoist task list --preset ' 'next7'
         Assert-ContainsCompletion 'todoist completed --completed-by ' 'due'

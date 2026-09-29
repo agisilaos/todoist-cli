@@ -91,3 +91,13 @@ Flags are intentionally outside this catalog. Detailed help and shell completion
 use them differently; the existing parser-registration checks still validate
 leaf-help flag names. Help-only `examples`, shell normalization (`pwsh`, case,
 whitespace), and completion-install shell arguments keep their existing owners.
+
+For PowerShell command-flag completion, add a flag once: switches belong in
+`$todoistSwitchFlags`, and flags that consume a value belong in
+`$todoistValueFlags`. Suggestions combine both tables. Keep the lists disjoint;
+value candidates still belong in `$todoistValues`. These are PowerShell completion
+hints, not parser registrations or a shared cross-shell flag schema. Global flags
+retain their existing separate inventory. Changes must preserve value skipping,
+space-separated and `=` values, aliases, and the `--` boundary; exercise them with
+the PowerShell smoke test. Public help and other shells retain their own flag
+presentation and behavior.
