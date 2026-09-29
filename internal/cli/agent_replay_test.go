@@ -186,3 +186,28 @@ func BenchmarkReplayStoreRecordApplied(b *testing.B) {
 		})
 	}
 }
+
+func TestReplayStoreAcceptsMissingOrNullApplied(t *testing.T) {
+	for _, original := range []string{`{}`, `{"applied":null}`, `{"applied":{},"reviews":null}`} {
+		t.Run(original, func(t *testing.T) {
+			ctx := &Context{ConfigPath: filepath.Join(t.TempDir(), "config.json")}
+			if err := os.WriteFile(replayJournalPath(ctx), []byte(original), 0600); err != nil {
+				t.Fatal(err)
+			}
+			store, err := loadReplayStore(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if store.Len() != 0 {
+				t.Fatalf("unexpected records: %+v", store.journal)
+			}
+			if err := store.RecordApplied("new", time.Now()); err != nil {
+				t.Fatal(err)
+			}
+			reloaded, err := loadReplayStore(ctx)
+			if err != nil || !reloaded.Contains("new") {
+				t.Fatalf("new record not readable: %v", err)
+			}
+		})
+	}
+}

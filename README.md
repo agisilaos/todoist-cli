@@ -671,8 +671,8 @@ todoist agent status
   Key lifecycle events include `agent_plan_loaded`, `agent_action_validated`, `agent_action_dispatched`,
   `agent_action_succeeded`/`agent_action_failed`, and `agent_apply_summary`.
 - Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token. An action is reported as successful only after its Todoist mutation and replay record both succeed.
-- Each successful Todoist mutation replaces the replay journal before success is emitted. Skipped and failed actions do not write it; recording cost therefore grows with the journal, which is intentionally not pruned because replay keys have no safe expiry policy.
-- Interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded, so rerunning may duplicate it.
+- Each successful Todoist mutation replaces the replay journal before success is emitted. For ordinary plans, skipped and failed actions do not write it. Review plans also persist pending evidence before execution and clear it after definite rejection; replay skips still do not write. Recording cost grows with the journal, which is intentionally not pruned because replay keys have no safe expiry policy.
+- For ordinary plans, interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded, so rerunning may duplicate it. Review plans retain pending evidence and block retry of that plan. Inspect Todoist and reconcile the outcome before starting a fresh review.
 - Replay recording assumes one applying CLI process at a time. Same-directory replacement avoids writing partially encoded JSON into the journal, but replacement visibility follows the underlying OS and filesystem; it does not coordinate concurrent writers or promise survival from an OS or storage power loss.
 
 Planner contract checklist:

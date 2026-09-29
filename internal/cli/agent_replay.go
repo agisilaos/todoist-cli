@@ -82,11 +82,25 @@ func (s *fileReplayStore) RecordApplied(key string, at time.Time) error {
 	if s.Contains(key) {
 		return nil
 	}
-	candidate := replayJournal{Reviews: s.journal.Reviews, Applied: make(map[string]string, len(s.journal.Applied)+1)}
-	for existingKey, appliedAt := range s.journal.Applied {
-		candidate.Applied[existingKey] = appliedAt
+	return s.updateJournal(func(candidate *replayJournal) {
+		candidate.Applied[key] = at.UTC().Format(time.RFC3339)
+	})
+}
+
+// updateJournal publishes a candidate before changing in-memory evidence.
+// Callers replace checkpoint values; their snapshot maps are treated as immutable.
+func (s *fileReplayStore) updateJournal(change func(*replayJournal)) error {
+	candidate := replayJournal{
+		Applied: make(map[string]string, len(s.journal.Applied)+1),
+		Reviews: make(map[string]reviewCheckpoint, len(s.journal.Reviews)),
 	}
-	candidate.Applied[key] = at.UTC().Format(time.RFC3339)
+	for key, value := range s.journal.Applied {
+		candidate.Applied[key] = value
+	}
+	for key, value := range s.journal.Reviews {
+		candidate.Reviews[key] = value
+	}
+	change(&candidate)
 	if err := s.persist(s.path, candidate); err != nil {
 		return err
 	}
