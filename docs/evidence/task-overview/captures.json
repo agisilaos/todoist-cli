@@ -1,0 +1,81 @@
+{
+  "implementation_revision": "2ef7e1b72da4031b65aea6ce1915dc7cdd86d590",
+  "fixture_date_utc": "2026-09-29",
+  "executable_version": "todoist dev (2ef7e1b) unreleased",
+  "captures": [
+    {
+      "name": "overview-40",
+      "command": [
+        "task",
+        "list",
+        "--all-projects",
+        "--all"
+      ],
+      "width": 40,
+      "human": true,
+      "scenario": "normal",
+      "exit": 0,
+      "stdout": "All projects \u00b7 Active tasks \u00b7 4 shown\nAll pages fetched\nDue labels: 2026-09-29 (UTC) \u00b7 1 overdue\n1 due today\n\nP1  Send revised estimate\n    Overdue \u00b7 2026-09-28 \u00b7 Work\n    ID 101000001\n\nP2  Prepare launch checklist and confirm\n    the rollback owner with the platform\n    team\n    Today \u00b7 2026-09-29 \u00b7 Repeats \u00b7 Work\n    ID 102000002\n\nP4  Book dentist appointment\n    No due date \u00b7 Inbox \u00b7 ID 103000003\n\nP3  Pick up prescription\n    Due 2026-09-30 \u00b7 Personal\n    ID 104000004\n",
+      "stderr": "",
+      "requests": [
+        "/tasks?limit=50",
+        "/projects?limit=200"
+      ]
+    },
+    {
+      "name": "overview-80",
+      "command": [
+        "task",
+        "list",
+        "--all-projects",
+        "--all"
+      ],
+      "width": 80,
+      "human": true,
+      "scenario": "normal",
+      "exit": 0,
+      "stdout": "All projects \u00b7 Active tasks \u00b7 4 shown \u00b7 All pages fetched\nDue labels: 2026-09-29 (UTC) \u00b7 1 overdue \u00b7 1 due today\n\nP1  Send revised estimate\n    Overdue \u00b7 2026-09-28 \u00b7 Work \u00b7 ID 101000001\n\nP2  Prepare launch checklist and confirm the rollback owner with the platform\n    team\n    Today \u00b7 2026-09-29 \u00b7 Repeats \u00b7 Work \u00b7 ID 102000002\n\nP4  Book dentist appointment\n    No due date \u00b7 Inbox \u00b7 ID 103000003\n\nP3  Pick up prescription\n    Due 2026-09-30 \u00b7 Personal \u00b7 ID 104000004\n",
+      "stderr": "",
+      "requests": [
+        "/tasks?limit=50",
+        "/projects?limit=200"
+      ]
+    },
+    {
+      "name": "today-120",
+      "command": [
+        "today"
+      ],
+      "width": 120,
+      "human": true,
+      "scenario": "normal",
+      "exit": 0,
+      "stdout": "Today \u00b7 Across projects \u00b7 2 shown \u00b7 All pages fetched\nDue labels: 2026-09-29 (UTC) \u00b7 1 overdue \u00b7 1 due today\n\nP1  Send revised estimate\n    Overdue \u00b7 2026-09-28 \u00b7 Work \u00b7 ID 101000001\n\nP2  Prepare launch checklist and confirm the rollback owner with the platform team\n    Today \u00b7 2026-09-29 \u00b7 Repeats \u00b7 Work \u00b7 ID 102000002\n",
+      "stderr": "",
+      "requests": [
+        "/tasks/filter?limit=50&query=overdue+%7C+today",
+        "/projects?limit=200"
+      ]
+    },
+    {
+      "name": "pagination-80",
+      "command": [
+        "task",
+        "list",
+        "--all-projects",
+        "--limit",
+        "2"
+      ],
+      "width": 80,
+      "human": true,
+      "scenario": "normal",
+      "exit": 0,
+      "stdout": "All projects \u00b7 Active tasks \u00b7 2 shown \u00b7 More available\nDue labels: 2026-09-29 (UTC) \u00b7 1 overdue \u00b7 1 due today\n\nP1  Send revised estimate\n    Overdue \u00b7 2026-09-28 \u00b7 Work \u00b7 ID 101000001\n\nP2  Prepare launch checklist and confirm the rollback owner with the platform\n    team\n    Today \u00b7 2026-09-29 \u00b7 Repeats \u00b7 Work \u00b7 ID 102000002\n",
+      "stderr": "More available. Use --cursor \"2\"\n",
+      "requests": [
+        "/tasks?limit=2",
+        "/projects?limit=200"
+      ]
+    }
+  ]
+}
