@@ -65,40 +65,46 @@ func upcomingCommand(ctx *Context, args []string) error {
 	if truncateWidth > 0 {
 		ctx.Config.TableWidth = truncateWidth
 	}
-	tasks, err := listUpcomingTasks(ctx, days, project, label)
+	tasks, now, err := listUpcomingTasks(ctx, days, project, label)
 	if err != nil {
 		return err
 	}
 	sortTasks(tasks, sortBy)
-	return writeTaskList(ctx, tasks, "", wide)
+	start := now.Format("2006-01-02")
+	end := now.AddDate(0, 0, days-1).Format("2006-01-02")
+	return writeTaskOverview(ctx, tasks, "", wide, taskOverview{
+		Scope:         "Upcoming · " + start + " to " + end + " (UTC) · " + activeTaskScope(project, "", "", label, ""),
+		Empty:         "No tasks due in this UTC window for this selection.",
+		ReferenceDate: start,
+	})
 }
 
-func listUpcomingTasks(ctx *Context, days int, project, label string) ([]api.Task, error) {
+func listUpcomingTasks(ctx *Context, days int, project, label string) ([]api.Task, time.Time, error) {
 	query := url.Values{}
 	query.Set("limit", "200")
 	if project != "" {
 		id, err := resolveProjectID(ctx, project)
 		if err != nil {
-			return nil, err
+			return nil, time.Time{}, err
 		}
 		query.Set("project_id", id)
 	}
 	if label != "" {
 		name, err := resolveLabelName(ctx, label)
 		if err != nil {
-			return nil, err
+			return nil, time.Time{}, err
 		}
 		query.Set("label", name)
 	}
 	allTasks, _, err := fetchPaginated[api.Task](ctx, "/tasks", query, true)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	now := time.Now().UTC()
 	if ctx != nil && ctx.Now != nil {
 		now = ctx.Now().UTC()
 	}
-	return filterUpcomingTasks(allTasks, now, days), nil
+	return filterUpcomingTasks(allTasks, now, days), now, nil
 }
 
 func filterUpcomingTasks(tasks []api.Task, now time.Time, days int) []api.Task {
@@ -118,5 +124,5 @@ func filterUpcomingTasks(tasks []api.Task, now time.Time, days int) []api.Task {
 }
 
 func printUpcomingHelp(out interface{ Write([]byte) (int, error) }) {
-	fmt.Fprint(out, "Usage:\n  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide] [--ids-only]\n\nNotes:\n  - Shows N days including today (default 7: today and the next 6 days, UTC).\n  - Excludes overdue tasks and tasks without a due date.\n\nExamples:\n  todoist upcoming\n  todoist upcoming 14 --project Learning\n  todoist upcoming --label reading --sort priority\n")
+	fmt.Fprint(out, "Usage:\n  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide] [--ids-only]\n\nNotes:\n  - Shows N days including today (default 7: today and the next 6 days, UTC).\n  - Excludes overdue tasks and tasks without a due date.\n  - Human output shows the UTC window, scope, coverage, and three-line titles.\n  - Overview P1 is highest; --wide retains the detailed table (API priorities: 4 highest).\n  - Use task view id:<id> for full text and secondary details.\n\nExamples:\n  todoist upcoming\n  todoist upcoming 14 --project Learning\n  todoist upcoming --label reading --sort priority\n")
 }

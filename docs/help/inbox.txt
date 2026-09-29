@@ -19,6 +19,9 @@ Flags:
 
 Notes:
   - Lists all pages of active Inbox tasks, regardless of due date.
+  - Human output shows scope, coverage, and titles wrapping to three lines.
+  - Overview P1 is highest; due labels use the printed UTC date without changing selection.
+  - Use task view id:<id> for full text and secondary details.
   - Stops with an error if Inbox cannot be resolved.
   - Uses Inbox project automatically.
   - A terminal capture receipt shows returned task details and a view command (except --quiet).

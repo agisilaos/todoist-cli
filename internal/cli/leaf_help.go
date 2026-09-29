@@ -84,17 +84,20 @@ var leafHelpPages = map[string]commandHelp{
   --completed-by <completion|due>   History by completion or due date
   --since <date>                    Start date (RFC3339 or YYYY-MM-DD)
   --until <date>                    End date (RFC3339 or YYYY-MM-DD)
-  --wide                            Wider table output
+  --wide                            Detailed table (API priorities)
   --preset <today|overdue|next7>    Shortcut filter: today, overdue, next7
   --sort <due|priority>             Sort by: due, priority
-  --truncate-width <cols>           Override table width (human output)`,
+  --truncate-width <cols>           Override human output width`,
 		examples: `  todoist task list
   todoist task list --all-projects --all --ids-only
   todoist task list --completed --since yesterday --json`,
 		notes: `  Lists one page of Inbox tasks by default; --all-projects changes scope, --all fetches every page.
-  Human implicit Inbox lists show an Inbox label, except with --quiet.
+  Human active lists show scope, count, coverage, and titles wrapping to three lines.
+  P1 is highest; due labels use the printed UTC date. Selection and ordering are unchanged.
+  --wide retains the detailed table (4 is highest); task view id:<id> shows full text.
+  --quiet hides summaries, but retains tasks and cursor notices.
   Failed or missing Inbox lookup stops without fetching tasks from other projects.
-  Use --project or --filter for an explicit selection.
+  Use --project or --filter for an explicit selection; filters/presets retain API order.
   Completed listing accepts date hints such as yesterday and "2 weeks ago"; --since without --until ends today.
   Use --all to fetch all pages where supported, or follow the returned cursor.`,
 		globals: `  --no-input            Disable prompts
