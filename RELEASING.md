@@ -31,9 +31,15 @@ make release-dry-run VERSION=vX.Y.Z
 make release VERSION=vX.Y.Z
 ```
 
-`release-check` validates the clean worktree, version, changelog, tests, documentation, module metadata, formatting, and version-stamped binary. `release-dry-run` builds both macOS archives and checksums, extracts the approved changelog section as release notes, and renders the Homebrew formula without remote writes. Formula validation requires Ruby and checks its syntax; both archives include the MIT license.
+`release-check` validates the clean worktree, version, changelog, script-tool portability, and version-stamped binary, and runs the shared `make check` gate described in [Contributing](CONTRIBUTING.md#ready-for-handoff). `release-dry-run` builds both macOS archives and checksums, extracts the approved changelog section as release notes, and renders the Homebrew formula without remote writes. Formula validation requires Ruby and checks its syntax; both archives include the MIT license.
 
 The final command creates and pushes the tag, publishes the GitHub Release with the approved changelog section, and updates the configured Homebrew tap.
+
+The `release-check` GitHub workflow is manual-only and runs
+`make release-check-ci` on macOS with Go 1.26. Ordinary pull-request and push CI
+runs `make check` on Linux/Go 1.22 and macOS/Go 1.26 without release-specific
+preparation requirements. Both `release-dry-run` and `release` retain their own
+release preflight; ordinary CI evidence does not bypass these release checks.
 
 ## Changelog policy
 

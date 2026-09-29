@@ -90,7 +90,7 @@ Cross-platform build checks cover darwin, linux and windows on amd64 and arm64 w
 
 Update README, docs/SPEC.md, auth help, config and security documentation, architecture notes, output schemas/examples and relevant help snapshots/completions. Keep domain language in CONTEXT.md and architectural choices in ADR-0004; retain ADR-0001's explicit portable fallback. Update macOS release build configuration without publishing a release.
 
-Run gofmt on changed Go files, go test ./..., go vet ./..., make fmt-check, make check-help, make coverage-check, the cross-platform build matrix, and the safe opt-in native integration test. Run repository documentation checks when affected. Report each result and any platform/test limitation explicitly. Preserve unrelated working-tree changes. The later explicitly invoked ship-change workflow authorizes commits, push, and PR creation after its gates and independent reviews. Do not merge a PR, publish a release, or test against real credentials.
+Follow the repository [handoff workflow](../CONTRIBUTING.md#ready-for-handoff). For native-adapter or portability changes, also use the relevant specialized checks documented there. Report each result and any platform/test limitation explicitly. Preserve unrelated working-tree changes. The later explicitly invoked ship-change workflow authorizes commits, push, and PR creation after its gates and independent reviews. Do not merge a PR, publish a release, or test against real credentials.
 
 The user confirmed this consolidated design and the three test boundaries before implementation. PR #4 landed before implementation began. The later ship-change request authorizes the shipping workflow; review is pinned to main at 2879104.
 

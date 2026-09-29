@@ -1,10 +1,14 @@
-.PHONY: build test vet fmt fmt-check coverage-check check-help docs-check changelog-context release-check release-check-ci release release-dry-run
+.PHONY: build test check vet fmt fmt-check coverage-check check-help docs-check auth-terminal-check mod-check changelog-context release-check release-check-ci release release-dry-run
 
 build:
 	go build -o todoist ./cmd/todoist
 
 test:
 	go test ./...
+
+# Check metadata before Go commands can fill in missing checksums.
+check: mod-check
+	$(MAKE) fmt-check vet coverage-check docs-check auth-terminal-check
 
 vet:
 	go vet ./...
@@ -13,7 +17,8 @@ fmt:
 	gofmt -w cmd internal
 
 fmt-check:
-	@test -z "$$(gofmt -l cmd internal)"
+	@files="$$(gofmt -l cmd internal)" || exit 1; \
+	if [ -n "$$files" ]; then printf 'Run make fmt to format:\n%s\n' "$$files"; exit 1; fi
 
 coverage-check:
 	./scripts/coverage-check.sh
@@ -23,6 +28,12 @@ check-help:
 
 docs-check:
 	./scripts/docs-check.sh
+
+auth-terminal-check:
+	python3 scripts/test-auth-terminal.py
+
+mod-check:
+	./scripts/mod-check.sh
 
 changelog-context:
 	@if [ -z "$(VERSION)" ]; then echo "VERSION is required (e.g. make changelog-context VERSION=v0.1.0)"; exit 2; fi

@@ -112,7 +112,7 @@ Messages never include tokens or raw malformed metadata. Doctor keeps its existi
 
 Implement test-first, beginning with requested OAuth scopes, scope-response handling, credential compatibility/lifecycle, and requests blocked before mutation transport. Cover all REST and Sync mutation families, legitimate Sync reads, agent preflight/replay behavior, schedules, status/doctor reports, and human/JSON/quiet-JSON errors. Tests must show that `--force` and error-continuation settings cannot bypass authorization.
 
-Update README, specification, architecture documentation, schemas, examples, completions, and generated help snapshots as affected. Preserve unrelated work. Run gofmt on changed Go files, `go test ./...`, `go vet ./...`, `make fmt-check`, `make check-help`, `make coverage-check`, and proportionate schema/documentation release checks. Do not commit or open a pull request.
+Update README, specification, architecture documentation, schemas, examples, completions, and generated help snapshots as affected. Preserve unrelated work. Follow the repository [handoff workflow](../CONTRIBUTING.md#ready-for-handoff), including affected schema and documentation regression tests. Do not commit or open a pull request.
 
 ## Sources and related decisions
 

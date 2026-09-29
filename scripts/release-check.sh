@@ -27,7 +27,7 @@ if [[ "$ci_mode" -eq 0 && ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   die "version must match vX.Y.Z (got: $version)"
 fi
 
-for tool in go git python3; do
+for tool in go git python3 make; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool is required"
 done
 
@@ -68,57 +68,8 @@ if grep -R -nE '(^|[[:space:]])(r[g]|j[q]|y[q]|f[d])([[:space:]]|$)' scripts >/d
   die "scripts/ uses non-portable tooling (rg/jq/yq/fd). Use grep/sed/awk or install tools explicitly in workflow."
 fi
 
-echo "[release-check] running tests"
-go test ./...
-
-echo "[release-check] running vet"
-go vet ./...
-
-echo "[release-check] running docs check"
-./scripts/docs-check.sh
-
-echo "[release-check] checking go module metadata"
-if go help mod tidy 2>/dev/null | grep -Fq -- "-diff"; then
-  go mod tidy -diff
-else
-  before_mod="$(mktemp)"
-  before_sum="$(mktemp)"
-  had_sum=0
-  cp go.mod "$before_mod"
-  if [[ -f go.sum ]]; then
-    cp go.sum "$before_sum"
-    had_sum=1
-  fi
-
-  go mod tidy
-  if ! diff -u "$before_mod" go.mod >/dev/null || ( [[ "$had_sum" -eq 1 ]] && ! diff -u "$before_sum" go.sum >/dev/null ) || ( [[ "$had_sum" -eq 0 ]] && [[ -f go.sum ]] ); then
-    diff -u "$before_mod" go.mod >&2 || true
-    if [[ "$had_sum" -eq 1 ]]; then
-      diff -u "$before_sum" go.sum >&2 || true
-    fi
-    cp "$before_mod" go.mod
-    if [[ "$had_sum" -eq 1 ]]; then
-      cp "$before_sum" go.sum
-    else
-      rm -f go.sum
-    fi
-    rm -f "$before_mod" "$before_sum"
-    die "go.mod/go.sum drift detected; run go mod tidy"
-  fi
-
-  cp "$before_mod" go.mod
-  if [[ "$had_sum" -eq 1 ]]; then
-    cp "$before_sum" go.sum
-  else
-    rm -f go.sum
-  fi
-  rm -f "$before_mod" "$before_sum"
-fi
-
-echo "[release-check] checking format"
-if [[ -n "$(gofmt -l cmd internal)" ]]; then
-  die "gofmt reported formatting drift in cmd/ or internal/"
-fi
+echo "[release-check] running ordinary validation"
+make check
 
 commit="$(git rev-parse --short=12 HEAD)"
 build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"

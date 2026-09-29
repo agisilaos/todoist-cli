@@ -16,18 +16,9 @@ compatibility decision in [ADR-0003](adr/0003-preserve-write-capability-for-unkn
 | Agent execution | Pending-action preflight; force/continue cannot override authorization; replay skips; plans contain no authorization snapshot |
 | Schedules | Profile/config/endpoint/policy selections retained; cron and launchd preserve dry-run/force flags and metacharacters; cron line breaks rejected; credentials resolved at execution |
 
-Run the repository checks after changing these boundaries:
-
-```sh
-go test ./...
-go vet ./...
-make fmt-check
-make check-help
-make coverage-check
-make docs-check
-go mod tidy -diff
-git diff --check
-```
+After changing these boundaries, follow the repository's
+[handoff workflow](../CONTRIBUTING.md#ready-for-handoff): targeted regression tests
+during development and `make check` or passing ordinary CI on the finished revision.
 
 OAuth protocol tests use local HTTP servers. Live Todoist device authorization
 remains unverified, and token refresh is outside this feature. External planners

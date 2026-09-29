@@ -18,8 +18,9 @@
 
 ## Keeping docs in sync
 
-Run `make docs-check` on macOS or Linux with Go and Python 3 installed. Both the
-normal CI workflow and the macOS release check run this gate.
+Run `make docs-check` for focused documentation work on macOS or Linux with Go
+and Python 3 installed. It is included in `make check`, the shared local and CI
+[handoff gate](../CONTRIBUTING.md#ready-for-handoff), and in release validation.
 
 When changing a command or flag:
 
@@ -28,7 +29,8 @@ When changing a command or flag:
    and [SPEC.md](SPEC.md). Update architecture/domain docs when responsibilities or
    terminology change.
 3. Run `scripts/update-help.sh` and review the generated diff in `docs/help/`.
-4. Run `make docs-check` and `go test ./...`.
+4. Run `make docs-check` while iterating, then follow the
+   [handoff workflow](../CONTRIBUTING.md#ready-for-handoff) for the finished revision.
 
 The gate checks:
 
