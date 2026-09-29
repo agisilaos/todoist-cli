@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+cd "$(dirname "$0")/.."
+
+output="$(mktemp)"
+trap 'rm -f "$output"' EXIT
+# pipefail preserves test failures while tee keeps their diagnostics visible.
+go test ./... -cover | tee "$output"
+
 check_pkg() {
   local pkg="$1"
   local min="$2"
-  local out cov
+  local cov
 
-  out=$(go test "$pkg" -cover)
-  echo "$out"
-  cov=$(echo "$out" | sed -nE 's/.*coverage: ([0-9.]+)%.*/\1/p' | tail -n1)
+  cov=$(awk -v pkg="$pkg" '$1 == "ok" && $2 == pkg { print }' "$output" |
+    sed -nE 's/.*coverage: ([0-9.]+)%.*/\1/p')
   if [[ -z "$cov" ]]; then
     echo "[coverage-check] failed to parse coverage for $pkg" >&2
     return 1
@@ -20,7 +26,7 @@ check_pkg() {
   echo "[coverage-check] $pkg coverage ${cov}% (required ${min}%)"
 }
 
-check_pkg ./internal/cli 30
-check_pkg ./internal/output 80
+check_pkg github.com/agisilaos/todoist-cli/internal/cli 30
+check_pkg github.com/agisilaos/todoist-cli/internal/output 80
 
 echo "[coverage-check] ok"

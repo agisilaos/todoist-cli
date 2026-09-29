@@ -7,10 +7,6 @@ SNAPSHOT_LIST="${ROOT_DIR}/scripts/help-snapshots.txt"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
-if [[ -z "${GOCACHE:-}" ]]; then
-  export GOCACHE="${TMP_DIR}/gocache"
-fi
-
 "${ROOT_DIR}/scripts/update-help.sh" --out-dir "${TMP_DIR}" >/dev/null
 
 while IFS=$'\t' read -r file _ || [[ -n "${file:-}" ]]; do
