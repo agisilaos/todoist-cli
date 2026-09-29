@@ -10,7 +10,6 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
-	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func taskList(ctx *Context, args []string) error {
@@ -85,14 +84,21 @@ func taskList(ctx *Context, args []string) error {
 		return taskListCompleted(ctx, plan.CompletedBy, plan.Filter, project, section, parent, plan.Since, plan.Until, cursor, limit, all, wide)
 	}
 	if plan.Mode == "filter" {
-		return taskListFiltered(ctx, plan.Filter, cursor, limit, all, wide)
+		return taskListFiltered(ctx, plan.Filter, cursor, limit, all, wide, taskOverview{
+			Scope: "Filter: " + strconv.Quote(plan.Filter) + " · Active tasks",
+			Empty: "No active tasks returned for this filter.",
+		})
 	}
 	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, sortBy)
 }
 
 func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sortBy string) error {
 	query := url.Values{}
-	implicitInbox := false
+	scope := activeTaskScope(project, section, parent, label, ids)
+	empty := "No active tasks returned for this selection."
+	if project == "" && section == "" && parent == "" && label == "" && ids == "" {
+		empty = "No active tasks returned across projects."
+	}
 	if project == "" && section == "" && parent == "" && label == "" && ids == "" && !allProjects {
 		id, err := inboxProjectID(ctx)
 		if err != nil {
@@ -102,7 +108,8 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 			return &CodeError{Code: exitNotFound, Err: errors.New("Inbox project not found; run 'todoist project list' to check available projects")}
 		}
 		project = id
-		implicitInbox = true
+		scope = "Inbox · Active tasks"
+		empty = "No active tasks in Inbox."
 	}
 	if project != "" {
 		id, err := resolveProjectID(ctx, project)
@@ -140,21 +147,17 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 		return err
 	}
 	sortTasks(allTasks, sortBy)
-	if implicitInbox && ctx.Mode == output.ModeHuman && !ctx.Global.Quiet {
-		if _, err := fmt.Fprintln(ctx.Stdout, "Inbox"); err != nil {
-			return err
-		}
-	}
-	return writeTaskList(ctx, allTasks, next, wide)
+	return writeTaskOverview(ctx, allTasks, next, wide, taskOverview{Scope: scope, Empty: empty, Continued: cursor != ""})
 }
 
-func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool) error {
+func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool, view taskOverview) error {
 	allTasks, next, err := listTasksByFilter(ctx, filter, cursor, limit, all)
 	if err != nil {
 		return err
 	}
 	// Keep original ordering from API for filter; no client sort to preserve meaning.
-	return writeTaskList(ctx, allTasks, next, wide)
+	view.Continued = cursor != ""
+	return writeTaskOverview(ctx, allTasks, next, wide, view)
 }
 
 func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool) ([]api.Task, string, error) {

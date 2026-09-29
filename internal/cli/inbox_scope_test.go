@@ -122,7 +122,7 @@ func TestImplicitInboxScopeOutput(t *testing.T) {
 			if taskRequests != wantRequests {
 				t.Fatalf("task requests = %d, want %d", taskRequests, wantRequests)
 			}
-			if got := strings.HasPrefix(out.String(), "Inbox\n"); got != tc.wantLabel {
+			if got := strings.HasPrefix(out.String(), "Inbox · Active tasks"); got != tc.wantLabel {
 				t.Fatalf("label=%t, want %t; output=%q", got, tc.wantLabel, out.String())
 			}
 			if err != nil && out.Len() != 0 {

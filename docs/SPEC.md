@@ -81,10 +81,10 @@ is supplied. `--all-projects` changes project scope; `--all` fetches every page.
 Use `todoist task list --all-projects --all` for every active task across projects,
 including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
 
-A successfully resolved implicit Inbox selection prints `Inbox` before the human
-table, including empty selections. `--quiet` suppresses this label. Explicit
-selections, redirected default output, and all machine output modes retain their
-existing formats. Inbox lookup failure stops before fetching tasks and preserves
+Human active-task lists identify the effective selection, shown count, and page
+coverage, including empty selections. `--quiet` suppresses headers and summaries.
+Redirected default output and explicit machine output retain their existing
+formats. Inbox lookup failure stops before fetching tasks and preserves
 the underlying error exit code. A successful project lookup without an Inbox returns exit 4.
 Both failures leave stdout empty; neither falls back to all projects.
 
@@ -124,7 +124,7 @@ or follow-up task fetch, and introduces no prompt.
   remain unverified until submitted. Machine and quiet preview payloads/wording,
   authorization checks, and required name-resolution reads are unchanged.
 
-Other task output, including list/view priority rendering, is unchanged.
+Active-task overviews use Todoist P1–P4; retained tables and task views keep their existing API priority rendering.
 
 ### Filter commands
 
@@ -238,7 +238,7 @@ Planner context notes:
 - Use `id:<id>` to explicitly reference IDs.
 - Task/project/label/filter refs also accept Todoist app URLs (`https://app.todoist.com/app/<entity>/...`).
 - Fuzzy name resolution is opt-in via `--fuzzy` / `TODOIST_FUZZY=1`.
-- Accessibility labels for human task output are opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
+- Active-task overviews always use text labels. Legacy task table/plain markers remain opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
 
 ## Output
 
@@ -261,7 +261,47 @@ Planner context notes:
 - Successful Todoist mutations are recorded immediately by replacing `agent_replay.json`; replay skips, action failures, and duplicate records do not write the file. Interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded and make a rerun duplicate it. The journal is unbounded, assumes a single applying process, and delegates replacement visibility to the underlying OS and filesystem; it does not promise OS- or storage-power-loss durability.
 - Human agent apply/run output includes a compact summary block with success/failure/replay counts,
   destructive-action count, per-action-type totals, and final outcome.
-- In human mode, `--accessible` adds explicit `due:` and `p<priority>` task markers.
+- `--accessible` retains `due:` and `p<priority>` markers in legacy task tables/plain output; overviews already label dates and priorities explicitly.
+
+### Active-task overview
+
+The human default for `today`, `upcoming`, `inbox`, and active `task list` results
+(including filters and presets) is a title followed by context. Titles wrap to
+three lines maximum with an ellipsis; context includes Todoist P1–P4 priority,
+due date/time, explicitly returned recurrence, project, and full ID. Existing
+width-setting precedence applies. Context and headers wrap; indivisible metadata
+may overflow exceptionally narrow terminals rather than lose IDs or timestamps.
+Common wide Unicode characters count as two terminal cells; ambiguous characters
+count as one. Terminal controls in overview fields are escaped.
+
+Relative labels compare validated returned calendar dates with an explicit UTC
+reference date. Display keeps existing due-date precedence, and a datetime-only
+value is classified by its UTC day. Raw due times and returned timezone information
+remain visible. A prior day is overdue; an earlier time today is still today.
+Unparseable/missing information remains unknown; explicit null due means undated.
+These display rules never change selection, sorting, or Todoist filter semantics.
+Counts refer only to displayed tasks. No grouping or new client sorting occurs.
+
+The overview reports all pages fetched only for an exhausted selection without
+an incoming cursor. Continuations say so, including at the end. Partial pages
+show `More available` and use the existing quoted cursor notice on stderr.
+Empty selections have scope-specific messages; empty partial pages and exhausted
+continuations do not claim the entire selection is empty. Quiet suppresses scope,
+summary, and empty messages, but retains tasks and cursor notices.
+
+Project names reuse cached collection fetching with explicit ID/name-unavailable
+fallback. No per-task fetches or default section enrichment are introduced.
+`--wide` keeps the detailed table and API priority numbering while adding scope
+and coverage. Completed history, saved `filter show`, task details, mutations,
+and quiet capture receipts keep their legacy rendering. Machine payloads and
+stdout/stderr behavior are unchanged, including accessible plain output.
+
+Implementation ownership: active command handlers supply effective scope and
+pagination context to `task_overview.go`; `task_output.go` remains the legacy
+renderer and machine-output path. Filters ignore other selection flags as before.
+Upcoming carries its selection's UTC reference day into the header so a midnight
+boundary during rendering cannot misstate its window. No domain vocabulary or
+architecture decision changes are required.
 
 ## Parsing Rules
 

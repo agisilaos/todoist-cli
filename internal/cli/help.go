@@ -242,8 +242,10 @@ Task flags:
   --yes                      Required for task deletion and bulk move/complete
 
 Notes:
-  By default, task list shows Inbox tasks, with an Inbox label in human output.
-  --quiet suppresses the label. Machine output has no scope label.
+  By default, task list shows Inbox tasks. Human active lists show scope and page coverage.
+  Titles wrap to three lines; context shows due, project, recurrence, and full ID.
+  Overview priorities use P1 highest; due labels use the printed UTC date.
+  --quiet suppresses summaries; tasks and cursor notices remain. Machine output has no scope label.
   Use --all-projects or --filter to list across projects.
   --all fetches every page; --all-projects alone does not.
   inbox lists every page of Inbox tasks.
@@ -253,7 +255,8 @@ Notes:
   Completed listing supports YYYY-MM-DD, RFC3339, today/yesterday, weekday names, and "<N> days ago".
   If --completed uses --since without --until, --until defaults to today.
   For bulk actions, plain --filter text is treated as search text when not a Todoist query.
-  Output columns (human/--plain): ID, Content, Project, Section, Labels, Due, Priority, Completed.
+  Detailed table/--plain columns: ID, Content, Project, Section, Labels, Due, Priority, Completed.
+  --wide retains the detailed table (API priorities: 4 highest); task view id:<id> shows full text.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
   Task add prints a capture receipt in a terminal (except --quiet), including a view command.
@@ -476,6 +479,9 @@ Flags:
 
 Notes:
   - Lists all pages of active Inbox tasks, regardless of due date.
+  - Human output shows scope, coverage, and titles wrapping to three lines.
+  - Overview P1 is highest; due labels use the printed UTC date without changing selection.
+  - Use task view id:<id> for full text and secondary details.
   - Stops with an error if Inbox cannot be resolved.
   - Uses Inbox project automatically.
   - A terminal capture receipt shows returned task details and a view command (except --quiet).

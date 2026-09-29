@@ -4,3 +4,7 @@ Usage:
 Notes:
   - Shows tasks due today and overdue (across all projects).
   - Accepts global flags only; use task list for custom filtering or limits.
+  - Human output shows scope, coverage, and titles wrapping to three lines.
+  - Overview P1 is highest; relative due labels use the printed UTC calendar date.
+  - Todoist still selects tasks; near midnight its Today selection may differ from UTC labels.
+  - Use task view id:<id> for full text, or task list --filter "overdue | today" --all --wide for the detailed table.

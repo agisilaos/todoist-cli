@@ -36,6 +36,8 @@ and `upcoming` already fetch every page. Upcoming uses UTC dates.
 If Inbox cannot be resolved, `inbox` and bare `task list` stop with an error
 instead of returning tasks from other projects.
 
+Human lists show titles with due information, project, priority, and a full copyable ID. See the [everyday overview](#everyday-overview) for examples and page coverage.
+
 If a command fails, follow [errors and recovery](#errors-and-recovery) for credential setup and safe review inspection.
 
 For a machine client with credentials configured:
@@ -268,7 +270,7 @@ todoist task delete <ref> --yes
 
 Task flags:
 
-By default, `todoist task list` shows one page of your Inbox tasks. Use `--all-projects` or a filter to list across projects, and `--all` to fetch every page. Human output labels a successfully resolved default Inbox selection with `Inbox`, including empty results; `--quiet` suppresses that label. Redirected and explicit machine output have no scope label.
+By default, `todoist task list` shows one page of your Inbox tasks. Use `--all-projects` or a filter to list across projects, and `--all` to fetch every page. Human active-task output identifies the effective selection, displayed count, and page coverage, including empty results; `--quiet` suppresses the header and summary. Redirected and explicit machine output have no scope label.
 
 ```
 --content <text>           Task content ("-" reads stdin)
@@ -305,20 +307,20 @@ Notes:
 - `task add/update --natural` lets you pass quick-add style tokens in `--content` (for example `#Home @errands p2 due:tomorrow`) and maps them to REST fields.
 - Task references also support due hints for disambiguation: `"call mom today"`, `"call mom tomorrow"`, `"call mom overdue"`.
 
-Table options:
+List presentation and selection options:
 
 ```
---wide    Wider columns for table output
+--wide    Detailed table (API priority numbering; broad terminal recommended)
 --all-projects    List tasks from all projects (default is Inbox)
 --preset today|overdue|next7    Shortcut filters (ignored if --filter set)
 --sort due|priority             Client-side sort for active tasks
---truncate-width <cols>         Override table width (human output)
+--truncate-width <cols>         Override human output width
 ```
 
 Examples:
 
-- `todoist task list --filter "@work & today"` (human table)
-- `todoist task list --preset today --sort priority`
+- `todoist task list --filter "@work & today"` (human overview)
+- `todoist task list --all-projects --sort priority`
 - `todoist task list --completed --since "2 weeks ago" --json`
 - `echo "Write launch blog #Marketing @writing p2 due:friday" | todoist add --content -`
 - `todoist task move --id 123 --project "Personal" --section "Errands"`
@@ -413,7 +415,7 @@ Receipts do not change machine output: JSON remains a one-task array, NDJSON a
 single task object, and plain or piped output the existing TSV row with API priority
 numbers. `--ids-only` still rejects creation. `--quiet` retains the existing task
 table on a terminal and the existing dry-run summary, without the new receipt or
-recovery hints. Other task tables and views retain their existing priority display.
+recovery hints. Active-task overviews also use Todoist P1–P4; detailed tables and task views retain their existing API priority display.
 
 ### Today
 
@@ -781,16 +783,81 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 
 ## Output
 
-- TTY defaults to a human-readable table with truncated columns for readability and resolves project/section IDs to names when possible. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
+- TTY active-task lists use the [everyday overview](#everyday-overview). Other resource lists, completed history, and saved `filter show` retain their tables. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
 - Non-TTY defaults to `--plain` (tab-separated, no headers).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` outputs one raw ID followed by a newline per result. Empty results emit no stdout.
-- Errors go to stderr; `--quiet` suppresses non-error informational messages. `--verbose` may show request IDs and more detail.
+- Errors go to stderr; `--quiet` suppresses non-essential informational messages but retains list continuation notices. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.
-- `--accessible` (or `TODOIST_ACCESSIBLE=1`) adds explicit text markers for task due/priority values in human output.
-- `--truncate-width` or `TODOIST_TABLE_WIDTH` lets you set table width; `--wide` expands columns.
+- `--accessible` (or `TODOIST_ACCESSIBLE=1`) retains the existing due/priority markers in task tables and plain output. Active-task overviews always have explicit text labels, with or without this flag.
+- Human width uses `--truncate-width` where supported, then `TODOIST_TABLE_WIDTH` or configured `table_width`, then `COLUMNS`, then 120 columns. Existing `--wide` selects the detailed table for active lists and expands other task tables; it is intended for a broad terminal.
 - Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
+
+### Everyday overview
+
+Start with `todoist today` for overdue and due-today work across projects.
+`inbox` and bare `task list` remain Inbox selections; the all-project view also
+includes undated tasks. The layout never groups or reorders tasks: existing API
+ordering and supported client sorting remain in effect. Filters and presets keep
+API ordering (`--sort` does not apply to them); `--preset today` selects only
+`today`, while the top-level `today` command selects `overdue | today`.
+
+Illustrative human output from `todoist task list --all-projects --all`, using
+synthetic tasks and a UTC reference date of 2026-09-29:
+
+```text
+All projects · Active tasks · 4 shown · All pages fetched
+Due labels: 2026-09-29 (UTC) · 1 overdue · 1 due today
+
+P1  Send revised estimate
+    Overdue · 2026-09-28 · Work · ID 101000001
+
+P2  Prepare launch checklist and confirm the rollback owner with the platform
+    team
+    Today · 2026-09-29 · Repeats · Work · ID 102000002
+
+P4  Book dentist appointment
+    No due date · Inbox · ID 103000003
+
+P3  Pick up prescription
+    Due 2026-09-30 · Personal · ID 104000004
+```
+
+- Titles wrap to at most three lines, ending with `…` if truncated. Headers and
+  context wrap to the selected width. Full IDs and timestamps are never shortened;
+  indivisible values can overflow exceptionally narrow terminals. Common CJK
+  characters occupy two cells; ambiguous-width characters assume one cell.
+- Priority is Todoist **P1 highest, P4 normal**. Numeric input flags, plain/JSON/
+  NDJSON output, task views, and the retained tables keep API priorities (4 highest).
+- Relative due labels use the printed **UTC calendar date**, with the existing
+  returned due-date precedence. Earlier times today still say `Today`. Returned
+  dates/times and timezone information remain visible without conversion. Near
+  midnight, these display labels can differ from Todoist's account-based Today
+  selection; they do not change which tasks are fetched. `Repeats` appears only
+  when Todoist explicitly returns recurrence. Missing due data says `Due unavailable`;
+  only an explicit null due value says `No due date`.
+- Counts describe tasks **shown**, including the overdue/due-today counts. A partial
+  page says `More available`, with `More available. Use --cursor "..."` on stderr.
+  Repeat the same `task list` selection with that cursor, or use `--all` to fetch
+  every page. Continuations are labeled even at the end; they never claim earlier
+  pages were shown. Empty pages with more results are distinguished from empty
+  selections. `--quiet` hides headers, counts, and empty messages, but keeps tasks
+  and necessary continuation notices.
+- Use `todoist task view id:101000001` with an ID from your output for the full title,
+  description, section ID, and labels. Existing `task list --wide` and
+  `upcoming --wide` show the detailed table with section names and labels, using
+  the table's existing API priority numbering. `today` and `inbox` accept no new
+  display flags.
+- Project names reuse the existing cached collection lookup. A lookup failure
+  leaves tasks visible with a project ID and `(name unavailable)`; there are no
+  per-task enrichment requests. The default overview does not fetch sections.
+  Resolving an Inbox selection still must succeed before any tasks are fetched.
+
+Redirecting these commands still produces the existing untruncated, headerless
+TSV. Explicit `--plain`, `--json`, `--ndjson`, and `--ids-only` preserve their
+payloads, fetching behavior, and stdout/stderr contracts. No overview labels or
+empty messages are added to machine output.
 
 Plain output columns:
 
