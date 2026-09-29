@@ -717,6 +717,10 @@ todoist schema [--name task_list|task_item_ndjson|ids_only|error|plan|plan_previ
 
 ## Shell Completions
 
+Shell completions suggest command names and aliases, including `notification ls`.
+Flag and value completion remain shell-specific. Regenerate
+or reinstall completion scripts after upgrading to pick up inventory changes.
+
 Generate a completion script for your shell:
 
 ```bash

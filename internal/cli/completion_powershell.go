@@ -2,59 +2,10 @@ package cli
 
 const powerShellCompletionMarker = "# todoist completion (powershell)"
 
-const powerShellCompletion = powerShellCompletionMarker + `
-$todoistCommands = @{
-    '' = @('review', 'today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
-    'inbox' = @('add')
-    'auth' = @('login', 'status', 'logout', 'migrate', 'repair')
-    'task' = @('list', 'ls', 'add', 'view', 'show', 'update', 'move', 'complete', 'reopen', 'delete', 'rm', 'del')
-    'filter' = @('list', 'ls', 'show', 'add', 'update', 'delete', 'rm', 'del')
-    'project' = @('list', 'ls', 'view', 'show', 'browse', 'collaborators', 'add', 'create', 'update', 'move', 'archive', 'unarchive', 'delete', 'rm', 'del')
-    'workspace' = @('list', 'ls')
-    'section' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'label' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'comment' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'reminder' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'notification' = @('list', 'ls', 'view', 'accept', 'reject', 'read', 'unread')
-    'stats' = @('goals', 'vacation')
-    'settings' = @('view', 'update', 'themes')
-    'agent' = @('plan', 'apply', 'run', 'schedule', 'examples', 'planner', 'status')
-    'agent schedule' = @('print')
-    'completion' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh', 'install', 'uninstall')
-    'completion install' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh')
-    'completion uninstall' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh')
-    'help' = @('review', 'today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
-}
+var powerShellCompletion = renderPowerShellInventory(powerShellCompletionTemplate)
 
-$todoistAliases = @{
-    'task ls' = 'task list'
-    'task show' = 'task view'
-    'task rm' = 'task delete'
-    'task del' = 'task delete'
-    'filter ls' = 'filter list'
-    'filter rm' = 'filter delete'
-    'filter del' = 'filter delete'
-    'project ls' = 'project list'
-    'project show' = 'project view'
-    'project create' = 'project add'
-    'project rm' = 'project delete'
-    'project del' = 'project delete'
-    'workspace ls' = 'workspace list'
-    'section ls' = 'section list'
-    'section rm' = 'section delete'
-    'section del' = 'section delete'
-    'label ls' = 'label list'
-    'label rm' = 'label delete'
-    'label del' = 'label delete'
-    'comment ls' = 'comment list'
-    'comment rm' = 'comment delete'
-    'comment del' = 'comment delete'
-    'reminder ls' = 'reminder list'
-    'reminder rm' = 'reminder delete'
-    'reminder del' = 'reminder delete'
-    'notification ls' = 'notification list'
-}
-
+const powerShellCompletionTemplate = powerShellCompletionMarker + `
+{{powershell-commands}}
 $todoistGlobalFlags = @(
     '-h', '--help', '--version', '-q', '--quiet', '--quiet-json', '-v', '--verbose',
     '--accessible', '--json', '--plain', '--ndjson', '--ids-only', '--no-color',
@@ -62,71 +13,41 @@ $todoistGlobalFlags = @(
     '--force', '--fuzzy', '--no-fuzzy', '--progress-jsonl', '--base-url'
 )
 
-$todoistFlags = @{
-    'review' = @('--filter', '--out')
-    'completed' = @('--completed-by', '--since', '--until', '--project', '--section', '--filter', '--cursor', '--limit', '--all', '--wide')
-    'upcoming' = @('--days', '--project', '--label', '--wide', '--sort', '--truncate-width')
-    'inbox add' = @('--content', '--description', '--section', '--label', '--priority', '--due', '--due-date', '--due-datetime', '--due-lang', '--duration', '--duration-unit', '--deadline', '--assignee')
-    'add' = @('--content', '--project', '--section', '--label', '--priority', '--due', '--strict')
-    'auth migrate' = @('--credential-store')
-    'auth login' = @('--credential-store', '--token-stdin', '--print-env', '--oauth', '--oauth-device', '--read-only', '--no-browser', '--client-id', '--oauth-authorize-url', '--oauth-token-url', '--oauth-device-url', '--oauth-listen', '--oauth-redirect-uri')
-    'task list' = @('--filter', '--project', '--section', '--parent', '--label', '--id', '--cursor', '--limit', '--all', '--all-projects', '--completed', '--completed-by', '--since', '--until', '--wide', '--preset', '--sort', '--truncate-width')
-    'task add' = @('--content', '--description', '--project', '--section', '--parent', '--label', '--priority', '--due', '--due-date', '--due-datetime', '--due-lang', '--duration', '--duration-unit', '--deadline', '--assignee', '--quick', '--natural')
-    'task view' = @('--id', '--full')
-    'task update' = @('--id', '--content', '--description', '--label', '--priority', '--due', '--due-date', '--due-datetime', '--due-lang', '--duration', '--duration-unit', '--deadline', '--assignee', '--project', '--natural')
-    'task move' = @('--id', '--project', '--section', '--parent', '--filter', '--yes')
-    'task complete' = @('--id', '--filter', '--yes')
-    'task reopen' = @('--id')
-    'task delete' = @('--id', '--yes')
-    'filter add' = @('--name', '--query', '--color', '--favorite')
-    'filter update' = @('--id', '--name', '--query', '--color', '--favorite', '--unfavorite')
-    'filter delete' = @('--id', '--yes')
-    'project list' = @('--archived', '--cursor', '--limit', '--all')
-    'project view' = @('--id')
-    'project browse' = @('--id')
-    'project collaborators' = @('--id', '--cursor', '--limit', '--all')
-    'project add' = @('--name', '--description', '--parent', '--color', '--favorite', '--view', '--workspace')
-    'project update' = @('--id', '--name', '--description', '--color', '--favorite', '--view')
-    'project move' = @('--id', '--to-workspace', '--to-personal', '--visibility', '--yes')
-    'project archive' = @('--id')
-    'project unarchive' = @('--id')
-    'project delete' = @('--id')
-    'section list' = @('--project', '--cursor', '--limit', '--all')
-    'section add' = @('--name', '--project')
-    'section update' = @('--id', '--name')
-    'section delete' = @('--id')
-    'label list' = @('--cursor', '--limit', '--all')
-    'label add' = @('--name', '--color', '--order', '--favorite')
-    'label update' = @('--id', '--name', '--color', '--order', '--favorite', '--unfavorite')
-    'label delete' = @('--id')
-    'comment list' = @('--task', '--project', '--cursor', '--limit', '--all')
-    'comment add' = @('--content', '--task', '--project')
-    'comment update' = @('--id', '--content')
-    'comment delete' = @('--id')
-    'reminder list' = @('--task')
-    'reminder add' = @('--task', '--before', '--at')
-    'reminder update' = @('--id', '--before', '--at')
-    'reminder delete' = @('--id', '--yes')
-    'notification list' = @('--type', '--unread', '--read', '--limit', '--offset')
-    'notification view' = @('--id')
-    'notification accept' = @('--id')
-    'notification reject' = @('--id')
-    'notification read' = @('--id', '--all', '--yes')
-    'notification unread' = @('--id')
-    'activity' = @('--since', '--until', '--type', '--event', '--project', '--by', '--limit', '--cursor', '--all')
-    'stats goals' = @('--daily', '--weekly')
+# Command switches and value-taking flags are disjoint; suggestions combine both.
+$todoistSwitchFlags = @{
+    'completed' = @('--all', '--wide')
+    'upcoming' = @('--wide')
+    'add' = @('--strict')
+    'auth login' = @('--token-stdin', '--print-env', '--oauth', '--oauth-device', '--read-only', '--no-browser')
+    'task list' = @('--all', '--all-projects', '--completed', '--wide')
+    'task add' = @('--quick', '--natural')
+    'task view' = @('--full')
+    'task update' = @('--natural')
+    'task move' = @('--yes')
+    'task complete' = @('--yes')
+    'task delete' = @('--yes')
+    'filter add' = @('--favorite')
+    'filter update' = @('--favorite', '--unfavorite')
+    'filter delete' = @('--yes')
+    'project list' = @('--archived', '--all')
+    'project collaborators' = @('--all')
+    'project add' = @('--favorite')
+    'project update' = @('--favorite')
+    'project move' = @('--to-personal', '--yes')
+    'section list' = @('--all')
+    'label list' = @('--all')
+    'label add' = @('--favorite')
+    'label update' = @('--favorite', '--unfavorite')
+    'comment list' = @('--all')
+    'reminder delete' = @('--yes')
+    'notification list' = @('--unread', '--read')
+    'notification read' = @('--all', '--yes')
+    'activity' = @('--all')
     'stats vacation' = @('--on', '--off')
-    'settings update' = @('--timezone', '--time-format', '--date-format', '--start-day', '--theme', '--auto-reminder', '--next-week', '--start-page', '--reminder-push', '--reminder-desktop', '--reminder-email', '--completed-sound-desktop', '--completed-sound-mobile')
-    'agent plan' = @('--out', '--planner', '--plan-version', '--context-project', '--context-label', '--context-completed')
-    'agent apply' = @('--plan', '--confirm', '--planner', '--policy', '--on-error', '--plan-version', '--context-project', '--context-label', '--context-completed')
-    'agent run' = @('--plan', '--confirm', '--planner', '--policy', '--instruction', '--out', '--on-error', '--plan-version', '--context-project', '--context-label', '--context-completed')
-    'agent schedule print' = @('--weekly', '--policy', '--planner', '--instruction', '--plan', '--confirm', '--force', '--dry-run', '--on-error', '--plan-version', '--context-project', '--context-label', '--context-completed', '--cron', '--bin')
-    'agent planner' = @('--set', '--cmd')
-    'completion install' = @('--path')
-    'completion uninstall' = @('--path')
+    'agent schedule print' = @('--force', '--dry-run', '--cron')
+    'agent planner' = @('--set')
     'doctor' = @('--strict')
-    'schema' = @('--name')
-    'planner' = @('--set', '--cmd')
+    'planner' = @('--set')
 }
 
 $todoistValueFlags = @{
@@ -316,7 +237,7 @@ $todoistCompleter = {
         return
     }
 
-	$flags = @($todoistGlobalFlags) + @($todoistFlags[$path])
+	$flags = @($todoistGlobalFlags) + @($todoistSwitchFlags[$path]) + @($todoistValueFlags[$path])
 	if ($wordToComplete.StartsWith('-')) {
 		$candidates = $flags
 	} else {
@@ -332,5 +253,5 @@ $todoistCompleter = {
 
 Register-ArgumentCompleter -Native -CommandName todoist -ScriptBlock $todoistCompleter
 
-Remove-Variable todoistCommands, todoistAliases, todoistGlobalFlags, todoistFlags, todoistValueFlags, todoistValues, todoistCompleter
+Remove-Variable todoistCommands, todoistAliases, todoistGlobalFlags, todoistSwitchFlags, todoistValueFlags, todoistValues, todoistCompleter
 `

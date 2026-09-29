@@ -51,3 +51,53 @@ is not a shell interpreter: it does not validate positional arguments, flag valu
 semantics, arbitrary shell syntax, or command groups without a flag parser.
 Behavior descriptions and API compatibility still require review and behavioral
 tests; a passing docs check does not prove every prose claim.
+
+## Command discovery metadata
+
+`internal/cli/command_metadata.go` owns command paths, parent/child relationships,
+help aliases, and the short descriptions and sections used by root help. Catalog
+order controls completion inventories; `rootHelpOrder` preserves the separate
+editorial ordering of root help. Execution switches and their alias maps remain
+authoritative in the existing command handlers.
+
+When adding or changing a command:
+
+1. Implement its execution and parsing in the existing handler.
+2. Add its canonical path and aliases to `commandCatalog`. A group has `group: true`;
+   a root command also needs its summary, section, and help order. Root listings,
+   help lookup, and existing shell inventory slots derive from this entry.
+3. Maintain detailed usage, flags, examples, and notes in `leaf_help.go` or the
+   command's existing help function. Group usage prose remains hand-written.
+   Add the focused page to `scripts/help-snapshots.txt`, update affected README/spec
+   examples, and regenerate snapshots with `scripts/update-help.sh`.
+4. Keep shell-specific flags, value/file completion, and traversal in
+   `completion_scripts.go` and `completion_powershell.go`. A new group may need a
+   shell context with a `{{commands:parent}}` slot; adding a child to an existing
+   context does not require copying its name into each shell. PowerShell derives
+   group and alias tables directly. This does not promise equal completion depth
+   or flag support across shells.
+5. For a new routing function, extend the explicit router inventory in
+   `dispatchedCommandInventory` in `command_metadata_test.go`. This independent
+   source check compares executable canonical commands and aliases against discovery,
+   in both directions. It checks known Go source shapes, not arbitrary control flow;
+   adjust it deliberately if routing structure changes. Do not generate its expected
+   commands from the discovery catalog. The shared-omission regression proves that
+   dropping `review` from discovery still fails the execution contract.
+6. Run targeted metadata/help/completion checks during development, then use the
+   [ordinary handoff gate](../CONTRIBUTING.md#ready-for-handoff). Preserve the
+   separate PowerShell smoke test in CI.
+
+Flags are intentionally outside this catalog. Detailed help and shell completion
+use them differently; the existing parser-registration checks still validate
+leaf-help flag names. Help-only `examples`, shell normalization (`pwsh`, case,
+whitespace), and completion-install shell arguments keep their existing owners.
+
+For PowerShell command-flag completion, add a flag once: switches belong in
+`$todoistSwitchFlags`, and flags that consume a value belong in
+`$todoistValueFlags`. Suggestions combine both tables. Keep the lists disjoint;
+value candidates still belong in `$todoistValues`. These are PowerShell completion
+hints, not parser registrations or a shared cross-shell flag schema. Global flags
+retain their existing separate inventory. Changes must preserve value skipping,
+space-separated and `=` values, aliases, and the `--` boundary; exercise them with
+the PowerShell smoke test. Public help and other shells retain their own flag
+presentation and behavior.

@@ -1,6 +1,8 @@
 package cli
 
-const bashCompletion = `# todoist completion
+var bashCompletion = renderCommandInventory(bashCompletionTemplate)
+
+const bashCompletionTemplate = `# todoist completion
 _todoist() {
   local cur prev cmd
   COMPREPLY=()
@@ -11,7 +13,7 @@ _todoist() {
   local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --ids-only --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
-    COMPREPLY=( $(compgen -W "review today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help ${global_flags}" -- "$cur") )
+    COMPREPLY=( $(compgen -W "{{commands:}} ${global_flags}" -- "$cur") )
     return 0
   fi
 
@@ -37,7 +39,7 @@ _todoist() {
       ;;
     inbox)
       if [[ ${COMP_CWORD} -eq 2 ]]; then
-        COMPREPLY=( $(compgen -W "add" -- "$cur") )
+        COMPREPLY=( $(compgen -W "{{commands:inbox}}" -- "$cur") )
         return 0
       fi
       local inbox_flags="--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee"
@@ -45,7 +47,7 @@ _todoist() {
       return 0
       ;;
     auth)
-      local subs="login status logout migrate repair"
+      local subs="{{commands:auth}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -62,7 +64,7 @@ _todoist() {
       fi
       ;;
     task)
-      local subs="list ls add view show update move complete reopen delete rm del"
+      local subs="{{commands:task}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -72,7 +74,7 @@ _todoist() {
       return 0
       ;;
     filter)
-      local subs="list ls show add update delete rm del"
+      local subs="{{commands:filter}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -82,7 +84,7 @@ _todoist() {
       return 0
       ;;
     project)
-      local subs="list ls view show browse collaborators add create update move archive unarchive delete rm del"
+      local subs="{{commands:project}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -92,7 +94,7 @@ _todoist() {
       return 0
       ;;
     workspace)
-      local subs="list ls"
+      local subs="{{commands:workspace}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -101,7 +103,7 @@ _todoist() {
       return 0
       ;;
     section)
-      local subs="list ls add update delete rm del"
+      local subs="{{commands:section}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -111,7 +113,7 @@ _todoist() {
       return 0
       ;;
     label)
-      local subs="list ls add update delete rm del"
+      local subs="{{commands:label}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -121,7 +123,7 @@ _todoist() {
       return 0
       ;;
     comment)
-      local subs="list ls add update delete rm del"
+      local subs="{{commands:comment}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -131,7 +133,7 @@ _todoist() {
       return 0
       ;;
     reminder)
-      local subs="list ls add update delete rm del"
+      local subs="{{commands:reminder}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -141,7 +143,7 @@ _todoist() {
       return 0
       ;;
     notification)
-      local subs="list view accept reject read unread"
+      local subs="{{commands:notification}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -157,7 +159,7 @@ _todoist() {
       ;;
     stats)
       if [[ ${COMP_CWORD} -eq 2 ]]; then
-        COMPREPLY=( $(compgen -W "goals vacation" -- "$cur") )
+        COMPREPLY=( $(compgen -W "{{commands:stats}}" -- "$cur") )
         return 0
       fi
       if [[ ${COMP_WORDS[2]} == "goals" ]]; then
@@ -173,7 +175,7 @@ _todoist() {
       ;;
     settings)
       if [[ ${COMP_CWORD} -eq 2 ]]; then
-        COMPREPLY=( $(compgen -W "view update themes" -- "$cur") )
+        COMPREPLY=( $(compgen -W "{{commands:settings}}" -- "$cur") )
         return 0
       fi
       if [[ ${COMP_WORDS[2]} == "update" ]]; then
@@ -189,7 +191,7 @@ _todoist() {
       return 0
       ;;
     agent)
-      local subs="plan apply run schedule examples planner status"
+      local subs="{{commands:agent}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
@@ -217,15 +219,17 @@ _todoist() {
 complete -F _todoist todoist
 `
 
-const zshCompletion = `#compdef todoist
+var zshCompletion = renderCommandInventory(zshCompletionTemplate)
+
+const zshCompletionTemplate = `#compdef todoist
 _arguments -C \
   '--ids-only[One raw ID per line (supported lists only)]' \
-  '1:command:(review today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help)' \
+  '1:command:({{commands:}})' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
   inbox)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(add)' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:inbox}})' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
     ;;
   review)
     _arguments '--filter[Todoist filter]:query:' '--out[Save review plan]:file:_files'
@@ -243,49 +247,49 @@ case $words[1] in
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
   auth)
-    _arguments '2:subcommand:(login status logout migrate repair)' '*:flags:(--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
+    _arguments '2:subcommand:({{commands:auth}})' '*:flags:(--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '2:subcommand:(list ls add view show update move complete reopen delete rm del)' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
+    _arguments '2:subcommand:({{commands:task}})' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
     ;;
   filter)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls show add update delete rm del)' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:filter}})' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
     ;;
   project)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls view show browse collaborators add create update move archive unarchive delete rm del)' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:project}})' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
     ;;
   workspace)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:workspace}})'
     ;;
   section)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--project --name --id)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:section}})' '*:flags:(--project --name --id)'
     ;;
   label)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--id --name --color --favorite --unfavorite)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:label}})' '*:flags:(--id --name --color --favorite --unfavorite)'
     ;;
   comment)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --project --content --id)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:comment}})' '*:flags:(--task --project --content --id)'
     ;;
   reminder)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list ls add update delete rm del)' '*:flags:(--task --id --before --at --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:reminder}})' '*:flags:(--task --id --before --at --yes)'
     ;;
   notification)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:(list view accept reject read unread)' '*:flags:(--type --unread --read --limit --offset --id --all --yes)'
+    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:notification}})' '*:flags:(--type --unread --read --limit --offset --id --all --yes)'
     ;;
   activity)
     _arguments '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--since --until --type --event --project --by --limit --cursor --all)'
     ;;
   stats)
-    _arguments '2:subcommand:(goals vacation)' '*:flags:(--daily --weekly --on --off)'
+    _arguments '2:subcommand:({{commands:stats}})' '*:flags:(--daily --weekly --on --off)'
     ;;
   settings)
-    _arguments '2:subcommand:(view update themes)' '*:flags:(--timezone --time-format --date-format --start-day --theme --auto-reminder --next-week --start-page --reminder-push --reminder-desktop --reminder-email --completed-sound-desktop --completed-sound-mobile)'
+    _arguments '2:subcommand:({{commands:settings}})' '*:flags:(--timezone --time-format --date-format --start-day --theme --auto-reminder --next-week --start-page --reminder-push --reminder-desktop --reminder-email --completed-sound-desktop --completed-sound-mobile)'
     ;;
   view)
     _arguments
     ;;
   agent)
-    _arguments '2:subcommand:(plan apply run schedule examples planner status)' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
+    _arguments '2:subcommand:({{commands:agent}})' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
     ;;
   schema)
     _arguments '*:flags:(--name)'
@@ -297,16 +301,18 @@ case $words[1] in
     _arguments '*:flags:(--strict)'
     ;;
   completion)
-    _arguments '2:shell:(bash zsh fish)'
+    _arguments '2:shell:({{commands:completion}})'
     ;;
   help)
-    _arguments '2:command:(review today completed upcoming inbox add auth task project section label comment reminder notification activity stats settings view agent completion doctor schema planner help)'
+    _arguments '2:command:({{commands:}})'
     ;;
 esac
 `
 
-const fishCompletion = `# todoist completion
-complete -c todoist -f -n '__fish_use_subcommand' -a 'review today completed upcoming inbox add auth task filter project workspace section label comment reminder notification activity stats settings view agent completion doctor schema planner help'
+var fishCompletion = renderCommandInventory(fishCompletionTemplate)
+
+const fishCompletionTemplate = `# todoist completion
+complete -c todoist -f -n '__fish_use_subcommand' -a '{{commands:}}'
 
 # Global flags
 complete -c todoist -s h -l help -d "Show help"
@@ -333,7 +339,7 @@ complete -c todoist -l base-url -d "Override API base URL"
 
 # auth
 complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_seen_subcommand_from login migrate' -l credential-store -r -a 'native file' -d "Credential storage backend"
-complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_use_subcommand' -a 'login status logout migrate repair'
+complete -c todoist -n '__fish_seen_subcommand_from auth; and __fish_use_subcommand' -a '{{commands:auth}}'
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l token-stdin -d "Read token from stdin"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l print-env -d "Print TODOIST_TOKEN export"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth -d "Authenticate via OAuth PKCE flow"
@@ -348,38 +354,38 @@ complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (co
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-redirect-uri -d "OAuth redirect URI"
 
 # task
-complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a 'list ls add view show update move complete reopen delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a '{{commands:task}}'
 complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes
 
 # project
-complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a 'list ls view show browse collaborators add create update move archive unarchive delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a '{{commands:project}}'
 complete -c todoist -n '__fish_seen_subcommand_from project' -l archived -l id -l name -l description -l parent -l color -l favorite -l view -l cursor -l limit -l all -l to-workspace -l to-personal -l visibility -l yes
 
 # workspace
-complete -c todoist -n '__fish_seen_subcommand_from workspace; and __fish_use_subcommand' -a 'list ls'
+complete -c todoist -n '__fish_seen_subcommand_from workspace; and __fish_use_subcommand' -a '{{commands:workspace}}'
 
 # filter
-complete -c todoist -n '__fish_seen_subcommand_from filter; and __fish_use_subcommand' -a 'list ls show add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from filter; and __fish_use_subcommand' -a '{{commands:filter}}'
 complete -c todoist -n '__fish_seen_subcommand_from filter' -l id -l name -l query -l color -l favorite -l unfavorite -l yes
 
 # section
-complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a 'list ls add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a '{{commands:section}}'
 complete -c todoist -n '__fish_seen_subcommand_from section' -l project -l name -l id
 
 # label
-complete -c todoist -n '__fish_seen_subcommand_from label; and __fish_use_subcommand' -a 'list ls add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from label; and __fish_use_subcommand' -a '{{commands:label}}'
 complete -c todoist -n '__fish_seen_subcommand_from label' -l id -l name -l color -l favorite -l unfavorite
 
 # comment
-complete -c todoist -n '__fish_seen_subcommand_from comment; and __fish_use_subcommand' -a 'list ls add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from comment; and __fish_use_subcommand' -a '{{commands:comment}}'
 complete -c todoist -n '__fish_seen_subcommand_from comment' -l task -l project -l content -l id
 
 # reminder
-complete -c todoist -n '__fish_seen_subcommand_from reminder; and __fish_use_subcommand' -a 'list ls add update delete rm del'
+complete -c todoist -n '__fish_seen_subcommand_from reminder; and __fish_use_subcommand' -a '{{commands:reminder}}'
 complete -c todoist -n '__fish_seen_subcommand_from reminder' -l task -l id -l before -l at -l yes
 
 # notification
-complete -c todoist -n '__fish_seen_subcommand_from notification; and __fish_use_subcommand' -a 'list view accept reject read unread'
+complete -c todoist -n '__fish_seen_subcommand_from notification; and __fish_use_subcommand' -a '{{commands:notification}}'
 complete -c todoist -n '__fish_seen_subcommand_from notification' -l type -l unread -l read -l limit -l offset -l id -l all -l yes
 
 # activity
@@ -387,16 +393,16 @@ complete -c todoist -n '__fish_seen_subcommand_from activity' -l since -l until 
 
 # stats
 complete -c todoist -n '__fish_seen_subcommand_from stats'
-complete -c todoist -n '__fish_seen_subcommand_from stats; and __fish_use_subcommand' -a 'goals vacation'
+complete -c todoist -n '__fish_seen_subcommand_from stats; and __fish_use_subcommand' -a '{{commands:stats}}'
 complete -c todoist -n '__fish_seen_subcommand_from stats; and contains goals (commandline -opc)' -l daily -l weekly
 complete -c todoist -n '__fish_seen_subcommand_from stats; and contains vacation (commandline -opc)' -l on -l off
 
 # settings
-complete -c todoist -n '__fish_seen_subcommand_from settings; and __fish_use_subcommand' -a 'view update themes'
+complete -c todoist -n '__fish_seen_subcommand_from settings; and __fish_use_subcommand' -a '{{commands:settings}}'
 complete -c todoist -n '__fish_seen_subcommand_from settings; and contains update (commandline -opc)' -l timezone -l time-format -l date-format -l start-day -l theme -l auto-reminder -l next-week -l start-page -l reminder-push -l reminder-desktop -l reminder-email -l completed-sound-desktop -l completed-sound-mobile
 
 # inbox
-complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a 'add'
+complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a '{{commands:inbox}}'
 complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
 
 # review
@@ -416,7 +422,7 @@ complete -c todoist -n '__fish_seen_subcommand_from upcoming' -l days -l project
 complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l strict
 
 # agent
-complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a 'plan apply run schedule examples planner status'
+complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a '{{commands:agent}}'
 complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l policy -l plan -l confirm -l instruction -l on-error -l plan-version -l context-project -l context-label -l context-completed
 
 # doctor
@@ -430,5 +436,5 @@ complete -c todoist -n '__fish_seen_subcommand_from planner' -l set
 complete -c todoist -n '__fish_seen_subcommand_from planner' -l cmd
 
 # completion helper
-complete -c todoist -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
+complete -c todoist -n '__fish_seen_subcommand_from completion' -a '{{commands:completion}}'
 `

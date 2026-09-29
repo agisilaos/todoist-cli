@@ -1,36 +1,9 @@
 package cli
 
-// Leaf text is maintained beside the help catalog; flags are checked against
+// Detailed help is separate from discovery metadata; flags are checked against
 // parser registrations by TestLeafHelpFlagsMatchRegistrations.
 
-var commandHelpCatalog = map[string]commandHelp{
-	"auth":           {group: true},
-	"task":           {group: true},
-	"project":        {group: true},
-	"filter":         {group: true},
-	"workspace":      {group: true},
-	"section":        {group: true},
-	"label":          {group: true},
-	"comment":        {group: true},
-	"reminder":       {group: true},
-	"notification":   {group: true},
-	"stats":          {group: true},
-	"settings":       {group: true},
-	"agent":          {group: true},
-	"completion":     {group: true},
-	"inbox":          {group: true},
-	"agent schedule": {group: true},
-	"activity":       {},
-	"view":           {},
-	"doctor":         {},
-	"schema":         {},
-	"planner":        {},
-	"add":            {},
-	"today":          {},
-	"review":         {},
-	"completed":      {},
-	"upcoming":       {},
-	"help":           {},
+var leafHelpPages = map[string]commandHelp{
 	"auth login": {
 		usage: `[--token-stdin] [--credential-store <native|file>] [flags]
 --oauth [--read-only] [--client-id <id>] [flags]
@@ -96,8 +69,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"task list": {
-		aliases: "ls",
-		usage:   `[flags]`,
+		usage: `[flags]`,
 		flags: `  --filter <query>                  Filter query
   --project <ref>                   Project
   --section <ref>                   Section
@@ -197,7 +169,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"task view": {
-		aliases: "show",
 		usage: `<ref> [--full]
 --id <id> [--full]`,
 		flags: `  --id <id>                         Task ID
@@ -231,7 +202,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"task delete": {
-		aliases: "rm del",
 		usage: `<ref> --yes
 --id <id> --yes`,
 		flags: `  --id <id>                         Task ID
@@ -243,8 +213,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"project list": {
-		aliases: "ls",
-		usage:   `[--archived] [flags]`,
+		usage: `[--archived] [flags]`,
 		flags: `  --archived                        List archived projects
   --cursor <cursor>                 Cursor
   --limit <n>                       Limit
@@ -255,7 +224,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --ids-only            Print one raw ID per result`,
 	},
 	"project view": {
-		aliases: "show",
 		usage: `<id|name>
 --id <id|name>`,
 		flags:    `  --id <id>                         Project ID or name`,
@@ -283,8 +251,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --ids-only            Print one raw ID per result`,
 	},
 	"project add": {
-		aliases: "create",
-		usage:   `--name <name> [flags]`,
+		usage: `--name <name> [flags]`,
 		flags: `  --name <name>                     Project name
   --description <text>              Description
   --parent <id>                     Parent project
@@ -339,7 +306,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"project delete": {
-		aliases:  "rm del",
 		usage:    `--id <id>`,
 		flags:    `  --id <id>                         ID`,
 		examples: `  todoist project delete --id 234 --dry-run`,
@@ -348,7 +314,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"filter list": {
-		aliases:  "ls",
 		usage:    ``,
 		examples: `  todoist filter list --json`,
 		notes:    `  Lists saved filters. Use filter show to list tasks matching a saved filter.`,
@@ -386,7 +351,6 @@ var commandHelpCatalog = map[string]commandHelp{
 		globals:  `  --no-input            Disable prompts`,
 	},
 	"filter delete": {
-		aliases: "rm del",
 		usage: `<id|name> --yes
 --id <id|name> --yes`,
 		flags: `  --id <id>                         Filter ID or name
@@ -397,7 +361,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"workspace list": {
-		aliases:  "ls",
 		usage:    ``,
 		examples: `  todoist workspace list --json`,
 		notes:    `  Use workspace IDs with project creation or project move.`,
@@ -405,8 +368,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --ids-only            Print one raw ID per result`,
 	},
 	"section list": {
-		aliases: "ls",
-		usage:   `[--project <ref>] [flags]`,
+		usage: `[--project <ref>] [flags]`,
 		flags: `  --project <ref>                   Project
   --cursor <cursor>                 Cursor
   --limit <n>                       Limit
@@ -435,7 +397,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"section delete": {
-		aliases:  "rm del",
 		usage:    `--id <id>`,
 		flags:    `  --id <id>                         ID`,
 		examples: `  todoist section delete --id 345 --dry-run`,
@@ -444,8 +405,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"label list": {
-		aliases: "ls",
-		usage:   `[flags]`,
+		usage: `[flags]`,
 		flags: `  --cursor <cursor>                 Cursor
   --limit <n>                       Limit
   --all                             Fetch all pages`,
@@ -479,7 +439,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"label delete": {
-		aliases:  "rm del",
 		usage:    `--id <id>`,
 		flags:    `  --id <id>                         ID`,
 		examples: `  todoist label delete --id 456 --dry-run`,
@@ -488,8 +447,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"comment list": {
-		aliases: "ls",
-		usage:   `(--task <id> | --project <ref>) [flags]`,
+		usage: `(--task <id> | --project <ref>) [flags]`,
 		flags: `  --task <ref>                      Task ID
   --project <ref>                   Project ID
   --cursor <cursor>                 Cursor
@@ -520,7 +478,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"comment delete": {
-		aliases:  "rm del",
 		usage:    `--id <id>`,
 		flags:    `  --id <id>                         ID`,
 		examples: `  todoist comment delete --id 567 --dry-run`,
@@ -529,7 +486,6 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"reminder list": {
-		aliases:  "ls",
 		usage:    `(<task> | --task <ref>)`,
 		flags:    `  --task <ref>                      Task reference`,
 		examples: `  todoist reminder list --task id:123456`,
@@ -558,8 +514,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"reminder delete": {
-		aliases: "rm del",
-		usage:   `(<id> | --id <id>) [--yes]`,
+		usage: `(<id> | --id <id>) [--yes]`,
 		flags: `  --id <id>                         Reminder ID
   --yes                             Skip confirmation`,
 		examples: `  todoist reminder delete --id 678 --yes --dry-run`,
@@ -568,8 +523,7 @@ var commandHelpCatalog = map[string]commandHelp{
   --no-input            Disable prompts`,
 	},
 	"notification list": {
-		aliases: "ls",
-		usage:   `[flags]`,
+		usage: `[flags]`,
 		flags: `  --type <types>                    Filter by notification type (comma-separated)
   --unread                          Only unread notifications
   --read                            Only read notifications
@@ -795,7 +749,6 @@ var commandHelpCatalog = map[string]commandHelp{
 		notes:    `  Prints shell source only. Use completion install fish for installation and activation guidance.`,
 	},
 	"completion powershell": {
-		aliases:  "pwsh",
 		usage:    ``,
 		examples: `  todoist completion powershell > todoist.ps1`,
 		notes:    `  Prints shell source only. pwsh is an alias; use completion install powershell for activation guidance.`,

@@ -3,9 +3,6 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -143,68 +140,6 @@ func TestLeafHelpFlagsMatchRegistrations(t *testing.T) {
 		}
 		if !strings.Contains(string(manifest), "\t"+path+" --help\n") {
 			t.Errorf("missing snapshot for %s", path)
-		}
-	}
-}
-
-func TestHelpCatalogCoversDispatch(t *testing.T) {
-	// Compare the public command cases and alias maps to the help catalog, rather
-	// than only iterating the catalog (which would miss an omitted command).
-	groups := map[string]string{"": "dispatch", "auth": "authCommand", "task": "taskCommand", "project": "projectCommand", "filter": "filterCommand", "workspace": "workspaceCommand", "section": "sectionCommand", "label": "labelCommand", "comment": "commentCommand", "reminder": "reminderCommand", "notification": "notificationCommand", "stats": "statsCommand", "settings": "settingsCommand", "agent": "agentCommand", "agent schedule": "agentSchedule", "inbox": "inboxCommand", "completion": "completionScript"}
-	files, err := filepath.Glob("*.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := map[string]bool{"completion install": true, "completion uninstall": true}
-	for _, file := range files {
-		if strings.HasSuffix(file, "_test.go") {
-			continue
-		}
-		tree, err := parser.ParseFile(token.NewFileSet(), file, nil, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, decl := range tree.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			if !ok {
-				continue
-			}
-			for parent, name := range groups {
-				if fn.Name.Name != name {
-					continue
-				}
-				ast.Inspect(fn.Body, func(n ast.Node) bool {
-					if clause, ok := n.(*ast.CaseClause); ok {
-						for _, expr := range clause.List {
-							child := sourceString(expr)
-							if child == "" || child == "help" || strings.HasPrefix(child, "-") {
-								continue
-							}
-							path, exists := findHelpChild(parent, child)
-							if !exists {
-								t.Errorf("help missing dispatched %s %s", parent, child)
-							} else {
-								found[path] = true
-							}
-						}
-					}
-					if pair, ok := n.(*ast.KeyValueExpr); ok {
-						alias, target := sourceString(pair.Key), sourceString(pair.Value)
-						if alias != "" && target != "" {
-							path, exists := findHelpChild(parent, alias)
-							if !exists || path != strings.TrimSpace(parent+" "+target) {
-								t.Errorf("help alias mismatch: %s %s -> %s", parent, alias, target)
-							}
-						}
-					}
-					return true
-				})
-			}
-		}
-	}
-	for path := range commandHelpCatalog {
-		if path != "help" && !found[path] {
-			t.Errorf("help describes undispatched path %s", path)
 		}
 	}
 }
