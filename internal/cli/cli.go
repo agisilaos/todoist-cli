@@ -68,6 +68,7 @@ type Context struct {
 	Profile    string
 	ConfigPath string
 	ConfigErr  error
+	HelpPath   string
 	Fuzzy      bool
 	Accessible bool
 
@@ -376,7 +377,7 @@ func ensureClient(ctx *Context) error {
 		return err
 	}
 	if ctx.Token == "" {
-		return &CodeError{Code: exitAuth, Err: fmt.Errorf("missing auth token; run 'todoist auth login' or set TODOIST_TOKEN")}
+		return &CodeError{Code: exitAuth, Err: errMissingToken}
 	}
 	if ctx.Client == nil {
 		ctx.Client = api.NewClient(ctx.Config.BaseURL, ctx.Token, time.Duration(ctx.Config.TimeoutSeconds)*time.Second, currentAuthorization(ctx))

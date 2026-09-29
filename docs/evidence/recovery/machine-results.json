@@ -1,0 +1,26 @@
+[
+  {
+    "command": "todoist --config <isolated-empty-config> today --no-input --json --quiet-json",
+    "exit": 3,
+    "stdout": "",
+    "stderr": "{\"error\":\"missing auth token; run 'todoist auth login' or set TODOIST_TOKEN\",\"meta\":{}}\n"
+  },
+  {
+    "command": "todoist task view id:fixture-task --full --no-input --json",
+    "exit": 0,
+    "stdout": "{\n  \"id\": \"fixture-task\",\n  \"content\": \"Review release notes carefully\",\n  \"description\": \"Local fixture; no live Todoist access\",\n  \"project_id\": \"fixture-project\",\n  \"section_id\": \"\",\n  \"parent_id\": \"\",\n  \"labels\": [],\n  \"priority\": 1,\n  \"checked\": false,\n  \"due\": null,\n  \"added_at\": \"\",\n  \"completed_at\": \"\",\n  \"updated_at\": \"after\",\n  \"note_count\": 0\n}\n",
+    "stderr": ""
+  },
+  {
+    "command": "todoist agent apply --plan review-plan.json --confirm f6cef7a67e989150aafce7313827eea0 --no-input --json --quiet-json",
+    "exit": 5,
+    "stdout": "{\n  \"version\": 1,\n  \"phase\": \"applied\",\n  \"plan\": {\n    \"review\": {\n      \"version\": 1,\n      \"filter\": \"overdue | today\",\n      \"tasks\": [\n        {\n          \"id\": \"fixture-task\",\n          \"content\": \"Review release notes\",\n          \"disposition\": \"change\",\n          \"snapshot\": {\n            \"content\": \"Review release notes\",\n            \"description\": \"Local fixture; no live Todoist access\",\n            \"id\": \"fixture-task\",\n            \"labels\": [],\n            \"priority\": 1,\n            \"project_id\": \"fixture-project\",\n            \"updated_at\": \"before\"\n          },\n          \"actions\": [\n            0\n          ]\n        }\n      ]\n    },\n    \"version\": 1,\n    \"instruction\": \"Daily review: overdue | today\",\n    \"created_at\": \"2026-09-29T13:11:13Z\",\n    \"confirm_token\": \"f6cef7a67e989150aafce7313827eea0\",\n    \"summary\": {\n      \"tasks\": 1,\n      \"projects\": 0,\n      \"sections\": 0,\n      \"labels\": 0,\n      \"comments\": 0\n    },\n    \"actions\": [\n      {\n        \"type\": \"task_update\",\n        \"task_id\": \"fixture-task\",\n        \"content\": \"Review release notes carefully\"\n      }\n    ]\n  },\n  \"plan_path\": \"review-plan.json\",\n  \"tasks\": [\n    {\n      \"id\": \"fixture-task\",\n      \"content\": \"Review release notes\",\n      \"disposition\": \"change\",\n      \"outcome\": \"unattempted\",\n      \"actions\": [\n        {\n          \"index\": 0,\n          \"type\": \"task_update\",\n          \"outcome\": \"unattempted\",\n          \"remote_outcome_uncertain\": true\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"unattempted\": 1\n  },\n  \"error\": \"task fixture-task has an uncertain remote outcome; inspect Todoist and start a fresh review; do not retry this plan\"\n}\n",
+    "stderr": "{\"error\":\"task fixture-task has an uncertain remote outcome; inspect Todoist and start a fresh review; do not retry this plan\",\"meta\":{}}\n"
+  },
+  {
+    "command": "todoist review --no-input --json --quiet-json",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "{\"error\":\"review requires terminal input; use task list --filter and agent plan/apply for noninteractive work\",\"meta\":{}}\n"
+  }
+]
