@@ -8,40 +8,7 @@ func printRootHelp(out interface{ Write([]byte) (int, error) }) {
 Usage:
   todoist [global flags] <command> [args]
 
-Everyday:
-  add           Capture tasks with natural language parsing
-  today         Tasks due today and overdue across projects
-  review        Guided daily task review
-  upcoming      Tasks due today and the next 6 days (default)
-  inbox         List Inbox tasks or add to Inbox
-
-Organization:
-  task          Manage tasks (list defaults to Inbox)
-  project       Manage projects
-  workspace     Manage workspaces
-  section       Manage sections
-  label         Manage labels
-  filter        Manage filters
-  comment       Manage comments
-  reminder      Manage task reminders
-  notification  Manage notifications
-  completed     Completed task history
-  activity      View activity logs
-  stats         View productivity stats
-  view          Open Todoist web URLs in CLI
-
-Automation:
-  agent         Plan and apply agentic actions
-  planner       Show or set planner command
-  schema        Show output schemas and wire-format contracts
-
-Setup and reference:
-  auth          Authenticate and manage tokens
-  settings      Manage user settings
-  completion    Shell completion
-  doctor        Run environment and configuration checks
-  help          Show help for a command
-
+`+rootCommandListing()+`
 Global flags:
   -h, --help            Show help
   --version             Show version

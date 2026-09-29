@@ -43,6 +43,12 @@ try {
         & $binary completion powershell | Out-String | Invoke-Expression
 
         Assert-ContainsCompletion 'todoist pro' 'project'
+        Assert-ContainsCompletion 'todoist rev' 'review'
+        Assert-ContainsCompletion 'todoist help rev' 'review'
+        Assert-ContainsCompletion 'todoist notification l' 'ls'
+        Assert-ContainsCompletion 'todoist notification ls --t' '--type'
+        Assert-ContainsCompletion 'todoist completion p' 'pwsh'
+        Assert-ContainsCompletion 'todoist agent schedule ' 'print'
         foreach ($alias in @('ls', 'show', 'rm', 'del')) {
             Assert-ContainsCompletion 'todoist task ' $alias
         }

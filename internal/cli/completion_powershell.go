@@ -2,59 +2,10 @@ package cli
 
 const powerShellCompletionMarker = "# todoist completion (powershell)"
 
-const powerShellCompletion = powerShellCompletionMarker + `
-$todoistCommands = @{
-    '' = @('review', 'today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
-    'inbox' = @('add')
-    'auth' = @('login', 'status', 'logout', 'migrate', 'repair')
-    'task' = @('list', 'ls', 'add', 'view', 'show', 'update', 'move', 'complete', 'reopen', 'delete', 'rm', 'del')
-    'filter' = @('list', 'ls', 'show', 'add', 'update', 'delete', 'rm', 'del')
-    'project' = @('list', 'ls', 'view', 'show', 'browse', 'collaborators', 'add', 'create', 'update', 'move', 'archive', 'unarchive', 'delete', 'rm', 'del')
-    'workspace' = @('list', 'ls')
-    'section' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'label' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'comment' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'reminder' = @('list', 'ls', 'add', 'update', 'delete', 'rm', 'del')
-    'notification' = @('list', 'ls', 'view', 'accept', 'reject', 'read', 'unread')
-    'stats' = @('goals', 'vacation')
-    'settings' = @('view', 'update', 'themes')
-    'agent' = @('plan', 'apply', 'run', 'schedule', 'examples', 'planner', 'status')
-    'agent schedule' = @('print')
-    'completion' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh', 'install', 'uninstall')
-    'completion install' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh')
-    'completion uninstall' = @('bash', 'zsh', 'fish', 'powershell', 'pwsh')
-    'help' = @('review', 'today', 'completed', 'upcoming', 'inbox', 'add', 'auth', 'task', 'filter', 'project', 'workspace', 'section', 'label', 'comment', 'reminder', 'notification', 'activity', 'stats', 'settings', 'view', 'agent', 'completion', 'doctor', 'schema', 'planner', 'help')
-}
+var powerShellCompletion = renderPowerShellInventory(powerShellCompletionTemplate)
 
-$todoistAliases = @{
-    'task ls' = 'task list'
-    'task show' = 'task view'
-    'task rm' = 'task delete'
-    'task del' = 'task delete'
-    'filter ls' = 'filter list'
-    'filter rm' = 'filter delete'
-    'filter del' = 'filter delete'
-    'project ls' = 'project list'
-    'project show' = 'project view'
-    'project create' = 'project add'
-    'project rm' = 'project delete'
-    'project del' = 'project delete'
-    'workspace ls' = 'workspace list'
-    'section ls' = 'section list'
-    'section rm' = 'section delete'
-    'section del' = 'section delete'
-    'label ls' = 'label list'
-    'label rm' = 'label delete'
-    'label del' = 'label delete'
-    'comment ls' = 'comment list'
-    'comment rm' = 'comment delete'
-    'comment del' = 'comment delete'
-    'reminder ls' = 'reminder list'
-    'reminder rm' = 'reminder delete'
-    'reminder del' = 'reminder delete'
-    'notification ls' = 'notification list'
-}
-
+const powerShellCompletionTemplate = powerShellCompletionMarker + `
+{{powershell-commands}}
 $todoistGlobalFlags = @(
     '-h', '--help', '--version', '-q', '--quiet', '--quiet-json', '-v', '--verbose',
     '--accessible', '--json', '--plain', '--ndjson', '--ids-only', '--no-color',
