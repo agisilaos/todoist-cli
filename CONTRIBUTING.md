@@ -50,6 +50,11 @@ Todoist testing or per-task consumer review is part of this gate.
 - `make auth-terminal-check` runs the credential-free terminal smoke test;
   `make mod-check` checks module consistency without rewriting `go.mod` or
   `go.sum`. If metadata has drifted, run `go mod tidy` and review the changes.
+- For review/replay persistence changes, run
+  `go test ./internal/cli -run '^(TestReview|TestReplayStore|TestApplyActions)'`.
+  Use the existing local API fixture and injected persistence failures to assert
+  persisted evidence, reports, and mutation counts at failure boundaries. See the
+  [persistence sequence](docs/review-design.md#persistence-sequence-for-maintainers).
 - For PowerShell completion changes, run
   `pwsh -NoProfile -File scripts/test-powershell-completion.ps1` when PowerShell
   is available locally. This check is mandatory in Linux CI.

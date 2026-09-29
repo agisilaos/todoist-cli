@@ -28,10 +28,8 @@ type reviewCheckpoint struct {
 type reviewReplayStore struct {
 	keyPrefix string
 	*fileReplayStore
-	ctx      *Context
-	plan     Plan
-	index    int
-	response appreview.Snapshot
+	ctx  *Context
+	plan Plan
 }
 
 func (s *reviewReplayStore) taskKey(id string) string {
@@ -49,22 +47,12 @@ func (s *reviewReplayStore) taskKey(id string) string {
 }
 
 func (s *reviewReplayStore) save(key string, checkpoint reviewCheckpoint, applied string, at time.Time) error {
-	candidate := replayJournal{Applied: map[string]string{}, Reviews: map[string]reviewCheckpoint{}}
-	for k, v := range s.journal.Applied {
-		candidate.Applied[k] = v
-	}
-	for k, v := range s.journal.Reviews {
-		candidate.Reviews[k] = v
-	}
-	candidate.Reviews[key] = checkpoint
-	if applied != "" {
-		candidate.Applied[applied] = at.UTC().Format(time.RFC3339)
-	}
-	if err := s.persist(s.path, candidate); err != nil {
-		return err
-	}
-	s.journal = candidate
-	return nil
+	return s.updateJournal(func(candidate *replayJournal) {
+		candidate.Reviews[key] = checkpoint
+		if applied != "" {
+			candidate.Applied[applied] = at.UTC().Format(time.RFC3339)
+		}
+	})
 }
 
 func fetchReviewTask(ctx *Context, id string) (appreview.Snapshot, error) {
@@ -111,21 +99,48 @@ func (s *reviewReplayStore) check(id string) (reviewCheckpoint, error) {
 	return checkpoint, nil
 }
 
-func (s *reviewReplayStore) before(index int, action Action) error {
+func (s *reviewReplayStore) prepare(index int, action Action) (preparedAction, error) {
 	checkpoint, err := s.check(action.TaskID)
 	if err != nil {
-		return err
+		return preparedAction{}, err
 	}
-	s.index = index
 	checkpoint.Pending = true
 	checkpoint.PendingIndex = index
 	if err := s.save(s.taskKey(action.TaskID), checkpoint, "", time.Time{}); err != nil {
-		return &replayStoreError{err: err}
+		return preparedAction{}, &replayStoreError{err: err}
 	}
-	return nil
+
+	needsSnapshot := false
+	for _, later := range s.plan.Actions[index+1:] {
+		if later.TaskID == action.TaskID {
+			needsSnapshot = true
+			break
+		}
+	}
+	var response appreview.Snapshot
+	return preparedAction{
+		perform: func() error {
+			if needsSnapshot {
+				return applyActionResponse(s.ctx, action, &response)
+			}
+			return applyAction(s.ctx, action)
+		},
+		failed: func(err error) error { return s.failed(action, err) },
+		recordApplied: func(key string, at time.Time) error {
+			// Later actions compare with this mutation's response, never a new read.
+			if needsSnapshot {
+				if appreview.Text(response, "id") != action.TaskID || len(response) < 2 {
+					return errors.New("successful mutation did not return a task snapshot; inspect remote state before a fresh review")
+				}
+				checkpoint.Snapshot = appreview.SnapshotOf(response)
+			}
+			checkpoint.Pending = false
+			return s.save(s.taskKey(action.TaskID), checkpoint, key, at)
+		},
+	}, nil
 }
 
-func (s *reviewReplayStore) failed(_ int, action Action, err error) error {
+func (s *reviewReplayStore) failed(action Action, err error) error {
 	var apiErr *api.APIError
 	// Only definite client rejections are safe to retry automatically from this plan.
 	if errors.As(err, &apiErr) && apiErr.Status >= 400 && apiErr.Status < 500 && apiErr.Status != 408 {
@@ -137,23 +152,6 @@ func (s *reviewReplayStore) failed(_ int, action Action, err error) error {
 		return err
 	}
 	return fmt.Errorf("remote outcome uncertain; inspect Todoist before a fresh review: %w", err)
-}
-
-func (s *reviewReplayStore) RecordApplied(key string, at time.Time) error {
-	action := s.plan.Actions[s.index]
-	checkpoint := s.journal.Reviews[s.taskKey(action.TaskID)]
-	// A later action on this task must compare with the observed post-action state.
-	for i := s.index + 1; i < len(s.plan.Actions); i++ {
-		if s.plan.Actions[i].TaskID == action.TaskID {
-			if appreview.Text(s.response, "id") != action.TaskID || len(s.response) < 2 {
-				return errors.New("successful mutation did not return a task snapshot; inspect remote state before a fresh review")
-			}
-			checkpoint.Snapshot = appreview.SnapshotOf(s.response)
-			break
-		}
-	}
-	checkpoint.Pending = false
-	return s.save(s.taskKey(action.TaskID), checkpoint, key, at)
 }
 
 func applyReviewPlan(ctx *Context, plan Plan) ([]applyResult, error) {
@@ -180,7 +178,7 @@ func applyReviewPlan(ctx *Context, plan Plan) ([]applyResult, error) {
 			seen[a.TaskID] = true
 		}
 	}
-	return applyActionsWithHooks(ctx, plan.ConfirmToken, plan.Actions, applyErrorModeFail, store, &applyHooks{before: store.before, failed: store.failed, perform: store.perform})
+	return applyActionsWithPreparation(ctx, plan.ConfirmToken, plan.Actions, applyErrorModeFail, file, store.prepare)
 }
 
 func applyReviewAndReport(ctx *Context, plan Plan, path, onError, command string) error {
@@ -214,14 +212,4 @@ func applyReviewAndReport(ctx *Context, plan Plan, path, onError, command string
 		return err
 	}
 	return applyErr
-}
-
-func (s *reviewReplayStore) perform(action Action) error {
-	s.response = nil
-	for i := s.index + 1; i < len(s.plan.Actions); i++ {
-		if s.plan.Actions[i].TaskID == action.TaskID {
-			return applyActionResponse(s.ctx, action, &s.response)
-		}
-	}
-	return applyAction(s.ctx, action)
 }

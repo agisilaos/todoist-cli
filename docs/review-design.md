@@ -104,6 +104,33 @@ retention, and the single-applying-process assumption. No transactional applicat
 atomic remote conflict check, account-scoped replay, or exactly-once write guarantee
 is introduced. Native credentials and cross-platform expansion are outside scope.
 
+## Persistence sequence for maintainers
+
+The CLI apply loop owns replay skipping, dispatch events, error policy, and success
+reporting. Ordinary plans bind the existing mutation and replay-record operations.
+Review preparation returns a `preparedAction` only after revalidating the task and
+persisting pending evidence. Its operations hold one action's checkpoint and
+mutation response; the replay store has no mutable current-action index or response.
+
+| Boundary | Persisted evidence and next step |
+| --- | --- |
+| Replay key already present | Skip before preparation; no mutation or journal write. |
+| Review revalidation or pending save fails | Stop before mutation execution; no applied-action result. |
+| Review preparation succeeds | Pending evidence exists before request construction and dispatch. Interruption can therefore block retry even if no request was sent. |
+| Final request result is a definite rejection | Clear pending evidence in a journal replacement. If replacement fails, retain pending evidence and stop. |
+| Final request result is uncertain | Retain pending evidence and stop; do not redispatch from this plan. |
+| Mutation succeeds | Record the replay key and, for review, clear pending and include any required response checkpoint in the same replacement. |
+| Required response snapshot is missing or recording fails | Stop without reporting an applied action. Review pending evidence remains. |
+| Recording succeeds | Report the applied action. Interruption before reporting is safe to replay because the record is already installed. |
+
+`fileReplayStore.updateJournal` owns candidate construction, persistence, and
+in-memory publication for both ordinary and review writes. It copies the journal
+maps; callers replace checkpoint values and treat snapshot maps as immutable.
+Only successful persistence installs the candidate in memory. The file writer,
+JSON fields, key derivation, corruption handling, and durability limits are unchanged.
+The API client's existing request-ID/retry behavior is also unchanged; classification
+above applies to the final result returned to the apply loop.
+
 ## Accounting
 
 The `review_report` schema describes final output. Every selected task appears,
