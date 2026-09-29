@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
+## [v0.9.1] - 2026-09-29
+
+### Fixed
+
+- Credential and usage errors now give actionable human guidance, including noninteractive token entry and environment-token overrides. Interrupted reviews explain how to inspect the affected task before deciding what to do next; uncertain writes still block blind retry, and machine output contracts remain unchanged. [#15](https://github.com/agisilaos/todoist-cli/pull/15)
+- Shell completion now includes command names and aliases previously missing from its separate inventories, with command discovery shared across help and completions. Refresh installed completion scripts to pick up the updated suggestions. [#13](https://github.com/agisilaos/todoist-cli/pull/13)
+
+### Changed
+
+- Review and agent-plan application share simpler replay persistence, preserving existing recovery guarantees and valid journal formats without a migration. [#14](https://github.com/agisilaos/todoist-cli/pull/14)
+- Contributors can use `make check` for ordinary validation locally or in CI; release-specific checks remain in the release process. [#12](https://github.com/agisilaos/todoist-cli/pull/12)
+
 ## [v0.9.0] - 2026-09-28
 
 ### Upgrade notes
