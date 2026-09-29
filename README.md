@@ -36,6 +36,8 @@ and `upcoming` already fetch every page. Upcoming uses UTC dates.
 If Inbox cannot be resolved, `inbox` and bare `task list` stop with an error
 instead of returning tasks from other projects.
 
+If a command fails, follow [errors and recovery](#errors-and-recovery) for credential setup and safe review inspection.
+
 For a machine client with credentials configured:
 
 ```bash
@@ -459,7 +461,9 @@ todoist agent apply --plan review-plan.json --confirm "$(jq -r .confirm_token re
 
 Recorded successes are skipped; pending work is checked against the reviewed or
 post-update state. For an **uncertain remote outcome**, inspect the task in Todoist
-and start a fresh review; retrying the old plan is blocked. Use the current binary,
+and reconcile the observed state before starting a fresh review; retrying the old plan is blocked.
+Follow the [inspection steps](#errors-and-recovery), including completed-history
+checks. Use the current binary,
 never edit recovery plans, and run only one applying process at a time. Application
 is not transactional and cannot guarantee exactly-once writes.
 
@@ -833,6 +837,61 @@ after `--`. Version takes precedence over output conflicts; conflicts precede he
 Explicit help and implicit root/command help may print normal help with this flag.
 `todoist schema --name ids_only` describes the wire format; it is not a JSON payload
 schema, and existing JSON schemas remain unchanged.
+
+## Errors and recovery
+
+Human errors include next steps for missing credentials, rejected manual tokens or
+API 401 responses, unavailable requested credential storage, and command usage
+errors. Explicit machine flags retain their existing payloads, messages, streams,
+and exit codes; `--no-input` alone still permits human diagnostics.
+
+Retain your original `--config`, `--profile`, and `--base-url` selections when
+following examples. `TODOIST_TOKEN` overrides stored credentials; logging in does
+not replace it. Replace that environment value deliberately, or unset it when
+switching back to a stored credential. Inspect selection offline with:
+
+```bash
+todoist auth status --no-input
+```
+
+Status does not verify token validity. For noninteractive login, provide a secret
+file containing only the token:
+
+```bash
+todoist auth login --no-input --token-stdin < token.txt
+```
+
+Protect `token.txt` as a secret. For a **new or file-backed profile** requiring
+portable plaintext storage, add `--credential-store=file`. An existing native
+profile needs a supported native build; the login flag does not migrate it and
+migration requires access to the original credential. See [credential storage
+and recovery](#credential-storage-and-recovery). Rejected manual login leaves
+stored credentials unchanged. An API 401 during a multi-action command does not
+undo earlier actions; inspect the reported results before resubmitting mutations.
+
+For invalid input, follow the displayed command-specific `--help` reference.
+Usage errors alone do not establish that an earlier action was undone.
+
+After an interrupted review with an **uncertain remote outcome**, a Todoist
+mutation may already have happened. Keep the saved review plan and replay evidence
+(`agent_replay.json` beside the selected configuration). Do not reapply the old
+plan, delete evidence, or force resubmission. Using the same credential source,
+configuration, account, and API endpoint, inspect each uncertain task's exact ID:
+
+```bash
+todoist task view id:123456 --full --no-input
+```
+
+Replace `123456` with the ID from the report or saved plan. Compare current fields
+with the proposed changes and reported applied actions. If a task is missing, or
+a recurring task's date advanced, check that exact task in Todoist's completed
+history/activity; a single task lookup cannot prove whether completion happened.
+Only after reconciling intended and observed state manually should you start a
+fresh review for remaining changes. If you cannot establish the result, stop and
+verify in Todoist. There is no automated reconciliation command. `--no-input`
+can inspect tasks but cannot start an interactive review.
+
+See the [diagnostic boundaries and failure inventory](docs/error-recovery.md).
 
 ## Exit Codes
 

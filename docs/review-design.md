@@ -112,3 +112,18 @@ proposed, applied, failed, partially_applied, or unattempted. `phase: applied` m
 application was attempted, not that every task succeeded. Action outcomes identify
 replayed successes, errors, and uncertain remote results. Counts cover task outcomes;
 actions remain separately inspectable. Proposed dispositions are never applied results.
+
+## Human recovery guidance
+
+The human report uses existing `remote_outcome_uncertain` evidence to recommend
+read-only exact-ID inspection. Keep the saved plan and replay journal, compare
+observed fields against intended changes and reported applied actions, and check
+Todoist completed history/activity when completion cannot be established by an
+active task lookup. Reconcile manually before a fresh review; unresolved outcomes
+are a reason to stop, not to resubmit. The CLI has no automatic reconciliation or
+pending-evidence override. A hard kill cannot print a final diagnostic; preserve
+the saved plan and inspect remotely, and consult this workflow before further
+application. See [errors and recovery](error-recovery.md).
+
+These rendering additions leave explicit machine modes, the report schema,
+persistence sequencing, and ADR-0002 unchanged.

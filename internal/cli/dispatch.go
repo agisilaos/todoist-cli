@@ -7,6 +7,7 @@ import (
 )
 
 func dispatch(ctx *Context, args []string) int {
+	ctx.HelpPath, _ = resolveHelpPath(args)
 	cmd := args[0]
 	rest := args[1:]
 	var err error

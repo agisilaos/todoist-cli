@@ -126,5 +126,6 @@ func writeReviewReport(ctx *Context, plan Plan, results []applyResult, phase, pa
 	if cause != nil {
 		fmt.Fprintf(ctx.Stdout, "Stopped: %v\n", cause)
 	}
+	writeReviewRecovery(ctx, report)
 	return nil
 }

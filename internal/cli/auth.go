@@ -190,7 +190,7 @@ func authLogin(ctx *Context, args []string) error {
 // profile. Never include provider responses: they may echo the candidate secret.
 func validateManualLoginToken(ctx *Context, token string) error {
 	if token == "" || strings.ContainsAny(token, "\"'") || strings.HasPrefix(token, "TODOIST_TOKEN=") || strings.ContainsFunc(token, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) {
-		return &CodeError{Code: exitUsage, Err: errors.New("Invalid API token format. Paste only the API token from Todoist settings, without spaces, quotes, or a Bearer prefix. Nothing was saved; run `todoist auth login` to retry.")}
+		return &CodeError{Code: exitUsage, Err: errInvalidManualToken}
 	}
 	timeout := time.Duration(ctx.Config.TimeoutSeconds) * time.Second
 	if timeout <= 0 {
@@ -206,7 +206,7 @@ func validateManualLoginToken(ctx *Context, token string) error {
 	}
 	var apiErr *api.APIError
 	if errors.As(err, &apiErr) && (apiErr.Status == 401 || apiErr.Status == 403) {
-		return &CodeError{Code: exitAuth, Err: errors.New("API token was not accepted by Todoist. Copy your API token from Todoist settings and run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")}
+		return &CodeError{Code: exitAuth, Err: errRejectedManualToken}
 	}
 	return &CodeError{Code: exitError, Err: errors.New("Could not verify the API token. Check your connection and API endpoint, then run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")}
 }

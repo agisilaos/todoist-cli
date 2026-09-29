@@ -322,6 +322,17 @@ Planner context notes:
 - Doctor retains its existing diagnostic-failure exit behavior and report shape.
 - ID-mode errors use the same JSON envelope on stderr, including global parsing, output conflicts, unsupported commands, and runtime failures. `--quiet-json` compacts the envelope; existing runtime exit codes remain 1 (generic), 3 (auth), 4 (not found), and 5 (conflict). Usage errors return 2. Invocations without `--ids-only` retain their existing error behavior.
 
+### Human recovery diagnostics
+
+Missing credentials, malformed/rejected manual login, API 401, unavailable native
+storage, and classified command usage errors may add human guidance on stderr.
+Explicit `--json`, `--ndjson`, `--plain`, `--ids-only`, and `--quiet-json` suppress
+these additions, retaining the existing machine output contract and exit codes.
+`--no-input` does not suppress human advice; login examples use `--token-stdin`.
+Uncertain review actions include read-only inspection guidance and require manual
+reconciliation before a fresh review. No recovery command or persistence change is
+introduced. See [errors and recovery](error-recovery.md) for the bounded inventory.
+
 ## Config
 
 Precedence: flags > env > project config > user config.
