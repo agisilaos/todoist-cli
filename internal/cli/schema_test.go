@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -115,6 +116,81 @@ func TestTaskV2SchemaPresenceContract(t *testing.T) {
 		ctx := &Context{Stdout: &out, Stderr: &bytes.Buffer{}, Mode: output.ModeJSON}
 		if err := schemaCommand(ctx, []string{"--name", name}); err != nil || !json.Valid(out.Bytes()) {
 			t.Fatalf("schema %s undiscoverable/invalid: %v %s", name, err, out.String())
+		}
+	}
+}
+
+func TestTaskV2ReturnedFactsMatchAdvertisedSchema(t *testing.T) {
+	var out bytes.Buffer
+	ctx := &Context{Stdout: &out, Stderr: &bytes.Buffer{}, Mode: output.ModeJSON}
+	if err := schemaCommand(ctx, []string{"--name", "task_item_v2"}); err != nil {
+		t.Fatal(err)
+	}
+	var definitions []struct{ Schema map[string]any }
+	if err := json.Unmarshal(out.Bytes(), &definitions); err != nil || len(definitions) != 1 {
+		t.Fatalf("schema output: %v %s", err, out.String())
+	}
+	for _, name := range []string{"populated", "absent", "null", "false-zero-empty", "malformed"} {
+		var task api.Task
+		if err := json.Unmarshal(taskResourceFixture(t, name), &task); err != nil {
+			t.Fatal(err)
+		}
+		resource := task.FaithfulResource()
+		properties := definitions[0].Schema["properties"].(map[string]any)
+		if name == "populated" && len(resource) != len(properties) {
+			t.Fatalf("complete response and schema inventories differ: %d facts, %d properties", len(resource), len(properties))
+		}
+		assertTaskSchemaValue(t, name, resource, definitions[0].Schema)
+	}
+}
+
+// Check the advertised field/type correspondence without making decoding depend
+// on schema generation. Existing contract tests cover optionality and nullability.
+func assertTaskSchemaValue(t *testing.T, path string, value any, schema map[string]any) {
+	t.Helper()
+	if constant, present := schema["const"]; present {
+		if value != constant {
+			t.Errorf("%s: %v differs from schema constant %v", path, value, constant)
+		}
+		return
+	}
+	kind := "null"
+	switch value.(type) {
+	case map[string]any:
+		kind = "object"
+	case []any:
+		kind = "array"
+	case string:
+		kind = "string"
+	case bool:
+		kind = "boolean"
+	case json.Number:
+		kind = "integer"
+	}
+	declared := schema["type"]
+	allowed := declared == kind
+	if types, ok := declared.([]any); ok {
+		for _, candidate := range types {
+			allowed = allowed || candidate == kind
+		}
+	}
+	if !allowed {
+		t.Errorf("%s: returned %s excluded by schema type %v", path, kind, declared)
+	}
+	if object, ok := value.(map[string]any); ok {
+		properties := schema["properties"].(map[string]any)
+		for name, member := range object {
+			property, present := properties[name].(map[string]any)
+			if !present {
+				t.Errorf("%s.%s: returned fact missing from schema", path, name)
+				continue
+			}
+			assertTaskSchemaValue(t, path+"."+name, member, property)
+		}
+	}
+	if array, ok := value.([]any); ok {
+		for _, member := range array {
+			assertTaskSchemaValue(t, path+"[]", member, schema["items"].(map[string]any))
 		}
 	}
 }
