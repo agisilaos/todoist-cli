@@ -488,6 +488,61 @@ table on a terminal and the existing dry-run summary, without the new receipt or
 recovery hints. Active-task overviews and human task details use Todoist P1–P4;
 detailed tables and machine output retain their existing API priority display.
 
+#### Completion and move feedback
+
+Single-task `complete` and `move` acknowledge successful operations in a terminal
+with the full task ID. For example:
+
+```bash
+todoist task complete id:810000001
+todoist task move id:810000002 --project Home --section Backlog
+```
+
+Illustrative output with synthetic tasks:
+
+```text
+Completion accepted
+Task before completion: Send revised estimate
+ID: 810000001
+
+Move accepted
+Task: Prepare launch checklist
+ID: 810000002
+Project: Home
+Section: Backlog
+```
+
+Completion uses context obtained before the action. If that context explicitly
+identifies a recurring task, it adds `Recurring task; next due date not returned.`
+Completing a recurring task advances an occurrence rather than permanently
+finishing the task. Missing recurrence stays unknown; no next date is invented.
+`--id` avoids the task lookup, so completion may show only its ID.
+
+Move destination IDs come from the successful response, with names from context
+already loaded during resolution. Otherwise IDs show `(name unavailable)`.
+Explicit empty/null section or parent information means `None` when relevant;
+missing or malformed information stays unknown. A missing returned title can
+use `Task before move`. When destination details are unavailable, submitted
+values are labeled `Requested project`, `Requested section`, or `Requested parent
+task`, followed by `Destination details unavailable.` Requested values do not
+establish the resulting destination, especially with multiple destination flags.
+
+Feedback adds no requests or readbacks. Unreadable, incomplete, oversized, or
+malformed move-response details preserve the accepted move and exit 0; unavailable
+details are not a reason to repeat the mutation. Failures before acknowledgement
+retain existing errors and exits and may have an uncertain remote outcome.
+
+```bash
+todoist task complete id:810000001 --dry-run
+todoist task move id:810000002 --project Home --section Backlog --dry-run
+```
+
+Human single-task previews show the known task, full ID, requested destinations,
+existing authorization summary, and `no task changed.` They dispatch no mutation.
+Full text and IDs are retained; terminal controls are escaped and lines wrap
+naturally. Quiet, JSON, NDJSON, explicit plain and redirected output keep their
+existing acknowledgements and previews. Bulk output remains unchanged.
+
 ### Today
 
 Quick list of tasks due today and overdue across projects, including Inbox. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.

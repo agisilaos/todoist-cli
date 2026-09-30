@@ -73,6 +73,19 @@ func (c *Client) Post(ctx context.Context, path string, query url.Values, body a
 	return c.doJSON(ctx, http.MethodPost, path, query, body, out, includeRequestID)
 }
 
+// PostWithOptionalResponse acknowledges the mutation status independently of its
+// advisory body. An incomplete or oversized body cannot fail or retry an accepted
+// mutation. Callers must treat unavailable or malformed response facts as unknown.
+func (c *Client) PostWithOptionalResponse(ctx context.Context, path string, body any) ([]byte, string, error) {
+	var response optionalResponse
+	reqID, err := c.doJSON(ctx, http.MethodPost, path, nil, body, &response, true)
+	return []byte(response), reqID, err
+}
+
+type optionalResponse []byte
+
+const maxOptionalResponseSize = 256 * 1024
+
 func (c *Client) Delete(ctx context.Context, path string, query url.Values) (string, error) {
 	return c.doJSON(ctx, http.MethodDelete, path, query, nil, nil, true)
 }
@@ -226,6 +239,14 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 			return requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(msg)), RequestID: requestID}
 		}
 
+		if response, ok := out.(*optionalResponse); ok {
+			data, readErr := io.ReadAll(io.LimitReader(resp.Body, maxOptionalResponseSize+1))
+			_ = resp.Body.Close()
+			if readErr == nil && len(data) <= maxOptionalResponseSize {
+				*response = data
+			}
+			return requestID, nil
+		}
 		if out == nil {
 			_ = resp.Body.Close()
 			return requestID, nil

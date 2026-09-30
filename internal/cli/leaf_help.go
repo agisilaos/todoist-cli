@@ -165,8 +165,13 @@ var leafHelpPages = map[string]commandHelp{
   --filter <query>                  Filter query for bulk move
   --yes                             Required for bulk move`,
 		examples: `  todoist task move id:123456 --project Home
+  todoist task move id:123456 --project Home --section Backlog --dry-run
   todoist task move --filter "@work & overdue" --project Home --yes --dry-run`,
 		notes: `  Supply a destination. Use id:<id> for an exact task; use task list to resolve ambiguous references.
+  Terminal feedback acknowledges the move and shows returned destination details when available.
+  Missing details use labeled requested values; unavailable names retain IDs. No extra lookups.
+  Single-task dry runs show task identity and requested destinations; no task is changed.
+  Quiet, machine, and redirected output retain their existing acknowledgements and previews.
   Bulk selection uses --filter and requires --yes (or global --force); plain text filters become search text.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
@@ -198,10 +203,15 @@ var leafHelpPages = map[string]commandHelp{
   --filter <query>                  Filter query for bulk complete
   --yes                             Required for bulk complete`,
 		examples: `  todoist task complete id:123456
+  todoist task complete id:123456 --dry-run
   todoist task complete --filter "@work & overdue" --yes --dry-run`,
 		notes: `  Use task list to find a task, then id:<id> for an exact reference; quoted task text also works.
+  Terminal feedback says Completion accepted and includes known pre-action task context and full ID.
+  Recurring completion advances an occurrence; it does not permanently finish the task. No next date is returned.
+  --id avoids a task lookup and may show only the ID. Human single-task dry runs show intent without changes.
+  Quiet, machine, and redirected output retain their existing acknowledgements and previews.
   Bulk completion requires --yes (or global --force). Preview with --dry-run; previews may read Todoist.
-  To undo a completion, use todoist task reopen --id <id>.`,
+  For an ordinary completed task, use todoist task reopen --id <id> to reopen it.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},

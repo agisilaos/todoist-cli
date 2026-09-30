@@ -127,6 +127,43 @@ or follow-up task fetch, and introduces no prompt.
 Active-task overviews and human task detail use Todoist P1–P4; retained tables
 and machine output keep their existing API priority rendering.
 
+### Single-task action feedback
+
+Terminal human single-task `task complete` and `task move` acknowledge accepted
+mutations unless `--quiet` is set. Completion says `Completion accepted`, shows
+the full ID and any already-resolved title as `Task before completion`. Known
+pre-action `is_recurring=true` adds `Recurring task; next due date not returned.`
+Unknown recurrence never becomes nonrecurring. Completion does not provide a
+returned next date or establish that a recurring task is permanently finished.
+
+Move says `Move accepted` and uses individually usable returned title and
+destination IDs. Names come only from already-loaded context matching those IDs;
+otherwise retain IDs with `name unavailable`. A returned section name must match
+the returned project when known. A missing title may use `Task before move`.
+Explicit empty/null section or parent information means none; omitted or malformed
+fields remain unknown. Empty unrequested section/parent context is omitted.
+Unusable response identity invalidates the advisory facts.
+
+Missing destination details show submitted values labeled `Requested`, with
+`Destination details unavailable.` Submitted and pre-action destination fields
+are never substituted as confirmed outcomes. Accepted move-body processing is
+optional, bounded to 256 KiB and the existing request timeout: read failure,
+truncation, excessive size or invalid JSON cannot turn acceptance into failure
+or trigger a retry. Required mutation failures retain their existing paths.
+
+No additional reads, mutations, prompts or retries are introduced. Positional
+exact references keep their existing task GET; explicit `--id` still bypasses it.
+Named destinations retain their existing resolution reads and pagination. Existing
+retry behavior may still make up to three attempts with the same request ID.
+
+Human single-task dry runs show identity, requested changes and the existing
+authorization summary, explicitly stating no task changed. Full text/IDs are
+retained and terminal controls escaped. Quiet, JSON/NDJSON `{id,status}` success,
+plain/default redirected acknowledgements, machine preview payloads, IDs-only
+rejection, bulk summaries, agent-plan reporting, capture receipts, task detail and
+selection are unchanged. No shared presentation framework or Task serialization
+change is introduced.
+
 ### Filter commands
 
 Saved filters are read and mutated through `/sync`. Mutations require a successful per-command acknowledgement; deleted filters are omitted from lists.

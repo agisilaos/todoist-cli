@@ -68,7 +68,7 @@ func TestTaskAmbiguityInteractiveChoiceRequiresExplicitNumber(t *testing.T) {
 			err := taskComplete(ctx, []string{"Review"})
 			wantCalls := []string{"GET /tasks", "GET /projects", "GET /sections"}
 			if tc.selected {
-				if err != nil || ctx.Stdout.(*bytes.Buffer).String() != "completed second\n" {
+				if err != nil || ctx.Stdout.(*bytes.Buffer).String() != "Completion accepted\nTask before completion: Review\nID: second\n" {
 					t.Fatalf("explicit second choice did not complete the intended task: %v, %q", err, ctx.Stdout)
 				}
 				wantCalls = append(wantCalls, "POST /tasks/second/close")
@@ -132,7 +132,7 @@ func TestTaskAmbiguityFuzzyChoiceUsesSelectedIDRatherThanHighestRank(t *testing.
 	if got := requests.snapshot(); !reflect.DeepEqual(got, []string{"GET /tasks", "GET /projects", "POST /tasks/second/close"}) {
 		t.Fatalf("ranking overrode the explicit mutation target: %v", got)
 	}
-	if got := ctx.Stdout.(*bytes.Buffer).String(); got != "completed second\n" {
+	if got := ctx.Stdout.(*bytes.Buffer).String(); got != "Completion accepted\nTask before completion: Annual review\nID: second\n" {
 		t.Fatalf("reported the wrong mutation target: %q", got)
 	}
 }
