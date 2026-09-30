@@ -550,6 +550,9 @@ existing acknowledgements and previews. Bulk output remains unchanged.
 
 Quick list of tasks due today and overdue across projects, including Inbox. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
 
+Today fetches every matching page, requesting up to 200 tasks per page. The page
+size does not limit the number of tasks shown.
+
 ```
 todoist today
 ```

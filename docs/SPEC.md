@@ -356,6 +356,11 @@ Empty selections have scope-specific messages; empty partial pages and exhausted
 continuations do not claim the entire selection is empty. Quiet suppresses scope,
 summary, and empty messages, but retains tasks and cursor notices.
 
+Today requests up to 200 tasks per page and follows every cursor until exhaustion
+in all output modes. This internal page size does not change selection, task
+order, or explicit `task list --limit` behavior. A failed page remains an error;
+Today does not emit a successful partial collection.
+
 Project names reuse cached collection fetching with explicit ID/name-unavailable
 fallback. No per-task fetches or default section enrichment are introduced.
 `--wide` keeps the detailed table and API priority numbering while adding scope
