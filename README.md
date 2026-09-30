@@ -389,11 +389,11 @@ ID and `(name unavailable; lookup failed)`; a successful lookup without a matchi
 name uses `(name unavailable)`. Enrichment failure still exits 0 when task lookup
 succeeded.
 
-For machine clients, use `todoist task view id:102000002 --no-input --json`.
-JSON remains the existing single task object with API priority numbering;
-`--full` does not change it. Redirected detail and explicit `--plain` retain the
-legacy labeled text. Task view currently also emits that labeled text with
-`--ndjson`, rather than a JSON record. These paths perform no name lookups.
+For machine clients, use `todoist task view id:102000002 --no-input --json` or
+`--ndjson`. JSON emits a single task object with API priority numbering; NDJSON
+emits the same object as one newline-terminated JSON record on a single line.
+`--full` does not change either payload. Redirected detail and explicit `--plain`
+retain the legacy labeled text. These paths perform no name lookups.
 `--ids-only` remains unsupported for task view. Unknown tasks retain exit 4 with
 empty stdout and an error on stderr.
 
@@ -959,7 +959,7 @@ context would require a separate compatibility decision.
 - Non-TTY defaults to `--plain` (tab-separated, no headers), with the existing
   [task-detail exceptions](#task-detail).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
-- `--ndjson` outputs one JSON object per line for resource lists. Mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
+- `--ndjson` outputs one JSON object per line for resource lists. Single-task views, mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` outputs one raw ID followed by a newline per result. Empty results emit no stdout.
 - Errors go to stderr; `--quiet` suppresses non-essential informational messages but retains list continuation notices. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.

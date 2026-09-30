@@ -277,7 +277,7 @@ func TestTaskDetailEnrichmentPaginationAndCache(t *testing.T) {
 	}
 }
 
-func TestTaskDetailMachineModesPreserveLegacyOutput(t *testing.T) {
+func TestTaskDetailJSONAndPlainPreserveLegacyOutput(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "synthetic")
 	t.Setenv("TODOIST_CONFIG", filepath.Join(t.TempDir(), "config.json"))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -290,7 +290,7 @@ func TestTaskDetailMachineModesPreserveLegacyOutput(t *testing.T) {
 	}))
 	defer server.Close()
 	for _, full := range []bool{false, true} {
-		for _, mode := range []string{"", "--plain", "--ndjson", "--json"} {
+		for _, mode := range []string{"", "--plain", "--json"} {
 			args := []string{"--base-url", server.URL, "task", "view", "id:task-long-exact-id", "--no-input"}
 			if mode != "" {
 				args = append(args, mode)

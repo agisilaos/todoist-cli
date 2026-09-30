@@ -259,7 +259,9 @@ Notes:
   --wide retains the detailed table (API priorities: 4 highest); task view id:<id> shows full text.
   Human task view uses P1 highest, named context, absolute dates, recurrence, and current state.
   task view --full adds exact destination IDs and inspection metadata.
-  Task-view machine clients should use --json; plain/redirected/ndjson retain labeled text.
+  Task view --json emits a task object; --ndjson emits the same object on one line.
+  JSON/NDJSON have no enrichment; --full does not change their payloads.
+  Plain/redirected task view retains labeled text.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
   Task add prints a capture receipt in a terminal (except --quiet), including a view command.

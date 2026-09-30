@@ -183,7 +183,8 @@ var leafHelpPages = map[string]commandHelp{
   --full                            Add exact destination IDs and inspection metadata`,
 		examples: `  todoist task view id:123456
   todoist task view id:123456 --full
-  todoist task view id:123456 --no-input --json`,
+  todoist task view id:123456 --no-input --json
+  todoist task view id:123456 --no-input --ndjson`,
 		notes: `  Use id:<id> for an exact task or a quoted text reference.
   Multiple matches offer a numbered choice with task context in a terminal; Enter cancels selection.
   With --no-input or piped stdin, use task list --all-projects --all --no-input --json and retry id:<id>.
@@ -192,7 +193,8 @@ var leafHelpPages = map[string]commandHelp{
   --full adds project/section/parent IDs, timestamps, and returned comment count.
   None/No due date means known absence; Not returned means unknown information.
   Name lookups add collection requests; failure retains IDs and says lookup failed.
-  Machine output has no enrichment. Use --json for a task object; plain/redirected/ndjson retain legacy labeled text.`,
+  Machine output has no enrichment. --json emits a task object; --ndjson emits the same object on one line.
+  --full does not change either payload; plain/redirected retain legacy labeled text.`,
 		globals: `  --no-input            Disable prompts`,
 	},
 	"task complete": {
