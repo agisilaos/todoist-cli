@@ -15,6 +15,9 @@ func writeTaskView(ctx *Context, task api.Task, full bool) error {
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, task, output.Meta{RequestID: ctxRequestIDValue(ctx)})
 	}
+	if ctx.Mode == output.ModeHuman {
+		return writeTaskDetail(ctx, task, full)
+	}
 	fmt.Fprintf(ctx.Stdout, "ID: %s\n", task.ID)
 	fmt.Fprintf(ctx.Stdout, "Content: %s\n", task.Content)
 	if task.Description != "" {

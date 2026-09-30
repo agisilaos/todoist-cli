@@ -175,10 +175,18 @@ var leafHelpPages = map[string]commandHelp{
 		usage: `<ref> [--full]
 --id <id> [--full]`,
 		flags: `  --id <id>                         Task ID
-  --full                            Show full task fields`,
-		examples: `  todoist task view id:123456 --full`,
-		notes:    `  Use id:<id> for an exact task or a quoted text reference. Use task list when a name is ambiguous.`,
-		globals:  `  --no-input            Disable prompts`,
+  --full                            Add exact destination IDs and inspection metadata`,
+		examples: `  todoist task view id:123456
+  todoist task view id:123456 --full
+  todoist task view id:123456 --no-input --json`,
+		notes: `  Use id:<id> for an exact task or a quoted text reference. Use task list when a name is ambiguous.
+  Human detail keeps full text, names, P1 highest, absolute dates, recurrence, state, labels, and ID.
+  Text wraps without truncation; returned offsets/timezones are not converted.
+  --full adds project/section/parent IDs, timestamps, and returned comment count.
+  None/No due date means known absence; Not returned means unknown information.
+  Name lookups add collection requests; failure retains IDs and says lookup failed.
+  Machine output has no enrichment. Use --json for a task object; plain/redirected/ndjson retain legacy labeled text.`,
+		globals: `  --no-input            Disable prompts`,
 	},
 	"task complete": {
 		usage: `<ref>

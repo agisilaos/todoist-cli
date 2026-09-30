@@ -25,7 +25,20 @@ type Task struct {
 	NoteCount   int      `json:"note_count"`
 	// DueReturned distinguishes an omitted due field from an explicit null.
 	// Response-only facts never extend the existing machine output contract.
-	DueReturned bool `json:"-"`
+	DueReturned bool               `json:"-"`
+	Returned    TaskReturnedFields `json:"-"`
+}
+
+// TaskReturnedFields records only presence distinctions needed by human detail.
+// Null section/parent IDs and completion times establish absence; null state,
+// description, and count do not establish a value.
+type TaskReturnedFields struct {
+	Description bool
+	SectionID   bool
+	ParentID    bool
+	Checked     bool
+	CompletedAt bool
+	NoteCount   bool
 }
 
 type Due struct {

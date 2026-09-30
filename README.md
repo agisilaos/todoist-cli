@@ -327,6 +327,76 @@ Examples:
 - `todoist task view id:123456 --full`
 - `todoist task complete "Pay rent"`
 
+#### Task detail
+
+Copy a full ID from an overview and inspect that exact task:
+
+```bash
+todoist task view id:102000002
+todoist task view id:102000002 --full
+```
+
+In a terminal, detail shows the complete title and description, project and
+section names, Todoist P1–P4 priority, current state, absolute due information,
+recurrence, labels, and exact task ID. For the synthetic launch task in the
+[everyday overview](#everyday-overview):
+
+```text
+P2  Prepare launch checklist and confirm the rollback owner with the platform
+    team
+
+Project: Work
+Section: Launch
+State: Active
+Due: 2026-09-29T16:30:00+02:00
+Timezone: Europe/Berlin
+Recurrence: Yes (every Tuesday at 16:30)
+Labels: "work", "release"
+ID: 102000002
+
+Description:
+  Confirm the release checklist with the platform team before the launch review.
+```
+
+This example abbreviates the synthetic description; actual detail prints every
+paragraph. Text wraps at the configured human width without truncation,
+preserving line breaks, spacing, and literal Markdown. IDs, timestamps, and URLs
+stay intact and may overflow exceptionally narrow terminals. Other long words
+can split; terminal controls are escaped. Quiet and accessible output retain the
+same task information.
+
+`--full` appends exact project, section, and parent IDs, added/updated timestamps,
+completion-time availability, and the returned comment count. P1 remains highest
+in both human views. Dates and times retain their returned values, offset, and
+timezone without conversion; differing returned calendar dates and timestamps
+are shown separately. A floating time is labeled when its timezone is unknown.
+Recurrence follows the explicit returned flag and includes its expression when
+available. Expression-only due information is labeled as an expression.
+
+`State` follows the explicitly returned completion flag. A completion timestamp
+is shown independently; it does not establish current state or prove past
+mutations, especially for reopened or recurring tasks. `None` means an explicitly
+empty value; `No due date` means explicit null due; `Not returned` means the
+response did not establish the value. Missing state or comment count is not
+reported as active or zero.
+
+Name resolution adds a paginated projects lookup and, only when the task has
+project and section IDs, a sections lookup scoped to that project. Successful
+lookups are cached within one command, without a persistent cache. Separate
+overview and detail commands repeat requests. Pagination, configured timeouts,
+and existing retries apply. A failed lookup keeps the task visible with its exact
+ID and `(name unavailable; lookup failed)`; a successful lookup without a matching
+name uses `(name unavailable)`. Enrichment failure still exits 0 when task lookup
+succeeded.
+
+For machine clients, use `todoist task view id:102000002 --no-input --json`.
+JSON remains the existing single task object with API priority numbering;
+`--full` does not change it. Redirected detail and explicit `--plain` retain the
+legacy labeled text. Task view currently also emits that labeled text with
+`--ndjson`, rather than a JSON record. These paths perform no name lookups.
+`--ids-only` remains unsupported for task view. Unknown tasks retain exit 4 with
+empty stdout and an error on stderr.
+
 ### Workspaces
 
 ```
@@ -415,7 +485,8 @@ Receipts do not change machine output: JSON remains a one-task array, NDJSON a
 single task object, and plain or piped output the existing TSV row with API priority
 numbers. `--ids-only` still rejects creation. `--quiet` retains the existing task
 table on a terminal and the existing dry-run summary, without the new receipt or
-recovery hints. Active-task overviews also use Todoist P1–P4; detailed tables and task views retain their existing API priority display.
+recovery hints. Active-task overviews and human task details use Todoist P1–P4;
+detailed tables and machine output retain their existing API priority display.
 
 ### Today
 
@@ -784,7 +855,8 @@ todoist filter show https://app.todoist.com/app/filter/today-f1
 ## Output
 
 - TTY active-task lists use the [everyday overview](#everyday-overview). Other resource lists, completed history, and saved `filter show` retain their tables. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
-- Non-TTY defaults to `--plain` (tab-separated, no headers).
+- Non-TTY defaults to `--plain` (tab-separated, no headers), with the existing
+  [task-detail exceptions](#task-detail).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` outputs one raw ID followed by a newline per result. Empty results emit no stdout.
@@ -828,8 +900,9 @@ P3  Pick up prescription
   context wrap to the selected width. Full IDs and timestamps are never shortened;
   indivisible values can overflow exceptionally narrow terminals. Common CJK
   characters occupy two cells; ambiguous-width characters assume one cell.
-- Priority is Todoist **P1 highest, P4 normal**. Numeric input flags, plain/JSON/
-  NDJSON output, task views, and the retained tables keep API priorities (4 highest).
+- Priority is Todoist **P1 highest, P4 normal**, also used by human task detail.
+  Numeric input flags, plain/JSON/NDJSON output, and the retained tables keep API
+  priorities (4 highest).
 - Relative due labels use the printed **UTC calendar date**, with the existing
   returned due-date precedence. Earlier times today still say `Today`. Returned
   dates/times and timezone information remain visible without conversion. Near
@@ -845,7 +918,8 @@ P3  Pick up prescription
   selections. `--quiet` hides headers, counts, and empty messages, but keeps tasks
   and necessary continuation notices.
 - Use `todoist task view id:101000001` with an ID from your output for the full title,
-  description, section ID, and labels. Existing `task list --wide` and
+  description, named context, dates, and labels; add `--full` for destination IDs
+  and inspection metadata. Existing `task list --wide` and
   `upcoming --wide` show the detailed table with section names and labels, using
   the table's existing API priority numbering. `today` and `inbox` accept no new
   display flags.

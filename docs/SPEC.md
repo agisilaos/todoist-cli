@@ -124,7 +124,8 @@ or follow-up task fetch, and introduces no prompt.
   remain unverified until submitted. Machine and quiet preview payloads/wording,
   authorization checks, and required name-resolution reads are unchanged.
 
-Active-task overviews use Todoist P1–P4; retained tables and task views keep their existing API priority rendering.
+Active-task overviews and human task detail use Todoist P1–P4; retained tables
+and machine output keep their existing API priority rendering.
 
 ### Filter commands
 
@@ -292,7 +293,7 @@ summary, and empty messages, but retains tasks and cursor notices.
 Project names reuse cached collection fetching with explicit ID/name-unavailable
 fallback. No per-task fetches or default section enrichment are introduced.
 `--wide` keeps the detailed table and API priority numbering while adding scope
-and coverage. Completed history, saved `filter show`, task details, mutations,
+and coverage. Completed history, saved `filter show`, mutations,
 and quiet capture receipts keep their legacy rendering. Machine payloads and
 stdout/stderr behavior are unchanged, including accessible plain output.
 
@@ -302,6 +303,53 @@ renderer and machine-output path. Filters ignore other selection flags as before
 Upcoming carries its selection's UTC reference day into the header so a midnight
 boundary during rendering cannot misstate its window. No domain vocabulary or
 architecture decision changes are required.
+
+### Task detail
+
+Human `task view` renders the full title and description, named project/section,
+Todoist P1–P4 priority, explicit current state, absolute due information,
+recurrence, labels, and exact task ID. `--full` appends project/section/parent IDs,
+added/updated timestamps, completion-time availability, and returned comment
+count; it does not revert to API priority numbering.
+
+Text wraps without truncation using the existing human width and terminal-cell
+conventions. Preserve spacing, paragraph boundaries, explicit line breaks, and
+literal Markdown. Escape terminal controls; metadata line breaks are escaped.
+IDs, timestamps, and URLs stay indivisible and may overflow narrow widths.
+
+Dates, times, offsets, and named timezone information remain as returned, without
+relative labels or conversion. Preserve both calendar date and datetime when they
+differ; identify naive timestamps without a returned timezone. Do not treat an
+expression-only due object as a resolved date, or infer recurrence from wording.
+Explicit null due means `No due date`; missing/incomplete due is `Not returned`.
+Explicit empty description, labels, section/parent IDs, and completion time use
+`None` where established; unknown information remains `Not returned`.
+
+State uses the explicit returned `checked` flag. Keep any completion timestamp
+independently; a timestamp cannot establish current state or prove earlier
+mutations. Missing/null state and comment count remain unknown rather than false
+or zero. Response-presence facts are nonserialized and leave existing payloads
+unchanged.
+
+Human enrichment reuses all-page project fetching and, only with nonempty project
+and section IDs, exact-project-scoped section fetching. Successful collection
+lookups use the existing per-invocation cache; there is no persistent cache.
+Pagination, per-page timeout, and existing GET retries apply. Normally one project
+and one applicable section collection request are added. Attempt section lookup
+independently of project-name failure. Failed lookup retains ID plus
+`(name unavailable; lookup failed)`; successful lookup without a name retains ID
+plus `(name unavailable)`. These fallbacks keep task detail successful.
+
+Nonhuman paths branch before enrichment. JSON remains the existing task object;
+`--full` does not alter it. Redirected/default, explicit plain, and the current
+task-view NDJSON path retain their legacy labeled text, including API priority
+under `--full`. Task view NDJSON is currently not a JSON record; use JSON for
+single-task machine inspection. Preserve stdout/stderr separation, existing exit
+codes, and IDs-only rejection. Quiet/accessibility flags retain all detail fields.
+Task selection, reference resolution, and mutations are unchanged.
+
+Ownership: `task_output.go` dispatches human detail to `task_detail.go` and retains
+the existing nonhuman path. No general presentation framework is introduced.
 
 ## Parsing Rules
 
