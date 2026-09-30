@@ -4,6 +4,51 @@ package cli
 // parser registrations by TestLeafHelpFlagsMatchRegistrations.
 
 var leafHelpPages = map[string]commandHelp{
+	"profile list": {
+		usage:    ``,
+		examples: `  todoist profile list --json`,
+		notes: `  Enumerates credential profiles offline, including disabled profiles with pending cleanup.
+  Reads metadata without retrieving native secrets or checking token validity. Account identity is unknown.
+  Invalid rows include safe error codes; the command reports all rows, then exits 3.
+  TODOIST_TOKEN overrides every stored credential without inheriting its authorization evidence.`,
+		globals: `  --config <path>       Choose the configuration directory
+  --json, --ndjson       Structured report output`,
+	},
+	"profile current": {
+		usage:    ``,
+		examples: `  todoist profile current --json`,
+		notes: `  Reports profile selection and the effective credential source offline.
+  TODOIST_TOKEN reports external/unknown authorization; the selected profile is overridden context.
+  Without an environment token, missing or disabled selection is reported and exits 4.
+  Native accessibility stays unchecked; invalid metadata fails closed.`,
+		globals: `  --profile <name>      Override profile selection for this invocation
+  --config <path>       Choose the user configuration
+  --json, --ndjson       Structured report output`,
+	},
+	"profile use": {
+		usage: `<name>`,
+		examples: `  todoist profile use work
+  todoist --config ./scratch/config.json profile use reader --json`,
+		notes: `  Requires an existing, enabled profile with valid or legacy metadata; native accessibility is unchecked.
+  Saves only default_profile in the resolved user config, preserving unrelated and unknown fields.
+  Precedence remains --profile > TODOIST_PROFILE > project .todoist.json > user config > default.
+  Reports when project, environment, or flag selection shadows the saved choice.
+  TODOIST_TOKEN still overrides the credential. Project config is never modified.`,
+		globals: `  --config <path>       Configuration receiving the saved default
+  --json, --ndjson       Structured acknowledgement output`,
+	},
+	"profile remove": {
+		usage: `<name>`,
+		examples: `  todoist profile remove scratch
+  todoist --profile scratch auth repair`,
+		notes: `  Removes only the explicitly named credential profile; absent names succeed idempotently.
+  Keeps default_profile unchanged: a removed selection stays missing until explicit use or login.
+  Disables the profile before native deletion; cleanup failure returns exit 3 with committed=true.
+  Repeat remove or auth repair to retry cleanup. Cross-store deletion is not atomic.
+  Does not revoke the grant or unset TODOIST_TOKEN. Invalid authorization metadata may be removed.`,
+		globals: `  --config <path>       Choose the configuration directory
+  --json, --ndjson       Structured acknowledgement output`,
+	},
 	"auth login": {
 		usage: `[--token-stdin] [--credential-store <native|file>] [flags]
 --oauth [--read-only] [--client-id <id>] [flags]
@@ -28,7 +73,9 @@ var leafHelpPages = map[string]commandHelp{
   New profiles use native storage; select file explicitly for portable storage. Existing profiles retain their backend; use auth migrate to change it.
   OAuth defaults to read-write. --read-only requires OAuth and blocks Todoist mutations; planning and previews remain available.
   Manual, environment, and legacy tokens have unknown scopes and permit write attempts. --print-env exports a secret and loses local scope evidence on later environment use.
-  Device flow support by Todoist is unverified; token refresh is not implemented.`,
+  Supply your own public PKCE client and registered redirect; no client ID or secret is bundled.
+  Short-lived or refresh-bearing grants are rejected before replacement; token refresh is not implemented.
+  Device flow support by Todoist is unverified. See README OAuth onboarding for prerequisites.`,
 		globals: `  --profile <name>      Select the credential profile
   --no-input            Disable prompts`,
 	},

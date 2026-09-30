@@ -56,7 +56,8 @@ func TestPKCEApprovalGetsSeparateExchangeDeadline(t *testing.T) {
 		}
 		return oauthToken{AccessToken: "synthetic"}, nil
 	}
-	if _, err := authOAuthLogin(ctx, oauthConfig{ClientID: "test", AuthorizeURL: "https://example.invalid", NoBrowser: true}); err != nil {
+	address := scratchOAuthAddress(t)
+	if _, err := authOAuthLogin(ctx, oauthConfig{ClientID: "test", AuthorizeURL: "https://example.invalid", ListenAddr: address, RedirectURI: "http://" + address + "/callback", NoBrowser: true}); err != nil {
 		t.Fatal(err)
 	}
 }

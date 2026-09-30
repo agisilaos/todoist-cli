@@ -16,6 +16,12 @@ Authentication, authorization scopes, authorization mode, credential source, cre
 
 ## Accepted credential lifecycle
 
+The later accepted [profile/OAuth contract](profile-oauth-design.md) adds explicit
+profile selection/removal and limits OAuth exchanges to supported legacy token
+lifecycles. Current under an environment override reports external authorization
+without inspecting stored evidence; target-profile and candidate-grant errors
+never attach another credential's evidence.
+
 Credential selection retains existing precedence. The environment token overrides the selected profile and does not inherit its metadata. Selecting a different profile resolves its token and metadata together.
 
 Successful login replaces one profile's token and metadata together; failed login or failed persistence preserves the previous record. Other profiles and unrelated local changes are preserved. Manual replacement removes any previous OAuth evidence. Logout removes the selected stored credential and its metadata without remotely revoking the token or unsetting an environment variable.

@@ -1,0 +1,3 @@
+# Reject OAuth lifecycles the credential store cannot maintain
+
+Until durable refresh-token rotation is supported, reject refresh-bearing and short-lived OAuth exchanges before replacing a credential; accept omitted expiry or Todoist's documented legacy compatibility lifetime only. This deliberately limits new-client onboarding rather than silently discarding refresh secrets and leaving a credential that expires after one hour. No shared client secret or unverified registration is bundled; a default client requires maintainer-owned public-client configuration and a verified redirect and exchange.

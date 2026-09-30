@@ -78,7 +78,7 @@ func documentedCommandFlags(t *testing.T) (map[string]map[string]bool, map[strin
 		}
 	}
 	// These entry points have no local flags or share a dynamic parser.
-	for _, command := range []string{"auth status", "auth logout", "auth repair", "agent status", "agent examples", "completion bash", "completion zsh", "completion fish", "completion powershell"} {
+	for _, command := range []string{"profile list", "profile current", "profile use", "profile remove", "auth status", "auth logout", "auth repair", "agent status", "agent examples", "completion bash", "completion zsh", "completion fish", "completion powershell"} {
 		commands[command] = map[string]bool{"help": true, "h": true}
 	}
 	for _, command := range []string{"notification accept", "notification reject"} {
