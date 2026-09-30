@@ -12,8 +12,8 @@ import (
 )
 
 func writeTaskView(ctx *Context, task api.Task, full bool) error {
-	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, task, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
+		return writeStructuredValue(ctx, task, output.Meta{RequestID: ctxRequestIDValue(ctx)})
 	}
 	if ctx.Mode == output.ModeHuman {
 		return writeTaskDetail(ctx, task, full)

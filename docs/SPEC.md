@@ -310,7 +310,7 @@ ID. Structured ambiguity enrichment requires a separate compatibility decision.
   devices such as `/dev/null` do not enable prompts or select
   automatic human output. Real terminals retain their interactive behavior.
 - Human default for TTY; `--plain` (tab-separated) for stable text.
-- `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
+- `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Single-task views, mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
 - Supported commands: `task list`, `project list`, `project collaborators`, `section list`, `label list`, `comment list`, `filter list`, `workspace list`, `reminder list`, `notification list`, `activity`, `completed`, `today`, `upcoming`, bare `inbox`, and `filter show`, including existing `ls` aliases. Collaborators emit user IDs; activity emits event IDs, not object IDs.
 - Preserve command result order (including existing sorting), duplicates, fetching defaults, and `--all` behavior. Validate the whole fetched collection before output: missing IDs or IDs containing whitespace/control characters fail with exit 1.
@@ -407,11 +407,11 @@ independently of project-name failure. Failed lookup retains ID plus
 plus `(name unavailable)`. These fallbacks keep task detail successful.
 
 Nonhuman paths branch before enrichment. JSON remains the existing task object;
-`--full` does not alter it. Redirected/default, explicit plain, and the current
-task-view NDJSON path retain their legacy labeled text, including API priority
-under `--full`. Task view NDJSON is currently not a JSON record; use JSON for
-single-task machine inspection. Preserve stdout/stderr separation, existing exit
-codes, and IDs-only rejection. Quiet/accessibility flags retain all detail fields.
+NDJSON emits the same object as one newline-terminated JSON record on a single
+line. `--full` does not alter either payload. Redirected/default and explicit
+plain retain their legacy labeled text, including API priority under `--full`.
+Preserve stdout/stderr separation, existing exit codes, and IDs-only rejection.
+Quiet/accessibility flags retain all detail fields.
 Task selection, reference resolution, and mutations are unchanged.
 
 Ownership: `task_output.go` dispatches human detail to `task_detail.go` and retains
