@@ -190,23 +190,8 @@ func listCompletedTasks(ctx *Context, since string) ([]api.Task, error) {
 	if since != "" {
 		query.Set("since", since)
 	}
-	var all []api.Task
-	for {
-		var page api.Paginated[api.Task]
-		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/tasks/completed/by_completion_date", query, &page)
-		cancel()
-		if err != nil {
-			return nil, err
-		}
-		setRequestID(ctx, reqID)
-		all = append(all, page.Results...)
-		if page.NextCursor == "" {
-			break
-		}
-		query.Set("cursor", page.NextCursor)
-	}
-	return all, nil
+	all, _, err := fetchPaginated[api.Task](ctx, "/tasks/completed/by_completion_date", query, true)
+	return all, err
 }
 
 func filterActiveTasksForContext(tasks []api.Task, projectIDs map[string]struct{}, labelFilters []string) []api.Task {

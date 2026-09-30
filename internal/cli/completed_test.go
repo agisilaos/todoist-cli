@@ -18,7 +18,7 @@ func TestCompletedCommandUsesCompletionDateEndpointByDefault(t *testing.T) {
 		if r.URL.Path != "/tasks/completed/by_completion_date" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{"results":[{"id":"t1","content":"Done"}],"next_cursor":""}`))
+		_, _ = w.Write([]byte(`{"items":[{"id":"t1","content":"Done"}],"next_cursor":""}`))
 	}))
 	defer ts.Close()
 
@@ -44,7 +44,7 @@ func TestCompletedCommandSupportsByDue(t *testing.T) {
 		if r.URL.Path != "/tasks/completed/by_due_date" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{"results":[{"id":"t1","content":"Done"}],"next_cursor":""}`))
+		_, _ = w.Write([]byte(`{"items":[{"id":"t1","content":"Done"}],"next_cursor":""}`))
 	}))
 	defer ts.Close()
 

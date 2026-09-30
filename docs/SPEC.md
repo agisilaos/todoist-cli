@@ -380,8 +380,11 @@ architecture decision changes are required.
 Human `task view` renders the full title and description, named project/section,
 Todoist P1–P4 priority, explicit current state, absolute due information,
 recurrence, labels, and exact task ID. `--full` appends project/section/parent IDs,
-added/updated timestamps, completion-time availability, and returned comment
-count; it does not revert to API priority numbering.
+added/updated timestamps, completion-time availability, and the deprecated API
+`note_count` value (not a reliable comment count); it does not revert to API
+priority numbering. Deadline, duration, assignee ID, due language, and reference
+classification appear in default detail; sibling order and returned user IDs,
+counters, and advisory flags appear under `--full`.
 
 Text wraps without truncation using the existing human width and terminal-cell
 conventions. Preserve spacing, paragraph boundaries, explicit line breaks, and
@@ -399,8 +402,8 @@ Explicit empty description, labels, section/parent IDs, and completion time use
 State uses the explicit returned `checked` flag. Keep any completion timestamp
 independently; a timestamp cannot establish current state or prove earlier
 mutations. Missing/null state and comment count remain unknown rather than false
-or zero. Response-presence facts are nonserialized and leave existing payloads
-unchanged.
+or zero. Response-presence facts leave legacy payloads unchanged; the opt-in v2
+projection uses them to retain returned facts without inventing defaults.
 
 Human enrichment reuses all-page project fetching and, only with nonempty project
 and section IDs, exact-project-scoped section fetching unless a complete global
@@ -422,6 +425,29 @@ plain retain their legacy labeled text, including API priority under `--full`.
 Preserve stdout/stderr separation, existing exit codes, and IDs-only rejection.
 Quiet/accessibility flags retain all detail fields.
 Task selection, reference resolution, and mutations are unchanged.
+
+### Faithful task resources
+
+`--task-output-version <1|2>` explicitly selects task JSON/NDJSON representation;
+omission defaults to legacy version 1, with no config/environment override. Version
+2 uses the [task-data contract](task-data-fidelity.md): the fixed supported-field
+allowlist retains absent, null, and returned values without introducing Go defaults.
+`task_item_v2` describes JSON view objects and NDJSON records; `task_list_v2`
+describes JSON arrays, including returned add/update tasks. The selector does not
+add envelopes, metadata, name enrichment, or alter `--full`.
+
+Explicit selection requires JSON/NDJSON and a task-resource command. It rejects
+dry runs, acknowledgements, and agent/review output before config loading, stdin
+consumption, lookup requests, or progress-file creation. Valid help remains
+available. Human detail adds deadline/duration/assignee, due language, and
+title-derived reference-item status; full detail adds ordering and other returned
+metadata. Legacy plain and machine outputs are unchanged. Malformed new optional
+facts remain unknown; v2 omits them and reports field/type diagnostics on stderr,
+retaining valid siblings and existing strict decoding.
+
+Completed-task endpoints decode their documented `items` collection, including
+agent context loading; active/filtered resources retain `results`. Cursor traversal,
+ordering, IDs-only output, and stdout/stderr pagination remain unchanged.
 
 Ownership: `task_output.go` dispatches human detail to `task_detail.go` and retains
 the existing nonhuman path. No general presentation framework is introduced.

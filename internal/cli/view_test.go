@@ -120,3 +120,44 @@ func TestResolveViewTargetProjectURL(t *testing.T) {
 		t.Fatalf("unexpected project target: %#v err=%v", project, err)
 	}
 }
+
+func TestViewLabelURLUsesCompletePaginatedCollection(t *testing.T) {
+	for _, failLastPage := range []bool{false, true} {
+		labelRequests, taskRequests := 0, 0
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/labels":
+				labelRequests++
+				if r.URL.Query().Get("cursor") == "" {
+					w.Write([]byte(`{"results":[],"next_cursor":"last"}`))
+				} else if failLastPage {
+					http.Error(w, "label lookup denied", http.StatusForbidden)
+				} else {
+					w.Write([]byte(`{"results":[{"id":"labelid","name":"work"}]}`))
+				}
+			case "/tasks":
+				taskRequests++
+				if r.URL.Query().Get("label") != "work" {
+					t.Errorf("wrong label selection: %s", r.URL)
+				}
+				w.Write([]byte(`{"results":[{"id":"task-id","duration":null}]}`))
+			default:
+				t.Errorf("unexpected request %s", r.URL)
+			}
+		}))
+		var out bytes.Buffer
+		ctx := &Context{Token: "token", Stdout: &out, Stderr: &bytes.Buffer{}, Mode: output.ModeJSON, Global: GlobalOptions{TaskOutputVersion: 2}, Client: api.NewClient(server.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)), Config: config.Config{TimeoutSeconds: 2}}
+		err := viewCommand(ctx, []string{"https://app.todoist.com/app/label/work-labelid"})
+		if failLastPage {
+			if err == nil || taskRequests != 0 || out.Len() != 0 {
+				t.Fatalf("failed label lookup selected tasks: %v requests=%d stdout=%s", err, taskRequests, out.String())
+			}
+		} else if err != nil || taskRequests != 1 || !strings.Contains(out.String(), `"duration": null`) {
+			t.Fatalf("label page two did not select tasks: %v requests=%d stdout=%s", err, taskRequests, out.String())
+		}
+		if labelRequests != 2 {
+			t.Errorf("expected exactly two label requests with cache reuse, got %d", labelRequests)
+		}
+		server.Close()
+	}
+}

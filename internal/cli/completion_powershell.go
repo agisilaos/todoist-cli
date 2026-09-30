@@ -8,7 +8,7 @@ const powerShellCompletionTemplate = powerShellCompletionMarker + `
 {{powershell-commands}}
 $todoistGlobalFlags = @(
     '-h', '--help', '--version', '-q', '--quiet', '--quiet-json', '-v', '--verbose',
-    '--accessible', '--json', '--plain', '--ndjson', '--ids-only', '--no-color',
+    '--accessible', '--json', '--plain', '--ndjson', '--ids-only', '--task-output-version', '--no-color',
     '--no-input', '--timeout', '--config', '--profile', '-n', '--dry-run', '-f',
     '--force', '--fuzzy', '--no-fuzzy', '--progress-jsonl', '--base-url'
 )
@@ -51,7 +51,7 @@ $todoistSwitchFlags = @{
 }
 
 $todoistValueFlags = @{
-    '' = @('--timeout', '--config', '--profile', '--progress-jsonl', '--base-url')
+    '' = @('--timeout', '--config', '--profile', '--progress-jsonl', '--base-url', '--task-output-version')
     'review' = @('--filter', '--out')
     'completed' = @('--completed-by', '--since', '--until', '--project', '--section', '--filter', '--cursor', '--limit')
     'upcoming' = @('--days', '--project', '--label', '--sort', '--truncate-width')
@@ -144,7 +144,8 @@ $todoistValues = @{
     'agent apply|--on-error' = @('fail', 'continue')
     'agent run|--on-error' = @('fail', 'continue')
     'agent schedule print|--on-error' = @('fail', 'continue')
-    'schema|--name' = @('review_report', 'ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
+    '|--task-output-version' = @('1', '2')
+    'schema|--name' = @('review_report', 'ids_only', 'task_item', 'task_list', 'task_item_ndjson', 'task_item_v2', 'task_list_v2', 'error', 'plan', 'plan_preview', 'planner_request')
 }
 
 $todoistCompleter = {
@@ -227,7 +228,13 @@ $todoistCompleter = {
     }
 
     if ($null -ne $valueFlag) {
-        $values = @($todoistValues["$path|$valueFlag"])
+        if ($todoistValues.ContainsKey("$path|$valueFlag")) {
+            $values = @($todoistValues["$path|$valueFlag"])
+        } elseif ($todoistValues.ContainsKey("|$valueFlag")) {
+            $values = @($todoistValues["|$valueFlag"])
+        } else {
+            return
+        }
         foreach ($value in $values) {
             if ($value.StartsWith($valuePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
                 $completion = "$completionPrefix$value"

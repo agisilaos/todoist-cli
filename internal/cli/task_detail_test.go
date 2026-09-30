@@ -69,7 +69,7 @@ func TestTaskDetailDefaultAndFull(t *testing.T) {
 			if !strings.HasPrefix(out.String(), defaultOutput+"\n") {
 				t.Errorf("full changed default layout: %s", out)
 			}
-			for _, want := range []string{"Project ID: project-A\n", "Section ID: section-B\n", "Parent ID: None\n", "Added: 2026-09-20T09:15:00Z\n", "Updated: 2026-09-28T13:45:00Z\n", "Completed at: None\n", "Comments: 2\n"} {
+			for _, want := range []string{"Project ID: project-A\n", "Section ID: section-B\n", "Parent ID: None\n", "Added: 2026-09-20T09:15:00Z\n", "Updated: 2026-09-28T13:45:00Z\n", "Completed at: None\n", "Comments: 2 (deprecated API value; not a reliable comment count)\n"} {
 				if !strings.Contains(out.String(), want) {
 					t.Errorf("missing full field %q: %s", want, out)
 				}

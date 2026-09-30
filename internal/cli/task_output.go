@@ -13,7 +13,10 @@ import (
 
 func writeTaskView(ctx *Context, task api.Task, full bool) error {
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		return writeStructuredValue(ctx, task, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+		if err := writeTaskResponseIssues(ctx, []api.Task{task}); err != nil {
+			return err
+		}
+		return writeStructuredValue(ctx, taskResourceValue(ctx, task), output.Meta{RequestID: ctxRequestIDValue(ctx)})
 	}
 	if ctx.Mode == output.ModeHuman {
 		return writeTaskDetail(ctx, task, full)
@@ -109,6 +112,16 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 		tasks = []api.Task{}
 	}
 	if ctx.Mode == output.ModeJSON {
+		if ctx.Global.TaskOutputVersion == 2 {
+			if err := writeTaskResponseIssues(ctx, tasks); err != nil {
+				return err
+			}
+			items := make([]any, 0, len(tasks))
+			for _, task := range tasks {
+				items = append(items, taskResourceValue(ctx, task))
+			}
+			return output.WriteJSON(ctx.Stdout, items, output.Meta{})
+		}
 		return output.WriteJSON(ctx.Stdout, tasks, output.Meta{RequestID: ctxRequestIDValue(ctx), Count: len(tasks), Cursor: cursor})
 	}
 	if ctx.Mode == output.ModeNDJSON {
@@ -163,9 +176,12 @@ func writeTaskList(ctx *Context, tasks []api.Task, cursor string, wide bool) err
 }
 
 func writeTaskNDJSON(ctx *Context, tasks []api.Task) error {
+	if err := writeTaskResponseIssues(ctx, tasks); err != nil {
+		return err
+	}
 	items := make([]any, 0, len(tasks))
 	for _, task := range tasks {
-		items = append(items, task)
+		items = append(items, taskResourceValue(ctx, task))
 	}
 	return output.WriteNDJSON(ctx.Stdout, items)
 }

@@ -171,6 +171,7 @@ Global flags can appear before or after commands; command-option values stay lit
 --plain              Plain text output
 --ndjson             NDJSON output
 --ids-only           One raw ID per line (supported lists only)
+--task-output-version <1|2>  Task JSON/NDJSON: legacy (1, default) or faithful (2)
 --no-color           Disable color
 --no-input           Disable prompts
 --timeout <seconds>  Request timeout (default 10)
@@ -351,6 +352,11 @@ State: Active
 Due: 2026-09-29T16:30:00+02:00
 Timezone: Europe/Berlin
 Recurrence: Yes (every Tuesday at 16:30)
+Deadline: Not returned
+Duration: Not returned
+Assignee ID: Not returned
+Due language: Not returned
+Reference item: No (title syntax)
 Labels: "work", "release"
 ID: 102000002
 
@@ -365,8 +371,11 @@ stay intact and may overflow exceptionally narrow terminals. Other long words
 can split; terminal controls are escaped. Quiet and accessible output retain the
 same task information.
 
-`--full` appends exact project, section, and parent IDs, added/updated timestamps,
-completion-time availability, and the returned comment count. P1 remains highest
+Detail also shows deadline, duration, assignee ID, due language, and reference-item
+status derived from the returned title syntax. `--full` appends exact destination
+IDs, timestamps, sibling/day order, order key, actor IDs, flags, and counters.
+The returned `note_count` is deprecated and currently always zero; it does not
+establish the task's actual comment count. P1 remains highest
 in both human views. Dates and times retain their returned values, offset, and
 timezone without conversion; differing returned calendar dates and timestamps
 are shown separately. A floating time is labeled when its timezone is unknown.
@@ -399,6 +408,20 @@ emits the same object as one newline-terminated JSON record on a single line.
 retain the legacy labeled text. These paths perform no name lookups.
 `--ids-only` remains unsupported for task view. Unknown tasks retain exit 4 with
 empty stdout and an error on stderr.
+
+To inspect all supported returned task facts in machine output, select v2:
+
+```bash
+todoist task view id:102000002 --no-input --json --task-output-version 2
+todoist task view id:102000002 --no-input --ndjson --task-output-version 2
+todoist schema --name task_item_v2
+```
+
+V2 retains deadline, duration, `responsible_uid` (assignee), ordering, actor IDs,
+flags, counters, and due recurrence/timezone/language. Absent fields stay omitted;
+explicit null, false, zero, and empty values stay intact. It never substitutes
+mutation inputs for missing returned facts. See the [task-data contract](docs/task-data-fidelity.md)
+for field types, reference-item derivation, supported commands, and malformed-data recovery.
 
 ### Workspaces
 
@@ -853,6 +876,10 @@ Output JSON schemas and wire-format descriptors (always emitted as JSON):
 todoist schema [--name task_list|task_item_ndjson|ids_only|error|plan|plan_preview|planner_request] [--json]
 ```
 
+Task schemas: `task_item` and `task_item_ndjson` describe legacy objects;
+`task_list` describes legacy arrays. With `--task-output-version 2`, use
+`task_item_v2` for JSON views and NDJSON records, and `task_list_v2` for JSON arrays.
+
 ## Shell Completions
 
 Shell completions suggest command names and aliases, including `notification ls`.
@@ -966,6 +993,10 @@ context would require a separate compatibility decision.
   [task-detail exceptions](#task-detail).
 - `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Single-task views, mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
+- `--task-output-version 2` selects the [faithful task-resource contract](docs/task-data-fidelity.md)
+  with `--json` or `--ndjson`. Omission defaults to legacy version 1. Explicit
+  selection is restricted to returned-task commands and rejects dry runs and
+  acknowledgements before side effects. There is no configuration/environment override.
 - `--ids-only` outputs one raw ID followed by a newline per result. Empty results emit no stdout.
 - Errors go to stderr; `--quiet` suppresses non-essential informational messages but retains list continuation notices. `--verbose` may show request IDs and more detail.
 - Color is enabled by default on TTY; use `--no-color` or `NO_COLOR=1` to disable.

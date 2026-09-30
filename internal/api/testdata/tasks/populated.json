@@ -1,0 +1,17 @@
+{
+  "id": "task-fidelity-fixture", "user_id": "user-owner", "project_id": "project-work",
+  "section_id": null, "parent_id": null, "added_by_uid": "user-assignee",
+  "assigned_by_uid": "user-assignee", "responsible_uid": "user-assignee",
+  "content": "* Prepare launch checklist", "description": "Confirm owner before recurring review.",
+  "labels": ["review"], "priority": 3, "checked": false, "is_collapsed": false,
+  "is_deleted": false, "is_uncompletable": false,
+  "added_at": "2026-09-29T08:00:00Z", "completed_at": null,
+  "completed_by_uid": null, "updated_at": "2026-09-30T09:00:00Z",
+  "due": {"date": "2026-10-01T07:00:00Z", "datetime": null,
+    "string": "every Thursday at 9am", "lang": "en", "is_recurring": true,
+    "timezone": "Europe/Berlin", "future_due_field": "ignored"},
+  "deadline": {"date": "2026-10-10", "lang": "en"},
+  "duration": {"amount": 60, "unit": "minute"}, "child_order": 0,
+  "order_key": "a1V", "day_order": 9007199254740993, "note_count": 0,
+  "completed_count": 2, "postponed_count": 0, "future_field": "ignored"
+}

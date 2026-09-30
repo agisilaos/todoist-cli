@@ -48,6 +48,7 @@ Global flags:
   --plain               Plain text output (tab-separated)
   --ndjson              NDJSON output
   --ids-only            One raw ID per line (supported lists only)
+  --task-output-version <1|2>  Task JSON/NDJSON: legacy (1, default) or faithful (2)
   --no-color            Disable color
   --no-input            Disable prompts
   --timeout <seconds>   Request timeout (default 10)

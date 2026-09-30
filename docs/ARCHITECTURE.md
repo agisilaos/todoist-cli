@@ -59,8 +59,11 @@ machine-error compatibility, and absence of help side effects.
 
 Task creation shares a capture receipt renderer in `internal/cli`; other task
 rendering and machine output remain separate. The API task decoder retains due
-field presence, recurrence, and timezone as response-only facts excluded from
-existing JSON/NDJSON serialization. Receipts use best-effort destination name
+field presence, recurrence, and timezone as returned facts excluded from
+legacy JSON/NDJSON serialization. An immutable response snapshot retains supported
+task and nested facts independently of typed defaults. An explicitly selected
+task-resource v2 projection preserves their presence and values; it does not change
+`api.Task` serialization used by planner/review contracts. Receipts use best-effort destination name
 lookups and never infer saved state from capture input.
 
 Human task detail reuses complete project and section collections held by the

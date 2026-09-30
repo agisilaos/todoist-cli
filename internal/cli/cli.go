@@ -33,27 +33,29 @@ const (
 )
 
 type GlobalOptions struct {
-	Help          bool
-	Version       bool
-	Quiet         bool
-	QuietJSON     bool
-	Verbose       bool
-	Accessible    bool
-	JSON          bool
-	Plain         bool
-	NDJSON        bool
-	IDsOnly       bool
-	NoColor       bool
-	NoInput       bool
-	TimeoutSec    int
-	ConfigPath    string
-	Profile       string
-	DryRun        bool
-	Force         bool
-	BaseURL       string
-	Fuzzy         bool
-	NoFuzzy       bool
-	ProgressJSONL string
+	Help                 bool
+	Version              bool
+	Quiet                bool
+	QuietJSON            bool
+	Verbose              bool
+	Accessible           bool
+	JSON                 bool
+	Plain                bool
+	NDJSON               bool
+	IDsOnly              bool
+	TaskOutputVersion    int
+	TaskOutputVersionSet bool
+	NoColor              bool
+	NoInput              bool
+	TimeoutSec           int
+	ConfigPath           string
+	Profile              string
+	DryRun               bool
+	Force                bool
+	BaseURL              string
+	Fuzzy                bool
+	NoFuzzy              bool
+	ProgressJSONL        string
 }
 
 type Context struct {
@@ -138,6 +140,10 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		writeError(ctx, err)
 		return toExitCode(err)
 	}
+	if err := validateTaskOutputSelection(ctx, rest); err != nil {
+		writeError(ctx, err)
+		return exitUsage
+	}
 	sink, err := newProgressSink(opts.ProgressJSONL, stderr)
 	if err != nil {
 		writeError(ctx, fmt.Errorf("open progress log: %w", err))
@@ -195,6 +201,26 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 			opts.NDJSON = true
 		case arg == "--ids-only":
 			opts.IDsOnly = true
+		case strings.HasPrefix(arg, "--task-output-version="):
+			value := strings.TrimPrefix(arg, "--task-output-version=")
+			opts.TaskOutputVersionSet = true
+			version, err := parseTaskOutputVersion(value)
+			if err != nil {
+				recordError(err)
+			}
+			opts.TaskOutputVersion = version
+		case arg == "--task-output-version":
+			opts.TaskOutputVersionSet = true
+			if i+1 >= len(args) {
+				recordError(errors.New("flag needs an argument: --task-output-version"))
+				continue
+			}
+			i++
+			version, err := parseTaskOutputVersion(args[i])
+			if err != nil {
+				recordError(err)
+			}
+			opts.TaskOutputVersion = version
 		case arg == "--no-color":
 			opts.NoColor = true
 		case arg == "--no-input":

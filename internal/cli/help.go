@@ -20,6 +20,7 @@ Global flags:
   --plain               Plain text output (tab-separated)
   --ndjson              NDJSON output
   --ids-only            One raw ID per line (supported lists only)
+  --task-output-version <1|2>  Task JSON/NDJSON: legacy (1, default) or faithful (2)
   --no-color            Disable color
   --no-input            Disable prompts
   --timeout <seconds>   Request timeout (default 10)
@@ -258,9 +259,12 @@ Notes:
   Detailed table/--plain columns: ID, Content, Project, Section, Labels, Due, Priority, Completed.
   --wide retains the detailed table (API priorities: 4 highest); task view id:<id> shows full text.
   Human task view uses P1 highest, named context, absolute dates, recurrence, and current state.
+  Detail also shows deadline, duration, assignee ID, due language, and reference classification.
   task view --full adds exact destination IDs and inspection metadata.
   Task view --json emits a task object; --ndjson emits the same object on one line.
   JSON/NDJSON have no enrichment; --full does not change their payloads.
+  --task-output-version 2 selects faithful JSON/NDJSON facts; omitted fields remain unknown.
+  Use schema --name task_item_v2 for records and task_list_v2 for JSON arrays.
   Plain/redirected task view retains labeled text.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
@@ -281,6 +285,7 @@ Examples:
   todoist task list --preset today --sort priority
   echo "From stdin" | todoist task add --content -
   todoist task view id:123456 --full
+  todoist task view id:123456 --json --task-output-version 2
 `)
 }
 

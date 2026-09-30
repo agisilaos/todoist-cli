@@ -54,8 +54,10 @@ func TestContractIDsOnlySupportedCommands(t *testing.T) {
 	t.Setenv("TODOIST_CONFIG", filepath.Join(t.TempDir(), "config.json"))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/tasks", "/tasks/filter", "/tasks/completed/by_completion_date":
+		case "/tasks", "/tasks/filter":
 			fmt.Fprintf(w, `{"results":[{"id":"task-id","due":{"date":%q}}]}`, time.Now().UTC().Format("2006-01-02"))
+		case "/tasks/completed/by_completion_date":
+			fmt.Fprintf(w, `{"items":[{"id":"task-id","due":{"date":%q}}]}`, time.Now().UTC().Format("2006-01-02"))
 		case "/tasks/task-id":
 			fmt.Fprint(w, `{"id":"task-id"}`)
 		case "/projects":

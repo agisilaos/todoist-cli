@@ -10,7 +10,16 @@ _todoist() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]}"
 
-  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --ids-only --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
+  local global_flags="--help -h --version --quiet -q --quiet-json --verbose -v --accessible --json --plain --ndjson --ids-only --task-output-version --no-color --no-input --timeout --config --profile --dry-run -n --force -f --fuzzy --no-fuzzy --progress-jsonl --base-url"
+
+  if [[ "$prev" == "--task-output-version" ]]; then
+    COMPREPLY=( $(compgen -W "1 2" -- "$cur") )
+    return 0
+  fi
+  if [[ "$cur" == --task-output-version=* ]]; then
+    COMPREPLY=( $(compgen -W "1 2" -- "${cur#*=}") )
+    return 0
+  fi
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "{{commands:}} ${global_flags}" -- "$cur") )
@@ -224,36 +233,40 @@ var zshCompletion = renderCommandInventory(zshCompletionTemplate)
 const zshCompletionTemplate = `#compdef todoist
 _arguments -C \
   '--ids-only[One raw ID per line (supported lists only)]' \
+  '--task-output-version[Task resource output version]:version:(1 2)' \
   '1:command:({{commands:}})' \
   '*::subcmd:->subcmds'
 
 case $words[1] in
   inbox)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:inbox}})' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:inbox}})' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
     ;;
   review)
     _arguments '--filter[Todoist filter]:query:' '--out[Save review plan]:file:_files'
     ;;
   today)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]'
     ;;
   upcoming)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--days --project --label --wide --sort --truncate-width)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--days --project --label --wide --sort --truncate-width)'
     ;;
   completed)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--completed-by --since --until --project --section --filter --cursor --limit --all --wide)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--completed-by --since --until --project --section --filter --cursor --limit --all --wide)'
     ;;
   add)
-    _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
   auth)
     _arguments '2:subcommand:({{commands:auth}})' '*:flags:(--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '2:subcommand:({{commands:task}})' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '2:subcommand:({{commands:task}})' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
     ;;
   filter)
-    _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:filter}})' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:filter}})' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
+    ;;
+  view)
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '*:url:'
     ;;
   project)
     _arguments '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:project}})' '*:flags:(--archived --id --name --description --parent --color --favorite --view --cursor --limit --all --to-workspace --to-personal --visibility --yes)'
@@ -325,6 +338,7 @@ complete -c todoist -l json -d "JSON output"
 complete -c todoist -l plain -d "Plain output"
 complete -c todoist -l ndjson -d "NDJSON output"
 complete -c todoist -l ids-only -d "One raw ID per line (supported lists only)"
+complete -c todoist -l task-output-version -r -a '1 2' -d "Task JSON/NDJSON version (1 legacy, 2 faithful)"
 complete -c todoist -l no-color -d "Disable color"
 complete -c todoist -l no-input -d "Disable prompts"
 complete -c todoist -l timeout -d "Request timeout"

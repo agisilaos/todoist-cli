@@ -446,6 +446,30 @@ func TestZshIDsOnlySupportedContexts(t *testing.T) {
 	}
 }
 
+func TestBashTaskOutputVersionValues(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash is not installed")
+	}
+	scriptPath := filepath.Join(t.TempDir(), "todoist.bash")
+	if err := os.WriteFile(scriptPath, []byte(bashCompletion), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ words, want string }{
+		{`(todoist task view --json --task-output-version "")`, "1\n2\n"},
+		{`(todoist task view --json --task-output-version=)`, "1\n2\n"},
+		{`(todoist task view --json --task-output-version=2)`, "2\n"},
+	} {
+		// Readline's default word breaks replace the value following '='.
+		// Candidates must be values, never another copy of the whole flag.
+		command := `source "$1"; COMP_WORDS=` + tc.words + `; COMP_CWORD=$((${#COMP_WORDS[@]}-1)); _todoist; printf '%s\n' "${COMPREPLY[@]}"`
+		result, err := exec.Command(bash, "--noprofile", "--norc", "-c", command, "bash", scriptPath).CombinedOutput()
+		if err != nil || string(result) != tc.want {
+			t.Fatalf("completion %s: %v %q want %q", tc.words, err, result, tc.want)
+		}
+	}
+}
+
 func TestCompletionScriptsIncludeAgentPolicyFlag(t *testing.T) {
 	for _, shell := range []string{"bash", "zsh", "fish"} {
 		script, err := completionScript(shell)

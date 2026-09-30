@@ -78,3 +78,43 @@ func containsString(values []string, needle string) bool {
 	}
 	return false
 }
+
+func TestTaskV2SchemaPresenceContract(t *testing.T) {
+	item := faithfulTaskItemSchema()
+	if _, present := item["required"]; present {
+		t.Fatal("v2 must not require absent response facts")
+	}
+	if item["additionalProperties"] != false {
+		t.Fatal("v2 allowlist must be fixed")
+	}
+	properties := item["properties"].(map[string]any)
+	if len(properties) != 30 {
+		t.Fatalf("expected 28 API fields, advisory flag, derived classification; got %d", len(properties))
+	}
+	for name, schema := range properties {
+		if name == "reference_item" {
+			continue
+		}
+		property := schema.(map[string]any)
+		if !containsString(property["type"].([]string), "null") {
+			t.Errorf("explicit null excluded for %s", name)
+		}
+		if nested, ok := property["properties"].(map[string]any); ok {
+			if _, required := property["required"]; required || property["additionalProperties"] != false {
+				t.Errorf("nested presence/allowlist contract wrong for %s", name)
+			}
+			for member, value := range nested {
+				if !containsString(value.(map[string]any)["type"].([]string), "null") {
+					t.Errorf("nested null excluded: %s.%s", name, member)
+				}
+			}
+		}
+	}
+	for _, name := range []string{"task_item", "task_item_v2", "task_list_v2"} {
+		var out bytes.Buffer
+		ctx := &Context{Stdout: &out, Stderr: &bytes.Buffer{}, Mode: output.ModeJSON}
+		if err := schemaCommand(ctx, []string{"--name", name}); err != nil || !json.Valid(out.Bytes()) {
+			t.Fatalf("schema %s undiscoverable/invalid: %v %s", name, err, out.String())
+		}
+	}
+}

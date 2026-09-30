@@ -1,0 +1,7 @@
+{
+  "id":"task-malformed","content":"Task with partial metadata","priority":3,
+  "due":{"date":"2026-10-01","lang":42,"timezone":[],"is_recurring":"yes"},
+  "deadline":{"date":"2026-10-10","lang":false},
+  "duration":{"amount":"60","unit":"minute"},"responsible_uid":false,
+  "child_order":0.5,"is_uncompletable":"no"
+}

@@ -67,6 +67,11 @@ try {
         Assert-ContainsCompletion 'todoist --profile task task add --pr' '--priority'
         Assert-ContainsCompletion "todoist task add --content 'two words' --pr" '--priority'
         Assert-ContainsCompletion 'todoist task show --i' '--id'
+        Assert-ContainsCompletion 'todoist task view --task-output-version ' '1'
+        Assert-ContainsCompletion 'todoist task view --task-output-version ' '2'
+        Assert-ContainsCompletion 'todoist task view --task-output-version=2' '--task-output-version=2'
+        Assert-ContainsCompletion 'todoist --task-output-version 2 task list --s' '--sort'
+        Assert-ContainsCompletion 'todoist schema --name task_item_v' 'task_item_v2'
         Assert-OmitsCompletion 'todoist task add -- --pr' '--priority'
 
         Assert-ContainsCompletion 'todoist task list --sort ' 'priority'

@@ -185,17 +185,10 @@ func resolveLabelNameByID(ctx *Context, id string) (string, error) {
 	if err := ensureClient(ctx); err != nil {
 		return "", err
 	}
-	reqCtx, cancel := requestContext(ctx)
-	defer cancel()
-	var labels []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	reqID, err := ctx.Client.Get(reqCtx, "/labels", nil, &labels)
+	labels, err := listAllLabels(ctx)
 	if err != nil {
 		return "", err
 	}
-	setRequestID(ctx, reqID)
 	for _, label := range labels {
 		if label.ID == id {
 			return label.Name, nil

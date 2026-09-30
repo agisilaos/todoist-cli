@@ -42,6 +42,7 @@ func writeTaskDetail(ctx *Context, task api.Task, full bool) error {
 		field("Completed at", task.CompletedAt)
 	}
 	writeDetailDue(task, field)
+	writeDetailTaskFacts(task, false, field)
 	labels := "Not returned"
 	if task.Labels != nil {
 		labels = "None"
@@ -73,9 +74,10 @@ func writeTaskDetail(ctx *Context, task api.Task, full bool) error {
 		}
 		comments := "Not returned"
 		if task.Returned.NoteCount {
-			comments = strconv.Itoa(task.NoteCount)
+			comments = strconv.Itoa(task.NoteCount) + " (deprecated API value; not a reliable comment count)"
 		}
 		field("Comments", comments)
+		writeDetailTaskFacts(task, true, field)
 		if task.Due != nil && task.Due.String != "" && (task.Due.Date != "" || task.Due.Datetime != "") &&
 			(task.Due.IsRecurring == nil || !*task.Due.IsRecurring) {
 			field("Due expression", task.Due.String)
@@ -170,7 +172,16 @@ func writeDetailDue(task api.Task, field func(string, string)) {
 	} else {
 		field("Due", returnedText(value))
 	}
-	if due.Timezone != nil && *due.Timezone != "" {
+	if due.ResponseFact("timezone").State == api.ResponseNull {
+		field("Timezone", "None (date-only or floating time)")
+	} else if due.ResponseFact("timezone").State == api.ResponseInvalid {
+		field("Timezone", "Unavailable (invalid returned type)")
+	} else if timezone, ok := due.ResponseFact("timezone").Text(); ok {
+		if timezone == "" {
+			timezone = "(empty returned value)"
+		}
+		field("Timezone", timezone)
+	} else if due.Timezone != nil && *due.Timezone != "" {
 		field("Timezone", *due.Timezone)
 	} else if strings.Contains(value, "T") {
 		if _, err := time.Parse(time.RFC3339Nano, value); err != nil {
@@ -179,7 +190,11 @@ func writeDetailDue(task api.Task, field func(string, string)) {
 	}
 	recurrence := "Not returned"
 	expressionShown := false
-	if due.IsRecurring != nil {
+	if due.ResponseFact("is_recurring").State == api.ResponseInvalid {
+		recurrence = "Unavailable (invalid returned type)"
+	} else if due.ResponseFact("is_recurring").State == api.ResponseNull {
+		recurrence = "Unavailable (returned null)"
+	} else if due.IsRecurring != nil {
 		recurrence = "None"
 		if *due.IsRecurring {
 			recurrence = "Yes"
