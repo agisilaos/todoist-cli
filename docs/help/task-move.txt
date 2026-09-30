@@ -18,8 +18,13 @@ Global flags:
 
 Notes:
   Supply a destination. Use id:<id> for an exact task; use task list to resolve ambiguous references.
+  Terminal feedback acknowledges the move and shows returned destination details when available.
+  Missing details use labeled requested values; unavailable names retain IDs. No extra lookups.
+  Single-task dry runs show task identity and requested destinations; no task is changed.
+  Quiet, machine, and redirected output retain their existing acknowledgements and previews.
   Bulk selection uses --filter and requires --yes (or global --force); plain text filters become search text.
 
 Examples:
   todoist task move id:123456 --project Home
+  todoist task move id:123456 --project Home --section Backlog --dry-run
   todoist task move --filter "@work & overdue" --project Home --yes --dry-run

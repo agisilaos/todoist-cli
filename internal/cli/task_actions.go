@@ -42,8 +42,9 @@ func taskMove(ctx *Context, args []string) error {
 	if len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
+	resolver := &taskActionResolver{ctx: ctx}
 	svc := apptasks.Service{
-		Resolver: cliTaskResolver{ctx: ctx},
+		Resolver: resolver,
 		Lister:   cliTaskFilterLister{ctx: ctx},
 	}
 	resolved, err := svc.ResolveMoveTargets(context.Background(), apptasks.ResolveMoveInput{
@@ -101,16 +102,22 @@ func taskMove(ctx *Context, args []string) error {
 		return err
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "task move", body)
+		return writeTaskActionPreview(ctx, "move", id, resolver.task, body)
 	}
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+id+"/move", nil, body, nil, true)
+	var response []byte
+	var reqID string
+	if taskActionHuman(ctx) {
+		response, reqID, err = ctx.Client.PostWithOptionalResponse(reqCtx, "/tasks/"+id+"/move", body)
+	} else {
+		reqID, err = ctx.Client.Post(reqCtx, "/tasks/"+id+"/move", nil, body, nil, true)
+	}
 	cancel()
 	if err != nil {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeSimpleResult(ctx, "moved", id)
+	return writeTaskMoveResult(ctx, id, resolver.task, body, response)
 }
 
 func taskComplete(ctx *Context, args []string) error {
@@ -137,8 +144,9 @@ func taskComplete(ctx *Context, args []string) error {
 	if len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
+	resolver := &taskActionResolver{ctx: ctx}
 	svc := apptasks.Service{
-		Resolver: cliTaskResolver{ctx: ctx},
+		Resolver: resolver,
 		Lister:   cliTaskFilterLister{ctx: ctx},
 	}
 	resolved, err := svc.ResolveCompletionTargets(context.Background(), apptasks.ResolveCompletionInput{
@@ -189,7 +197,7 @@ func taskComplete(ctx *Context, args []string) error {
 		return &CodeError{Code: exitUsage, Err: errors.New("task complete requires --id or a reference")}
 	}
 	if ctx.Global.DryRun {
-		return writeDryRun(ctx, "task complete", map[string]any{"id": id})
+		return writeTaskActionPreview(ctx, "complete", id, resolver.task, map[string]any{"id": id})
 	}
 	reqCtx, cancel := requestContext(ctx)
 	reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+id+"/close", nil, nil, nil, true)
@@ -198,7 +206,22 @@ func taskComplete(ctx *Context, args []string) error {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeSimpleResult(ctx, "completed", id)
+	return writeTaskCompletionResult(ctx, id, resolver.task)
+}
+
+// Retain context from the existing resolution without another lookup or any
+// change to target selection. Explicit --id still bypasses resolution.
+type taskActionResolver struct {
+	ctx  *Context
+	task *api.Task
+}
+
+func (r *taskActionResolver) ResolveTaskRef(_ context.Context, ref string) (api.Task, error) {
+	task, err := resolveTaskRef(r.ctx, ref)
+	if err == nil {
+		r.task = &task
+	}
+	return task, err
 }
 
 type cliTaskResolver struct {
