@@ -179,7 +179,9 @@ var leafHelpPages = map[string]commandHelp{
 		examples: `  todoist task view id:123456
   todoist task view id:123456 --full
   todoist task view id:123456 --no-input --json`,
-		notes: `  Use id:<id> for an exact task or a quoted text reference. Use task list when a name is ambiguous.
+		notes: `  Use id:<id> for an exact task or a quoted text reference.
+  Multiple matches offer a numbered choice with task context in a terminal; Enter cancels selection.
+  With --no-input or piped stdin, use task list --all-projects --all --no-input --json and retry id:<id>.
   Human detail keeps full text, names, P1 highest, absolute dates, recurrence, state, labels, and ID.
   Text wraps without truncation; returned offsets/timezones are not converted.
   --full adds project/section/parent IDs, timestamps, and returned comment count.

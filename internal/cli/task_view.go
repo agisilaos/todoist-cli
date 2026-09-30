@@ -75,7 +75,7 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 		}
 		if len(dueMatched) > 1 {
 			candidates := taskCandidates(dueMatched)
-			if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+			if chosen, ok, err := promptAmbiguousTaskChoice(ctx, ref, candidates, tasks); err != nil {
 				return api.Task{}, err
 			} else if ok {
 				for _, task := range dueMatched {
@@ -99,7 +99,7 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 	}
 	if len(exactMatches) > 1 {
 		candidates := taskCandidates(exactMatches)
-		if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+		if chosen, ok, err := promptAmbiguousTaskChoice(ctx, ref, candidates, tasks); err != nil {
 			return api.Task{}, err
 		} else if ok {
 			for _, task := range exactMatches {
@@ -117,7 +117,7 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 	}
 	if len(contains) > 1 && !useFuzzy(ctx) {
 		candidates := taskCandidates(contains)
-		if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+		if chosen, ok, err := promptAmbiguousTaskChoice(ctx, ref, candidates, tasks); err != nil {
 			return api.Task{}, err
 		} else if ok {
 			for _, task := range contains {
@@ -142,7 +142,7 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 		}
 	}
 	if len(candidates) > 1 {
-		if chosen, ok, err := promptAmbiguousChoice(ctx, "task", ref, candidates); err != nil {
+		if chosen, ok, err := promptAmbiguousTaskChoice(ctx, ref, candidates, tasks); err != nil {
 			return api.Task{}, err
 		} else if ok {
 			for _, task := range tasks {

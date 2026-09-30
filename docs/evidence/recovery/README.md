@@ -34,17 +34,11 @@ identical across inspection and the deliberately blocked retry. Machine report
 stdout retained `remote_outcome_uncertain: true`; stderr remained the existing
 error envelope. The original plan also remained intact.
 
-## Screenshots and transcripts
+## Transcripts
 
-Terminal.app automation was unavailable in the computer-use tool. These are
-browser screenshots of a read-only viewer displaying the actual captured PTY
-output, **not Terminal.app screenshots**. CR characters were normalized for the
-viewer; review advice is an excerpt. The underlying command text was not rewritten.
-Exit annotations are added by the capture harness.
-
-![Missing credential and successful stdin login](credentials.png)
-
-![Uncertain-review guidance and safe task inspection](review.png)
+The human transcript retains captured PTY output with CR characters normalized;
+the underlying command text was not rewritten. Exit annotations were added by
+the capture harness.
 
 Full [human transcript](transcript.txt) and separately captured
 [machine stdout/stderr and exit statuses](machine-results.json) are included.
@@ -57,6 +51,6 @@ The evidence-only documentation commit subsequently passed `make docs-check`.
 
 No live Todoist, real Keychain, completed-history UI, recurring-completion,
 SIGKILL/power-loss, or native terminal-window presentation verification was
-performed. Actual PTY behavior and fixture mutations were exercised; screenshots
-show the transcript viewer's presentation. Manual completed-history reconciliation
-remains an explicit limit for outcomes that a task lookup cannot establish.
+performed. Actual PTY behavior and fixture mutations were exercised. Manual
+completed-history reconciliation remains an explicit limit for outcomes that a
+task lookup cannot establish.

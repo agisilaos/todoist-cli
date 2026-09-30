@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"unicode/utf8"
+
+	"golang.org/x/term"
 )
 
 type Mode string
@@ -53,11 +55,10 @@ func DetectMode(jsonFlag, plainFlag, ndjsonFlag, idsOnlyFlag bool, stdoutIsTTY b
 }
 
 func IsTTY(f *os.File) bool {
-	info, err := f.Stat()
-	if err != nil {
+	if f == nil {
 		return false
 	}
-	return (info.Mode() & os.ModeCharDevice) != 0
+	return term.IsTerminal(int(f.Fd()))
 }
 
 func WriteJSON(out io.Writer, data any, meta Meta) error {
