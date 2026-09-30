@@ -62,3 +62,30 @@ func TestTaskResponseOptionalFactsCannotFailCreation(t *testing.T) {
 		t.Fatalf("explicit false lost: %s", encoded)
 	}
 }
+
+func TestTaskDetailReturnedFieldsDoNotChangeSerialization(t *testing.T) {
+	var task Task
+	input := `{"description":"","section_id":null,"parent_id":"","checked":false,"completed_at":null,"note_count":0}`
+	if err := json.Unmarshal([]byte(input), &task); err != nil {
+		t.Fatal(err)
+	}
+	if task.Returned != (TaskReturnedFields{Description: true, SectionID: true, ParentID: true, Checked: true, CompletedAt: true, NoteCount: true}) {
+		t.Fatalf("explicit empty/false/zero facts lost: %+v", task.Returned)
+	}
+	encoded, err := json.Marshal(task)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"id":"","content":"","description":"","project_id":"","section_id":"","parent_id":"","labels":null,"priority":0,"checked":false,"due":null,"added_at":"","completed_at":"","updated_at":"","note_count":0}`
+	if string(encoded) != want {
+		t.Fatalf("machine serialization changed: %s", encoded)
+	}
+	for _, input := range []string{`{}`, `{"description":null,"checked":null,"note_count":null}`} {
+		if err := json.Unmarshal([]byte(input), &task); err != nil {
+			t.Fatal(err)
+		}
+		if task.Returned != (TaskReturnedFields{}) {
+			t.Fatalf("unknown/stale facts for %s: %+v", input, task.Returned)
+		}
+	}
+}

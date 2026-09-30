@@ -257,6 +257,9 @@ Notes:
   For bulk actions, plain --filter text is treated as search text when not a Todoist query.
   Detailed table/--plain columns: ID, Content, Project, Section, Labels, Due, Priority, Completed.
   --wide retains the detailed table (API priorities: 4 highest); task view id:<id> shows full text.
+  Human task view uses P1 highest, named context, absolute dates, recurrence, and current state.
+  task view --full adds exact destination IDs and inspection metadata.
+  Task-view machine clients should use --json; plain/redirected/ndjson retain labeled text.
   --ids-only on task list emits raw IDs, one per line; empty results emit nothing.
   Human output resolves project/section names; --plain uses IDs.
   Task add prints a capture receipt in a terminal (except --quiet), including a view command.

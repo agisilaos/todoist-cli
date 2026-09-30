@@ -11,13 +11,30 @@ func (t *Task) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	var fields struct {
-		Due json.RawMessage `json:"due"`
+		Due         json.RawMessage `json:"due"`
+		Description json.RawMessage `json:"description"`
+		SectionID   json.RawMessage `json:"section_id"`
+		ParentID    json.RawMessage `json:"parent_id"`
+		Checked     json.RawMessage `json:"checked"`
+		CompletedAt json.RawMessage `json:"completed_at"`
+		NoteCount   json.RawMessage `json:"note_count"`
 	}
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
 	*t = Task(value)
 	t.DueReturned = len(fields.Due) > 0
+	valueReturned := func(value json.RawMessage) bool {
+		return len(value) > 0 && string(value) != "null"
+	}
+	t.Returned = TaskReturnedFields{
+		Description: valueReturned(fields.Description),
+		SectionID:   len(fields.SectionID) > 0,
+		ParentID:    len(fields.ParentID) > 0,
+		Checked:     valueReturned(fields.Checked),
+		CompletedAt: len(fields.CompletedAt) > 0,
+		NoteCount:   valueReturned(fields.NoteCount),
+	}
 	return nil
 }
 
