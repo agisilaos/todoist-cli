@@ -1,0 +1,192 @@
+{
+  "captured_at_utc": "2026-09-30T06:50:05.313613+00:00",
+  "baseline_revision": "4e1bd8ae220cf84531fabeacf1d642d893018181",
+  "implementation_revision": "4e1bd8ae220cf84531fabeacf1d642d893018181",
+  "implementation_state": "current uncommitted task-ambiguity implementation",
+  "implementation_source_sha256": {
+    "internal/cli/leaf_help.go": "99fbc2b92b15a43afb4524accab90c25103767dfb7b774fea518e711acd68f81",
+    "internal/cli/resolve.go": "ca3422dbbccf2e507fd87a45a6affdca83517426972b330333d2a8e00386cc49",
+    "internal/cli/task_view.go": "ff954458154d8579e466e30249591005fe54b04cf5ebe8943db37303a0fe6e16",
+    "internal/cli/task_ambiguity.go": "08ef18f947b63d42f9316bf84ff4bb32b40dc81707d43358a68a96900ef4a73d"
+  },
+  "go_version": "go version go1.27.1 darwin/arm64",
+  "fixture": {
+    "tasks": [
+      {
+        "id": "110000001",
+        "content": "Review report",
+        "project_id": "700000001",
+        "section_id": "800000001",
+        "parent_id": "900000001",
+        "labels": [
+          "work",
+          "weekly"
+        ],
+        "priority": 1,
+        "description": "Check finance report",
+        "due": {
+          "date": "2026-10-01",
+          "datetime": "2026-10-01T09:00:00+02:00",
+          "timezone": "Europe/Berlin",
+          "string": "every Thursday at 9am",
+          "is_recurring": true
+        },
+        "is_completed": false
+      },
+      {
+        "id": "110000002",
+        "content": "Review report",
+        "project_id": "700000001",
+        "section_id": "800000002",
+        "parent_id": "900000002",
+        "labels": [
+          "legal"
+        ],
+        "priority": 1,
+        "description": "Check compliance report",
+        "due": {
+          "date": "2026-10-01",
+          "datetime": "2026-10-01T09:00:00+02:00",
+          "timezone": "Europe/Berlin",
+          "string": "Thursday at 9am",
+          "is_recurring": false
+        },
+        "is_completed": false
+      },
+      {
+        "id": "110000003",
+        "content": "Review report",
+        "project_id": "700000002",
+        "section_id": "800000003",
+        "parent_id": "",
+        "labels": [
+          "personal"
+        ],
+        "priority": 1,
+        "description": "Check personal report",
+        "due": null,
+        "is_completed": false
+      },
+      {
+        "id": "900000001",
+        "content": "Quarterly audit",
+        "project_id": "700000001",
+        "section_id": "",
+        "parent_id": "",
+        "labels": [],
+        "priority": 1,
+        "description": "",
+        "due": null,
+        "is_completed": false
+      },
+      {
+        "id": "900000002",
+        "content": "Legal audit",
+        "project_id": "700000001",
+        "section_id": "",
+        "parent_id": "",
+        "labels": [],
+        "priority": 1,
+        "description": "",
+        "due": null,
+        "is_completed": false
+      }
+    ],
+    "projects": [
+      {
+        "id": "700000001",
+        "name": "Work",
+        "is_inbox_project": true
+      },
+      {
+        "id": "700000002",
+        "name": "Personal",
+        "is_inbox_project": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "800000001",
+        "name": "Reports",
+        "project_id": "700000001"
+      },
+      {
+        "id": "800000002",
+        "name": "Compliance",
+        "project_id": "700000001"
+      },
+      {
+        "id": "800000003",
+        "name": "Admin",
+        "project_id": "700000002"
+      }
+    ]
+  },
+  "rendering": "headless Chrome screenshot of read-only viewer; exact captured prompt text; CRLF normalized to LF; frame/command/footer are annotations",
+  "captures": [
+    {
+      "name": "baseline",
+      "command": [
+        "todoist",
+        "task",
+        "complete",
+        "Review report",
+        "--dry-run",
+        "--no-color"
+      ],
+      "columns": 120,
+      "rows": 32,
+      "stdin": "PTY",
+      "stdout_stderr": "merged PTY",
+      "snapshot": "before Enter input",
+      "input": "Enter",
+      "exit": 2,
+      "prompt_output": "Multiple tasks match \"Review report\":\n  1) Review report (id:110000001)\n  2) Review report (id:110000002)\n  3) Review report (id:110000003)\nChoose number (or press Enter to cancel): ",
+      "full_output": "Multiple tasks match \"Review report\":\n  1) Review report (id:110000001)\n  2) Review report (id:110000002)\n  3) Review report (id:110000003)\nChoose number (or press Enter to cancel): \nerror: ambiguous task match for \"Review report\"; matches: Review report, Review report, Review report\nSee: todoist task complete --help\n",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/tasks?limit=200"
+        }
+      ],
+      "binary_sha256": "f4fc4a7a3ab70063433d99938a7fec1ff2094a40c780d4539331110d53c9dc0f",
+      "version": "todoist dev (local) unreleased"
+    },
+    {
+      "name": "enriched",
+      "command": [
+        "todoist",
+        "task",
+        "complete",
+        "Review report",
+        "--dry-run",
+        "--no-color"
+      ],
+      "columns": 120,
+      "rows": 32,
+      "stdin": "PTY",
+      "stdout_stderr": "merged PTY",
+      "snapshot": "before Enter input",
+      "input": "Enter",
+      "exit": 2,
+      "prompt_output": "Multiple tasks match \"Review report\":\n  1) Review report (id:110000001)\n     Project: Work \u00b7 Section: Reports \u00b7 Due 2026-10-01T09:00:00+02:00 (Europe/Berlin) \u00b7 Repeats: every Thursday at 9am\n     Parent: Quarterly audit (id:900000001) \u00b7 Labels: \"work\", \"weekly\"\n  2) Review report (id:110000002)\n     Project: Work \u00b7 Section: Compliance \u00b7 Due 2026-10-01T09:00:00+02:00 (Europe/Berlin)\n     Parent: Legal audit (id:900000002) \u00b7 Labels: \"legal\"\n  3) Review report (id:110000003)\n     Project: Personal \u00b7 Section: Admin \u00b7 No due date \u00b7 Labels: \"personal\"\nChoose number (or press Enter to cancel): ",
+      "full_output": "Multiple tasks match \"Review report\":\n  1) Review report (id:110000001)\n     Project: Work \u00b7 Section: Reports \u00b7 Due 2026-10-01T09:00:00+02:00 (Europe/Berlin) \u00b7 Repeats: every Thursday at 9am\n     Parent: Quarterly audit (id:900000001) \u00b7 Labels: \"work\", \"weekly\"\n  2) Review report (id:110000002)\n     Project: Work \u00b7 Section: Compliance \u00b7 Due 2026-10-01T09:00:00+02:00 (Europe/Berlin)\n     Parent: Legal audit (id:900000002) \u00b7 Labels: \"legal\"\n  3) Review report (id:110000003)\n     Project: Personal \u00b7 Section: Admin \u00b7 No due date \u00b7 Labels: \"personal\"\nChoose number (or press Enter to cancel): \nerror: ambiguous task match for \"Review report\"; matches: Review report, Review report, Review report\nSee: todoist task complete --help\n",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/tasks?limit=200"
+        },
+        {
+          "method": "GET",
+          "path": "/projects?limit=200"
+        },
+        {
+          "method": "GET",
+          "path": "/sections?limit=200"
+        }
+      ],
+      "binary_sha256": "7d7c1d829a32804094e35288b9d0c25ae4ac7e520634396ae05ef900558e7029",
+      "version": "todoist dev (local) unreleased"
+    }
+  ]
+}

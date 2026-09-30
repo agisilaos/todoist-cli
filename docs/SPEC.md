@@ -240,8 +240,37 @@ Planner context notes:
 - Fuzzy name resolution is opt-in via `--fuzzy` / `TODOIST_FUZZY=1`.
 - Active-task overviews always use text labels. Legacy task table/plain markers remain opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
 
+### Task ambiguity
+
+The existing numbered task choice shows each candidate's title and full ID,
+project, returned concrete due date/time, `No due date`, or `Due unavailable`, and
+available section, parent, and labels. A due expression without a resolved date
+is labeled `(date unavailable)`. `Repeats` appears only when Todoist returned a
+recurring due date. Project/section name lookup is best-effort with returned-ID
+fallback. Displayed context does not alter matching,
+candidate order/cap, or the selected task ID. Times retain returned offsets and
+timezones without local conversion; unavailable context stays unknown.
+
+The caller must choose a number explicitly. Enter cancels selection and returns
+the existing ambiguity error; invalid selection returns usage exit 2. `--no-input`
+or non-TTY stdin skips the choice and preserves ambiguity failure. Exact-ID and
+Todoist task URL resolution remain unchanged. Fuzzy ranking may order multiple
+candidates but never selects a mutation target automatically.
+
+Machine ambiguity outputs remain unchanged: usage exit 2, empty stdout, and
+the existing stderr error behavior. JSON `details.matches` remains an array of
+titles without candidate IDs/context; plain and NDJSON errors remain text.
+Consequently the ambiguity error alone cannot identify an exact retry target.
+Machine clients use `task list --all-projects --all --no-input --json` to inspect
+full IDs and task fields, then `task view id:<chosen-id> --full --no-input --json`
+as needed, before deliberately retrying the intended mutation with that exact
+ID. Structured ambiguity enrichment requires a separate compatibility decision.
+
 ## Output
 
+- Terminal detection queries the descriptor's terminal status. Non-terminal
+  devices such as `/dev/null` do not enable prompts or select
+  automatic human output. Real terminals retain their interactive behavior.
 - Human default for TTY; `--plain` (tab-separated) for stable text.
 - `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
