@@ -381,8 +381,11 @@ response did not establish the value. Missing state or comment count is not
 reported as active or zero.
 
 Name resolution adds a paginated projects lookup and, only when the task has
-project and section IDs, a sections lookup scoped to that project. Successful
-lookups are cached within one command, without a persistent cache. Separate
+project and section IDs, a sections lookup scoped to that project unless a
+complete sections collection was already loaded in this command. Successful
+lookups are cached within one command, including across an interactive selection;
+names changed elsewhere while the prompt is open may remain as first fetched.
+There is no persistent cache. Separate
 overview and detail commands repeat requests. Pagination, configured timeouts,
 and existing retries apply. A failed lookup keeps the task visible with its exact
 ID and `(name unavailable; lookup failed)`; a successful lookup without a matching

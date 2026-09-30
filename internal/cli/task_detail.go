@@ -122,7 +122,7 @@ func detailDestinations(ctx *Context, task api.Task) (string, string) {
 	}
 	if task.SectionID != "" {
 		// The returned project ID scopes sections even if project-name lookup failed.
-		sections, err := listAllSections(ctx, "id:"+task.ProjectID)
+		sections, err := detailSections(ctx, task.ProjectID)
 		section = captureDestination(task.SectionID, nil)
 		if err != nil {
 			section = task.SectionID + " (name unavailable; lookup failed)"
@@ -136,6 +136,16 @@ func detailDestinations(ctx *Context, task api.Task) (string, string) {
 		}
 	}
 	return project, section
+}
+
+func detailSections(ctx *Context, projectID string) ([]api.Section, error) {
+	if cache := ctx.lookupCache; cache != nil {
+		// A present global entry is complete, including a successful empty load.
+		if sections, loaded := cache.sectionsByProject[""]; loaded {
+			return cloneSlice(sections), nil
+		}
+	}
+	return listAllSections(ctx, "id:"+projectID)
 }
 
 func writeDetailDue(task api.Task, field func(string, string)) {

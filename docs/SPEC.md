@@ -398,8 +398,12 @@ or zero. Response-presence facts are nonserialized and leave existing payloads
 unchanged.
 
 Human enrichment reuses all-page project fetching and, only with nonempty project
-and section IDs, exact-project-scoped section fetching. Successful collection
-lookups use the existing per-invocation cache; there is no persistent cache.
+and section IDs, exact-project-scoped section fetching unless a complete global
+sections collection is already cached. Reuse includes successful empty collections;
+failed or incomplete fetches cannot supply enrichment. Section names still require
+both the returned section ID and project ID to match. Successful collection
+lookups use the existing per-invocation cache, including across selection prompts;
+external name changes during a prompt may remain unseen. There is no persistent cache.
 Pagination, per-page timeout, and existing GET retries apply. Normally one project
 and one applicable section collection request are added. Attempt section lookup
 independently of project-name failure. Failed lookup retains ID plus

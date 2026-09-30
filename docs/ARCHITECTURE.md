@@ -63,6 +63,12 @@ field presence, recurrence, and timezone as response-only facts excluded from
 existing JSON/NDJSON serialization. Receipts use best-effort destination name
 lookups and never infer saved state from capture input.
 
+Human task detail reuses complete project and section collections held by the
+CLI's invocation-local lookup cache. A complete global sections collection can
+serve detail enrichment after selection; failed or partial loads cannot. Detail
+still checks section ownership, and the cache does not change reference matching
+or persist between commands.
+
 Agent apply and replay persistence remain in `internal/cli`; the app layer plans
 requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
 for the success boundary and persistence limitations.
