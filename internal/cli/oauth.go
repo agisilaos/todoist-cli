@@ -305,6 +305,11 @@ func waitForOAuthCode(ctx context.Context, cfg oauthConfig, expectedState string
 	}
 }
 
+func isOAuthRequestTimeout(err error) bool {
+	var networkError net.Error
+	return errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &networkError) && networkError.Timeout())
+}
+
 // Never follow redirects carrying an authorization code, verifier or device
 // credential, and never include endpoint URLs or response bodies in errors.
 func requestOAuth(ctx context.Context, endpoint string, form url.Values, timeout time.Duration, action string) ([]byte, int, error) {
@@ -325,12 +330,11 @@ func requestOAuth(ctx context.Context, endpoint string, form url.Values, timeout
 	client := &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Do(req)
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			cause := context.Canceled
-			if errors.Is(err, context.DeadlineExceeded) {
-				cause = context.DeadlineExceeded
-			}
-			return nil, 0, oauthContextError(cause)
+		if errors.Is(err, context.Canceled) {
+			return nil, 0, oauthContextError(context.Canceled)
+		}
+		if isOAuthRequestTimeout(err) {
+			return nil, 0, oauthContextError(context.DeadlineExceeded)
 		}
 		return nil, 0, oauthFailure("OAUTH_EXCHANGE_FAILED", "OAuth "+action+" request failed. Check your connection and configured provider endpoint. Nothing was saved; existing credentials are unchanged.")
 	}
@@ -339,6 +343,9 @@ func requestOAuth(ctx context.Context, endpoint string, form url.Values, timeout
 	if err != nil || len(data) > 8*1024 {
 		if ctx.Err() != nil {
 			return nil, 0, oauthContextError(ctx.Err())
+		}
+		if isOAuthRequestTimeout(err) {
+			return nil, 0, oauthContextError(context.DeadlineExceeded)
 		}
 		return nil, 0, oauthFailure("OAUTH_EXCHANGE_FAILED", "Could not read a bounded OAuth response. Nothing was saved; existing credentials are unchanged.")
 	}

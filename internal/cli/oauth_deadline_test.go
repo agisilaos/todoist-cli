@@ -2,10 +2,10 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 )
@@ -63,13 +63,22 @@ func TestPKCEApprovalGetsSeparateExchangeDeadline(t *testing.T) {
 }
 
 func TestDevicePollBoundsIndividualRequests(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(100 * time.Millisecond)
-		fmt.Fprint(w, `{"access_token":"synthetic"}`)
-	}))
-	defer server.Close()
-	_, err := pollOAuthDeviceToken(context.Background(), oauthConfig{TokenURL: server.URL, RequestTimeout: 10 * time.Millisecond}, "synthetic", 1, 30)
-	if err == nil || !strings.Contains(err.Error(), "deadline exceeded") {
-		t.Fatal("slow token request did not time out")
+	for _, phase := range []string{"headers", "body"} {
+		t.Run(phase, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if phase == "body" {
+					w.WriteHeader(http.StatusOK)
+					w.(http.Flusher).Flush()
+				}
+				time.Sleep(100 * time.Millisecond)
+				fmt.Fprint(w, `{"access_token":"synthetic"}`)
+			}))
+			defer server.Close()
+			_, err := pollOAuthDeviceToken(context.Background(), oauthConfig{TokenURL: server.URL, RequestTimeout: 10 * time.Millisecond}, "synthetic", 1, 30)
+			requireOAuthCode(t, err, "OAUTH_TIMEOUT", exitError)
+			if !errors.Is(err, context.DeadlineExceeded) {
+				t.Fatal("slow token request did not retain its timeout cause")
+			}
+		})
 	}
 }
