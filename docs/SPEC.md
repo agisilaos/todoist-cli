@@ -356,6 +356,11 @@ Empty selections have scope-specific messages; empty partial pages and exhausted
 continuations do not claim the entire selection is empty. Quiet suppresses scope,
 summary, and empty messages, but retains tasks and cursor notices.
 
+Today requests up to 200 tasks per page and follows every cursor until exhaustion
+in all output modes. This internal page size does not change selection, task
+order, or explicit `task list --limit` behavior. A failed page remains an error;
+Today does not emit a successful partial collection.
+
 Project names reuse cached collection fetching with explicit ID/name-unavailable
 fallback. No per-task fetches or default section enrichment are introduced.
 `--wide` keeps the detailed table and API priority numbering while adding scope
@@ -398,8 +403,12 @@ or zero. Response-presence facts are nonserialized and leave existing payloads
 unchanged.
 
 Human enrichment reuses all-page project fetching and, only with nonempty project
-and section IDs, exact-project-scoped section fetching. Successful collection
-lookups use the existing per-invocation cache; there is no persistent cache.
+and section IDs, exact-project-scoped section fetching unless a complete global
+sections collection is already cached. Reuse includes successful empty collections;
+failed or incomplete fetches cannot supply enrichment. Section names still require
+both the returned section ID and project ID to match. Successful collection
+lookups use the existing per-invocation cache, including across selection prompts;
+external name changes during a prompt may remain unseen. There is no persistent cache.
 Pagination, per-page timeout, and existing GET retries apply. Normally one project
 and one applicable section collection request are added. Attempt section lookup
 independently of project-name failure. Failed lookup retains ID plus

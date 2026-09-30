@@ -22,7 +22,7 @@ func todayCommand(ctx *Context, args []string) error {
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	return taskListFiltered(ctx, filter, "", 50, true, false, taskOverview{
+	return taskListFiltered(ctx, filter, "", 200, true, false, taskOverview{
 		Scope: "Today · Across projects",
 		Empty: "No overdue or due-today tasks returned.",
 	})
