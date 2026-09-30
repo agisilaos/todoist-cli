@@ -98,7 +98,7 @@ func TestProfileRemovalCleanupGuidanceTargetsNamedProfile(t *testing.T) {
 	writeProfileFixture(t, path, `{"default_profile":"other"}`)
 	native := &profileCleanupSecrets{cliSecrets: cliSecrets{values: map[string]string{}}}
 	store := credentials.New(config.CredentialsPathFromConfig(path), native, nil)
-	if err := store.Save(profileOperationContext(&Context{}), "scratch", config.Credential{Token: "synthetic-cleanup-target"}, "native"); err != nil {
+	if err := store.Save(operationContext(&Context{}), "scratch", config.Credential{Token: "synthetic-cleanup-target"}, "native"); err != nil {
 		t.Fatal(err)
 	}
 	native.failDelete = true
@@ -136,11 +136,11 @@ func TestProfileInspectionRecoveryRetainsConfiguration(t *testing.T) {
 	writeProfileFixture(t, path, `{"default_profile":"scratch"}`)
 	native := &profileCleanupSecrets{cliSecrets: cliSecrets{values: map[string]string{}}}
 	store := credentials.New(config.CredentialsPathFromConfig(path), native, nil)
-	if err := store.Save(profileOperationContext(&Context{}), "scratch", config.Credential{Token: "synthetic-inspection-recovery"}, "native"); err != nil {
+	if err := store.Save(operationContext(&Context{}), "scratch", config.Credential{Token: "synthetic-inspection-recovery"}, "native"); err != nil {
 		t.Fatal(err)
 	}
 	native.failDelete = true
-	if err := store.Delete(profileOperationContext(&Context{}), "scratch"); err == nil {
+	if err := store.Delete(operationContext(&Context{}), "scratch"); err == nil {
 		t.Fatal("fixture did not retain pending native cleanup")
 	}
 	injectProfileStore(t, store)

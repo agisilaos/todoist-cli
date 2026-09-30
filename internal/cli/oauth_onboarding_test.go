@@ -16,6 +16,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -226,7 +227,7 @@ func TestOAuthLifecycleAcceptanceAcrossProviders(t *testing.T) {
 
 func TestOAuthRejectedLifecyclePreservesAllCredentials(t *testing.T) {
 	for _, flow := range []string{"pkce", "device"} {
-		for _, suffix := range []string{`,"refresh_token":"synthetic-refresh-secret"`, `,"expires_in":3600`, `,"expires_in":0`, `,"expires_in":null`, `,"expires_in":"315360000"`, `,"expires_in":315360000.5`, `,"expires_in":315360001`} {
+		for _, suffix := range []string{`,"refresh_token":"synthetic-refresh-secret"`, `,"refresh_token":null`, `,"expires_in":3600`, `,"expires_in":0`, `,"expires_in":null`, `,"expires_in":"315360000"`, `,"expires_in":315360000.5`, `,"expires_in":315360001`} {
 			t.Run(flow+suffix, func(t *testing.T) {
 				ctx := newAuthTestContext(t)
 				ctx.Mode = output.ModeJSON
@@ -307,6 +308,43 @@ func TestOAuthCancellationBeforePersistenceOrExport(t *testing.T) {
 		if !bytes.Equal(before, after) || ctx.Stdout.(*bytes.Buffer).Len() != 0 || !errors.Is(err, context.Canceled) {
 			t.Fatal("cancelled OAuth replaced or exported a credential")
 		}
+	}
+}
+
+type oauthCancellationDisk struct {
+	credentials.Disk
+	cancel context.CancelFunc
+}
+
+func (d *oauthCancellationDisk) Lock(ctx context.Context, path string) (func(), error) {
+	unlock, err := d.Disk.Lock(ctx, path)
+	if err == nil && d.cancel != nil {
+		d.cancel()
+	}
+	return unlock, err
+}
+
+func TestOAuthCancellationInsideSaveReportsSafeErrorAndPreservesCredential(t *testing.T) {
+	ctx := newAuthTestContext(t)
+	path := config.CredentialsPathFromConfig(ctx.ConfigPath)
+	disk := &oauthCancellationDisk{}
+	ctx.Credentials = credentials.New(path, nil, disk)
+	if err := ctx.Credentials.Save(context.Background(), ctx.Profile, config.Credential{Token: "synthetic-existing"}, "file"); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := os.ReadFile(path)
+	operation, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctx.OperationContext, disk.cancel = operation, cancel
+	restore := stubPerformOAuthLogin(func(*Context, oauthConfig) (oauthToken, error) {
+		return oauthToken{AccessToken: "synthetic-candidate", Authorization: authorization.ManualMetadata()}, nil
+	})
+	defer restore()
+	err := authLogin(ctx, []string{"--oauth", "--client-id", "client"})
+	requireOAuthCode(t, err, "OAUTH_CANCELLED", exitError)
+	after, _ := os.ReadFile(path)
+	if !bytes.Equal(before, after) || ctx.Stdout.(*bytes.Buffer).Len() != 0 {
+		t.Fatal("storage cancellation replaced a credential or reported success")
 	}
 }
 

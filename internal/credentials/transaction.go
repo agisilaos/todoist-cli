@@ -257,6 +257,9 @@ func SelectBackend(info Info, selector string) (string, error) {
 	return selected, nil
 }
 func (s *ProfileStore) Save(ctx context.Context, name string, c config.Credential, selector string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if strings.TrimSpace(c.Token) == "" {
 		return failure(Missing)
 	}
@@ -265,6 +268,9 @@ func (s *ProfileStore) Save(ctx context.Context, name string, c config.Credentia
 		return err
 	}
 	defer unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	all, err := s.read()
 	if err != nil {
 		return err
@@ -408,6 +414,9 @@ func (s *ProfileStore) change(ctx context.Context, all config.Credentials, name 
 		}
 	}
 	journal, _ := json.Marshal(tx)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if s.files.Write(s.journalPath(), journal) != nil {
 		return failure(Recovery)
 	}
@@ -423,6 +432,14 @@ func (s *ProfileStore) change(ctx context.Context, all config.Credentials, name 
 			return s.abort(ctx, name, failure(Corrupt))
 		}
 		c.Token = ""
+	}
+	if err := ctx.Err(); err != nil {
+		// The previous profile is still selected. Recover any journal/native
+		// staging before returning cancellation; failed cleanup stays explicit.
+		if s.repair(ctx, name) != nil {
+			return failure(Recovery)
+		}
+		return err
 	}
 	c.Storage, _ = json.Marshal(after)
 	all.Profiles[name] = c

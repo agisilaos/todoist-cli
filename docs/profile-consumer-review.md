@@ -79,3 +79,6 @@ directory `/tmp/todoist-profile-consumer.oxVauK/`.
 The final working-tree rerun used a fresh scratch config and passed the same
 profile/mock-OAuth workflow, including list/current repair hints retaining config
 and target. Its transcripts are in `/tmp/todoist-profile-consumer-final.eFGdLk/`.
+A further fresh rerun after independent review fixes also passed and covered
+explicit `refresh_token: null` rejection with byte-preserved credentials. Evidence:
+`/tmp/todoist-profile-consumer-verified.wVNkf2/`.

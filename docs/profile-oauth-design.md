@@ -67,9 +67,10 @@ Explicit `--oauth` keeps flag/environment client-ID overrides, read-only scope,
 no-browser behavior, and explicit export. The callback listener starts before
 browser launch; state validation precedes callback success or denial. Repeated
 callbacks cannot block handlers. Context cancellation reaches waits, exchanges,
-and storage. Cancellation before publication preserves credentials; once the store
-starts publishing, a completed change or explicit recovery state follows the existing
-transaction contract, without claiming rollback. Provider bodies, arbitrary callback text, and secret-bearing errors
+and storage. Cancellation before publishing the selected record preserves the
+previous credential; staged journal/native work is repaired or reported as recovery.
+Once selected-record publication starts, a completed change or explicit recovery
+state follows the existing transaction contract, without claiming rollback. Provider bodies, arbitrary callback text, and secret-bearing errors
 are excluded from diagnostics.
 
 Authorization requests include response_type=code, state and S256 PKCE; exchanges

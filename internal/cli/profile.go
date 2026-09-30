@@ -93,13 +93,6 @@ func profileArguments(ctx *Context, operation string, args []string, named bool)
 	return "", false, nil
 }
 
-func profileOperationContext(ctx *Context) context.Context {
-	if ctx.OperationContext != nil {
-		return ctx.OperationContext
-	}
-	return context.Background()
-}
-
 func profileSelectionSource(ctx *Context) string {
 	if ctx.SelectionSource != "" {
 		return ctx.SelectionSource
@@ -128,14 +121,14 @@ func profileListCommand(ctx *Context, args []string) error {
 		return err
 	}
 	store := profileStore(ctx)
-	names, err := store.List(profileOperationContext(ctx))
+	names, err := store.List(operationContext(ctx))
 	if err != nil {
 		return err
 	}
 	rows := make([]profileListRow, 0, len(names))
 	invalid := false
 	for _, name := range names {
-		info, inspectErr := store.Inspect(profileOperationContext(ctx), name)
+		info, inspectErr := store.Inspect(operationContext(ctx), name)
 		report := authorization.Resolve(info.Authorization, "credentials", info.Configured)
 		row := profileListRow{Profile: name, Selected: name == ctx.Profile, Configured: info.Configured, Backend: info.Backend, Accessibility: "unchecked", Recovery: info.Recovery, Authorization: report}
 		if inspectErr == nil {
@@ -185,7 +178,7 @@ func profileCurrentCommand(ctx *Context, args []string) error {
 	info := credentials.Info{Accessibility: "unchecked"}
 	var inspectErr error
 	if !environment {
-		info, inspectErr = profileStore(ctx).Inspect(profileOperationContext(ctx), ctx.Profile)
+		info, inspectErr = profileStore(ctx).Inspect(operationContext(ctx), ctx.Profile)
 	}
 	source, backend := "", info.Backend
 	configured := info.Configured
@@ -249,7 +242,7 @@ func profileUseCommand(ctx *Context, args []string) error {
 	if err != nil || help {
 		return err
 	}
-	info, err := profileStore(ctx).Inspect(profileOperationContext(ctx), name)
+	info, err := profileStore(ctx).Inspect(operationContext(ctx), name)
 	if err != nil {
 		return err
 	}
@@ -261,7 +254,7 @@ func profileUseCommand(ctx *Context, args []string) error {
 		problem := profileIssue(err)
 		return &CodeError{Code: exitAuth, Err: &profileCommandError{Code: problem.Code, Message: problem.Message, Profile: name, Authorization: &report}}
 	}
-	if err := persistProfileSelection(profileOperationContext(ctx), ctx.ConfigPath, name); err != nil {
+	if err := persistProfileSelection(operationContext(ctx), ctx.ConfigPath, name); err != nil {
 		return &CodeError{Code: exitError, Err: err}
 	}
 	selected, source := resolveProfileSelection(ctx.Global.Profile, ctx.ProjectDefaultProfile, name)
@@ -285,7 +278,7 @@ func profileRemoveCommand(ctx *Context, args []string) error {
 	if err != nil || help {
 		return err
 	}
-	if err := profileStore(ctx).Delete(profileOperationContext(ctx), name); err != nil {
+	if err := profileStore(ctx).Delete(operationContext(ctx), name); err != nil {
 		return &profileStorageError{Profile: name, Err: err}
 	}
 	payload := map[string]any{"profile": name, "removed": true, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "selection_retained": true, "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}

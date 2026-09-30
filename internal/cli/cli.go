@@ -438,12 +438,15 @@ func toExitCode(err error) int {
 	return exitError
 }
 
-func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
-	parent := ctx.OperationContext
-	if parent == nil {
-		parent = context.Background()
+func operationContext(ctx *Context) context.Context {
+	if ctx.OperationContext != nil {
+		return ctx.OperationContext
 	}
-	return context.WithTimeout(parent, time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
+	return context.Background()
+}
+
+func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(operationContext(ctx), time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
 }
 
 func parseIDOrName(input string) string {

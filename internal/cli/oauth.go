@@ -357,9 +357,9 @@ func validateOAuthLifecycle(payload oauthTokenResponse) error {
 	unsupported := func() error {
 		return oauthFailure("OAUTH_LIFECYCLE_UNSUPPORTED", "OAuth returned a refresh-bearing grant or an unsupported token lifetime that this CLI cannot safely retain. Token refresh is not implemented. Use manual auth login or a verified long-lived public client grant. Nothing was saved; existing credentials are unchanged.")
 	}
-	if len(payload.RefreshToken) > 0 && string(payload.RefreshToken) != "null" {
+	if len(payload.RefreshToken) > 0 {
 		var refresh string
-		if json.Unmarshal(payload.RefreshToken, &refresh) != nil || refresh != "" {
+		if string(payload.RefreshToken) == "null" || json.Unmarshal(payload.RefreshToken, &refresh) != nil || refresh != "" {
 			return unsupported()
 		}
 	}

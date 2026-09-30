@@ -145,7 +145,7 @@ func authLogin(ctx *Context, args []string) error {
 	}
 	if oauth || oauthDevice {
 		previous := ctx.OperationContext
-		operation, stop := signal.NotifyContext(oauthOperationContext(ctx), os.Interrupt)
+		operation, stop := signal.NotifyContext(operationContext(ctx), os.Interrupt)
 		defer stop()
 		ctx.OperationContext = operation
 		defer func() { ctx.OperationContext = previous }()
@@ -163,7 +163,11 @@ func authLogin(ctx *Context, args []string) error {
 		if printEnv {
 			return writeAuthPrintEnv(ctx, token.AccessToken)
 		}
-		return storeProfileCredential(ctx, token.AccessToken, token.Authorization)
+		err = storeProfileCredential(ctx, token.AccessToken, token.Authorization)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return oauthContextError(err)
+		}
+		return err
 	}
 	var token string
 	if tokenStdin {
@@ -221,7 +225,7 @@ func validateManualLoginToken(ctx *Context, token string) error {
 }
 
 func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
-	if err := oauthOperationContext(ctx).Err(); err != nil {
+	if err := operationContext(ctx).Err(); err != nil {
 		return oauthToken{}, oauthContextError(err)
 	}
 	verifier, err := generateOAuthRandomFn(32)
@@ -248,7 +252,7 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 			fmt.Fprintln(ctx.Stderr, "Open the OAuth authorization URL manually to continue.")
 		}
 	}
-	code, err := waitForOAuthCodeFn(oauthOperationContext(ctx), cfg, state, 3*time.Minute)
+	code, err := waitForOAuthCodeFn(operationContext(ctx), cfg, state, 3*time.Minute)
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -259,13 +263,6 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 		return oauthToken{}, err
 	}
 	return token, nil
-}
-
-func oauthOperationContext(ctx *Context) context.Context {
-	if ctx.OperationContext != nil {
-		return ctx.OperationContext
-	}
-	return context.Background()
 }
 
 func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
@@ -285,7 +282,7 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	}
 	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
 	cfg.RequestTimeout = time.Duration(ctx.Config.TimeoutSeconds) * time.Second
-	token, err := pollOAuthDeviceToken(oauthOperationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec)
+	token, err := pollOAuthDeviceToken(operationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec)
 	if err != nil {
 		return oauthToken{}, err
 	}
