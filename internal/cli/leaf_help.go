@@ -177,8 +177,10 @@ var leafHelpPages = map[string]commandHelp{
 		flags: `  --id <id>                         Task ID
   --full                            Show full task fields`,
 		examples: `  todoist task view id:123456 --full`,
-		notes:    `  Use id:<id> for an exact task or a quoted text reference. Use task list when a name is ambiguous.`,
-		globals:  `  --no-input            Disable prompts`,
+		notes: `  Use id:<id> for an exact task or a quoted text reference.
+  Multiple matches offer a numbered choice with task context in a terminal; Enter cancels selection.
+  With --no-input or piped stdin, use task list --all-projects --all --no-input --json and retry id:<id>.`,
+		globals: `  --no-input            Disable prompts`,
 	},
 	"task complete": {
 		usage: `<ref>

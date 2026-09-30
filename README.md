@@ -775,8 +775,52 @@ todoist project rm --id https://app.todoist.com/app/project/home-2203306141 --dr
 todoist filter show https://app.todoist.com/app/filter/today-f1
 ```
 
+### Ambiguous task references
+
+When a task reference matches several tasks, machine clients receive usage exit
+`2`. The existing JSON ambiguity error remains on stderr with `details` containing
+`type`, `entity`, `input`, and a title-only `matches` array. It contains no
+candidate IDs or task context, so duplicate titles cannot support an exact-ID
+retry from that error alone. Plain and NDJSON modes retain their existing text
+errors.
+
+Use the existing list command to inspect every active task across projects:
+
+```sh
+todoist task list --all-projects --all --no-input --json
+```
+
+Compare `content`, `project_id`, `due`, and any relevant `section_id`, `parent_id`,
+`labels`, or `description`. The returned `id` is the full, opaque task ID. Resolve
+project or section names with their existing list commands if needed. Inspect the
+chosen task before retrying the intended mutation with its exact ID:
+
+```sh
+todoist task view id:abc123XYZ --full --no-input --json
+todoist task complete id:abc123XYZ --no-input --json
+```
+
+Replace `abc123XYZ` with the deliberately chosen ID from your output, and retain
+the same credential, configuration, profile, and API endpoint. Candidate order
+or fuzzy rank alone does not establish the intended mutation target. This
+recovery uses existing output contracts; adding structured ambiguity IDs or
+context would require a separate compatibility decision.
+
 ## Prompts & Safety
 
+- Ambiguous task references offer the existing numbered choice when stdin is a
+  terminal. Each candidate shows its title, full ID, project, and returned concrete
+  due date/time, `No due date`, or `Due unavailable`. A due expression without a
+  resolved date is labeled `(date unavailable)`. Section, parent, and labels
+  appear when available; `Repeats` appears only when Todoist returned a recurring
+  due date. Name lookup is best-effort and falls back to the corresponding ID;
+  unavailable context does not prevent a choice. Times retain the returned
+  offset/timezone without local conversion.
+- Choose a number explicitly. Pressing Enter cancels selection and leaves the
+  ambiguity error (exit `2`); an invalid number is also a usage error. `--no-input`
+  or non-terminal stdin skips the choice and returns ambiguity. Exact `id:<id>`
+  resolution is unchanged. Ranking orders candidates; it never automatically
+  selects a mutation target from multiple matches.
 - Project archive/delete and section/label/comment delete prompt when stdin is a TTY; use `--force` to skip those prompts, including with `--no-input`. Task deletion always requires `--yes`, even with `--force` or `--dry-run`. Filter deletion requires `--yes` or `--force`.
 - `--dry-run` previews the actions that would be sent to Todoist without performing them.
 - `--no-input` disables all prompts (auth included). Provide required flags or env vars to continue.

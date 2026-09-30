@@ -84,6 +84,14 @@ _Avoid_: Any write, local change
 A preview of proposed operations during which the CLI dispatches no Todoist mutations. Necessary reads and the command's documented local effects may still occur; external planners remain independently executing programs.
 _Avoid_: Applied action, sandboxed execution
 
+**Task reference**:
+An input identifying an existing Todoist task by ID, Todoist app URL, or task text. A text reference may include a due hint.
+_Avoid_: Task query, filter
+
+**Task ambiguity**:
+A text task reference that matches multiple distinct tasks. A candidate's title or position alone does not establish which task the caller intends.
+_Avoid_: Best match, duplicate title
+
 **Review set**:
 The explicit collection of tasks selected at the start of a review and accounted for in its final summary.
 _Avoid_: Today view, batch

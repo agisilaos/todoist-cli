@@ -140,6 +140,10 @@ func promptAmbiguousChoice(ctx *Context, entity, input string, candidates []fuzz
 	for i, c := range candidates {
 		fmt.Fprintf(ctx.Stderr, "  %d) %s (id:%s)\n", i+1, c.Name, c.ID)
 	}
+	return readAmbiguousChoice(ctx, candidates)
+}
+
+func readAmbiguousChoice(ctx *Context, candidates []fuzzyCandidate) (string, bool, error) {
 	fmt.Fprint(ctx.Stderr, "Choose number (or press Enter to cancel): ")
 	line, err := readLine(ctx.Stdin)
 	if err != nil {
