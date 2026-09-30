@@ -268,6 +268,9 @@ ID. Structured ambiguity enrichment requires a separate compatibility decision.
 
 ## Output
 
+- Terminal detection queries the descriptor's terminal status. Non-terminal
+  devices such as `/dev/null` do not enable prompts or select
+  automatic human output. Real terminals retain their interactive behavior.
 - Human default for TTY; `--plain` (tab-separated) for stable text.
 - `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.

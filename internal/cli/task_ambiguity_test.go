@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -18,6 +19,21 @@ import (
 )
 
 const duplicateTaskResponse = `{"results":[{"id":"first","content":"Review","project_id":"work","section_id":"launch","due":{"date":"2026-09-30"}},{"id":"second","content":"Review","project_id":"home","due":null}],"next_cursor":""}`
+
+const taskAmbiguityJSONError = `{
+  "details": {
+    "entity": "task",
+    "input": "Review",
+    "matches": [
+      "Review",
+      "Review"
+    ],
+    "type": "ambiguous_match"
+  },
+  "error": "ambiguous task match for \"Review\"; matches: Review, Review",
+  "meta": {}
+}
+`
 
 type taskAmbiguityRequests struct {
 	mu    sync.Mutex
@@ -132,20 +148,7 @@ func TestTaskAmbiguityMachineErrorContractUnchanged(t *testing.T) {
 				t.Fatalf("expected usage error, got %v", err)
 			}
 			writeError(ctx, err)
-			want := `{
-  "details": {
-    "entity": "task",
-    "input": "Review",
-    "matches": [
-      "Review",
-      "Review"
-    ],
-    "type": "ambiguous_match"
-  },
-  "error": "ambiguous task match for \"Review\"; matches: Review, Review",
-  "meta": {}
-}
-`
+			want := taskAmbiguityJSONError
 			if mode != output.ModeJSON {
 				want = "error: ambiguous task match for \"Review\"; matches: Review, Review\n"
 			}
@@ -159,5 +162,31 @@ func TestTaskAmbiguityMachineErrorContractUnchanged(t *testing.T) {
 				t.Fatalf("machine ambiguity performed enrichment or mutation: %v", got)
 			}
 		})
+	}
+}
+
+func TestTaskAmbiguityDevNullInputRemainsNoninteractive(t *testing.T) {
+	input, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("open null device: %v", err)
+	}
+	t.Cleanup(func() { _ = input.Close() })
+	ctx, requests := newTaskAmbiguityContext(t, duplicateTaskResponse, false)
+	ctx.Stdin = input
+	ctx.Mode = output.ModeJSON
+	err = taskComplete(ctx, []string{"Review"})
+	var ambiguous *AmbiguousMatchError
+	if toExitCode(err) != exitUsage || !errors.As(err, &ambiguous) {
+		t.Errorf("null input should retain usage ambiguity, got %v", err)
+	}
+	writeError(ctx, err)
+	if got := ctx.Stderr.(*bytes.Buffer).String(); got != taskAmbiguityJSONError {
+		t.Errorf("null input prompted or changed the title-only machine error: %q", got)
+	}
+	if ctx.Stdout.(*bytes.Buffer).Len() != 0 {
+		t.Errorf("null input reported success: %q", ctx.Stdout)
+	}
+	if got := requests.snapshot(); !reflect.DeepEqual(got, []string{"GET /tasks"}) {
+		t.Errorf("null input performed enrichment or mutation: %v", got)
 	}
 }

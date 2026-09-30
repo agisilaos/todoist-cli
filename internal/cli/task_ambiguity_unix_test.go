@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
 func taskAmbiguityTTY(t *testing.T, input string) *os.File {
@@ -37,6 +38,17 @@ func taskAmbiguityTTY(t *testing.T, input string) *os.File {
 		t.Fatalf("write PTY input: %v", err)
 	}
 	return slave
+}
+
+func TestTaskAmbiguityTTYDefaultsToHumanOutput(t *testing.T) {
+	tty := taskAmbiguityTTY(t, "\n")
+	if !output.IsTTY(tty) {
+		t.Fatal("actual PTY must be recognized as a terminal")
+	}
+	mode, err := output.DetectMode(false, false, false, false, output.IsTTY(tty))
+	if err != nil || mode != output.ModeHuman {
+		t.Fatalf("actual terminal should default to human output: %s, %v", mode, err)
+	}
 }
 
 func TestTaskAmbiguityInteractiveChoiceRequiresExplicitNumber(t *testing.T) {

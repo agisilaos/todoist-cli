@@ -824,6 +824,8 @@ context would require a separate compatibility decision.
 - Project archive/delete and section/label/comment delete prompt when stdin is a TTY; use `--force` to skip those prompts, including with `--no-input`. Task deletion always requires `--yes`, even with `--force` or `--dry-run`. Filter deletion requires `--yes` or `--force`.
 - `--dry-run` previews the actions that would be sent to Todoist without performing them.
 - `--no-input` disables all prompts (auth included). Provide required flags or env vars to continue.
+- Prompts require terminal input; automatic human output requires terminal stdout.
+  Null devices (such as `/dev/null`), pipes, and regular files are noninteractive.
 
 ## Output
 

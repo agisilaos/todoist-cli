@@ -164,6 +164,17 @@ func TestIsTTYForRegularFile(t *testing.T) {
 	}
 }
 
+func TestIsTTYForDevNull(t *testing.T) {
+	f, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+	if err != nil {
+		t.Fatalf("open null device: %v", err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	if IsTTY(f) {
+		t.Fatalf("expected %s to not be a terminal", os.DevNull)
+	}
+}
+
 type failWriter struct{}
 
 func (f failWriter) Write(_ []byte) (int, error) {
