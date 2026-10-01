@@ -15,6 +15,7 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
+	"github.com/agisilaos/todoist-cli/internal/skillinstall"
 )
 
 var (
@@ -96,6 +97,10 @@ type Context struct {
 func Execute(args []string, stdout, stderr io.Writer) int {
 	opts, rest, err := parseGlobalFlags(args, stderr)
 	if err != nil {
+		if len(rest) > 0 && rest[0] == "skill" {
+			writeError(&Context{Stderr: stderr, Global: opts, Mode: skillErrorMode(opts)}, skillUsage(err.Error()))
+			return exitUsage
+		}
 		if opts.IDsOnly {
 			writeError(&Context{Stderr: stderr, Global: opts, Mode: output.ModeIDsOnly}, err)
 			return exitUsage
@@ -110,6 +115,10 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	}
 	mode, err := output.DetectMode(opts.JSON, opts.Plain, opts.NDJSON, opts.IDsOnly, isTTYFile(stdout))
 	if err != nil {
+		if len(rest) > 0 && rest[0] == "skill" {
+			writeError(&Context{Stderr: stderr, Global: opts, Mode: skillErrorMode(opts)}, skillUsage(err.Error()))
+			return exitUsage
+		}
 		if opts.IDsOnly {
 			writeError(&Context{Stderr: stderr, Global: opts, Mode: output.ModeIDsOnly}, err)
 			return exitUsage
@@ -127,7 +136,12 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		Now:    time.Now,
 	}
 	if opts.IDsOnly && !idsOnlyEligible(rest, opts.Help) {
-		writeError(ctx, fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')"))
+		idsErr := fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')")
+		if len(rest) > 0 && rest[0] == "skill" {
+			writeError(ctx, skillUsage(idsErr.Error()))
+		} else {
+			writeError(ctx, idsErr)
+		}
 		return exitUsage
 	}
 	helpArgs := rest
@@ -144,8 +158,16 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		return toExitCode(err)
 	}
 	if err := validateTaskOutputSelection(ctx, rest); err != nil {
+		if rest[0] == "skill" {
+			err = skillUsage(err.Error())
+		}
 		writeError(ctx, err)
 		return exitUsage
+	}
+	// Skill maintenance is entirely local and independent of Todoist configuration,
+	// credential stores, API clients, and progress logs.
+	if rest[0] == "skill" {
+		return dispatch(ctx, rest)
 	}
 	sink, err := newProgressSink(opts.ProgressJSONL, stderr)
 	if err != nil {
@@ -310,7 +332,7 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 		}
 	}
 	if parseErr != nil {
-		return opts, nil, parseErr
+		return opts, rest, parseErr
 	}
 	if opts.Quiet && opts.Verbose {
 		return opts, rest, fmt.Errorf("--quiet and --verbose are mutually exclusive")
@@ -440,6 +462,19 @@ func (e *CodeError) Unwrap() error {
 func toExitCode(err error) int {
 	if err == nil {
 		return exitOK
+	}
+	var skillErr *skillinstall.Error
+	if errors.As(err, &skillErr) {
+		switch skillErr.Code {
+		case "SKILL_USAGE", "SKILL_PATH_INVALID":
+			return exitUsage
+		case "SKILL_CONFLICT", "SKILL_MODIFIED", "SKILL_MANIFEST_INVALID", "SKILL_BUSY":
+			return exitConflict
+		case "SKILL_NOT_INSTALLED":
+			return exitNotFound
+		default:
+			return exitError
+		}
 	}
 	var storageErr *credentials.Error
 	if errors.As(err, &storageErr) {

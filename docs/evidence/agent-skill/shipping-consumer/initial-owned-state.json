@@ -1,0 +1,32 @@
+{
+  "files": [
+    ".todoist-skill.json",
+    "SKILL.md",
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "sha256": {
+    ".todoist-skill.json": "25ad8cb5383f4a6cd6d02cbc37fdcb16d93046b2d6b649cb709a06022278fc90",
+    "SKILL.md": "d18dbbecf91a7cf86bfa42d58ea3a12385d54fa67bd365bfccc2c87229a9a7a8",
+    "references/authorization.md": "634c01131b13b3d0dff774c56ed420e0acb8739f4165d7b43c144f19d0f6e17b",
+    "references/commands.md": "c9aacbcbb532b83b3b287be7065b0d8ad04d57471e4583cd00d48586936b9dae",
+    "references/machine-calls.md": "f3db2765ad5baf4fbd39ad006d1a9a57e5601174e90f7f9968da1253a880d603",
+    "references/plans.md": "37e0b7fd9811f034d820087386e583c02a113a0880fdf99cd52630f873f02ae2"
+  },
+  "manifest": {
+    "format_version": 1,
+    "target": "codex",
+    "scope": "local",
+    "version": "dev",
+    "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+    "files": {
+      "SKILL.md": "d18dbbecf91a7cf86bfa42d58ea3a12385d54fa67bd365bfccc2c87229a9a7a8",
+      "references/authorization.md": "634c01131b13b3d0dff774c56ed420e0acb8739f4165d7b43c144f19d0f6e17b",
+      "references/commands.md": "c9aacbcbb532b83b3b287be7065b0d8ad04d57471e4583cd00d48586936b9dae",
+      "references/machine-calls.md": "f3db2765ad5baf4fbd39ad006d1a9a57e5601174e90f7f9968da1253a880d603",
+      "references/plans.md": "37e0b7fd9811f034d820087386e583c02a113a0880fdf99cd52630f873f02ae2"
+    }
+  }
+}

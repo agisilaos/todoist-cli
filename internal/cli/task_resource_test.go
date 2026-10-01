@@ -220,6 +220,8 @@ func TestTaskOutputVersionRejectedBeforeSideEffects(t *testing.T) {
 		{"--json", "--dry-run", "task", "add", "--content", "-"},
 		{"--json", "view", "https://app.todoist.com/app/project/title-projectfixture"},
 		{"--json", "inbox", "remove"},
+		{"--json", "skill", "install", "codex", "--path", filepath.Join(dir, "skills")},
+		{"--json", "skill", "list", "--path", filepath.Join(dir, "skills")},
 	} {
 		for _, version := range []string{"1", "2"} {
 			fullArgs := append([]string{"--base-url", server.URL, "--task-output-version=" + version}, args...)
@@ -245,6 +247,23 @@ func TestTaskOutputVersionRejectedBeforeSideEffects(t *testing.T) {
 	entries, err := os.ReadDir(dir)
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("rejected selection created files: %v %v", entries, err)
+	}
+}
+
+func TestTaskOutputSelectionPreservesSkillUsageContract(t *testing.T) {
+	dir := t.TempDir()
+	code, out, errOut := executeAuthorization(t, filepath.Join(dir, "config.json"),
+		"--json", "--task-output-version=2", "--progress-jsonl", filepath.Join(dir, "progress.jsonl"),
+		"skill", "install", "codex", "--path", filepath.Join(dir, "skills"))
+	var failure struct {
+		Code string `json:"code"`
+	}
+	if code != exitUsage || out != "" || json.Unmarshal([]byte(errOut), &failure) != nil || failure.Code != "SKILL_USAGE" {
+		t.Fatalf("skill selection must preserve usage errors: exit=%d stdout=%s stderr=%s", code, out, errOut)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("skill selection created files: %v %v", entries, err)
 	}
 }
 

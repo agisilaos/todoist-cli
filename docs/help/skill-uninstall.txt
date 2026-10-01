@@ -1,0 +1,24 @@
+Usage:
+  todoist skill uninstall <codex|claude-code> --scope <local|global> --path <absolute-directory> [--keep-modified]
+
+Flags:
+  --scope <local|global>             Required placement
+  --path <absolute-directory>       Required managed skill directory
+  --keep-modified                  Retain edits while removing ownership
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Structured result; JSON errors on stderr
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Removes unchanged owned files and management metadata; repeated absent uninstall is unchanged.
+  Modified or missing files block removal by default. --keep-modified explicitly retains edits and ends management.
+  Unrelated files and saved backups are preserved. Retained SKILL.md may remain discoverable by the agent.
+  Retained instructions may reference removed unchanged files; inspect or move them before continued use.
+  An unowned directory is never recursively deleted. Agent instructions and shell profiles are untouched.
+
+Examples:
+  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --json
+  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --keep-modified --json

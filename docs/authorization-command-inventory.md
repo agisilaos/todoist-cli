@@ -37,6 +37,7 @@ Read-only means remote reads without Todoist mutations. Local-only commands may 
 | `agent planner`, top-level `planner` | Local-only; setting a planner changes local configuration |
 | `agent schedule print` | Local-only output of cron/plist instructions for future `agent run`; installs and executes nothing |
 | `completion bash/zsh/fish/powershell`, `completion install/uninstall [bash/zsh/fish/powershell]` | Local-only; installation and removal change local files |
+| `skill list/install/update/uninstall` | Local-only; explicit installation maintenance changes owned skill files, without credentials or Todoist requests. Dry-run is unsupported |
 | `doctor [--strict]` | Local inspection plus a read-only API probe |
 | `schema [--name ...]` | Local-only |
 

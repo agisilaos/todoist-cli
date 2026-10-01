@@ -1,0 +1,5 @@
+Initial public route recorded before backend/source/test inspection.
+
+README introductory links and the Agent skills section made the inventory, target names, required scope, absolute full skill path, lifecycle commands, ownership conflicts, backup and keep-modified recovery discoverable. Root help lists skill under Setup and reference. No guessing was required for the Codex install/list path. Native target conventions are prior knowledge and will be tested separately.
+
+Recovery observation: keep-modified uninstall deliberately retains edited SKILL.md while removing unchanged references. All four relative reference targets are then missing. The current warning says the skill can remain discoverable but does not explicitly state its instructions can be incomplete. Suggested smallest correction: clarify this consequence alongside the existing advice to move retained SKILL.md out of loading roots when desired. This is a documentation improvement; installer behavior follows the documented ownership policy.

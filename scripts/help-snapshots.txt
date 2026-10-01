@@ -20,6 +20,11 @@ stats.txt	stats --help
 settings.txt	settings --help
 view.txt	view --help
 agent.txt	agent --help
+skill.txt	skill --help
+skill-install.txt	skill install --help
+skill-list.txt	skill list --help
+skill-update.txt	skill update --help
+skill-uninstall.txt	skill uninstall --help
 completion.txt	completion --help
 doctor.txt	doctor --help
 inbox.txt	inbox --help

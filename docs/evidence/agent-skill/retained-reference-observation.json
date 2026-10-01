@@ -1,0 +1,11 @@
+{
+  "retained_skill": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli/SKILL.md",
+  "retained_skill_exists": true,
+  "missing_references_after_keep_modified": [
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "contract_observation": "Removal of unchanged references follows ownership policy; incomplete retained entrypoint can remain discoverable."
+}

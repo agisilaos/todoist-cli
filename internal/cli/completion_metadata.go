@@ -3,11 +3,18 @@ package cli
 import (
 	"fmt"
 	"strings"
+
+	"github.com/agisilaos/todoist-cli/internal/skillinstall"
 )
 
 // Only inventory slots are generated. Shell control flow, flag/value completion,
 // and escaping of user input stay in the shell-owned templates.
 func renderCommandInventory(template string) string {
+	var targets []string
+	for _, target := range skillinstall.Targets() {
+		targets = append(targets, target.Name)
+	}
+	template = strings.ReplaceAll(template, "{{skill-targets}}", strings.Join(targets, " "))
 	parents := []string{""}
 	for _, command := range commandCatalog {
 		if command.group {
@@ -29,6 +36,11 @@ func powerShellWords(words []string) string {
 }
 
 func renderPowerShellInventory(template string) string {
+	var targets []string
+	for _, target := range skillinstall.Targets() {
+		targets = append(targets, target.Name)
+	}
+	template = strings.ReplaceAll(template, "{{powershell-skill-targets}}", powerShellWords(targets))
 	var out strings.Builder
 	out.WriteString("$todoistCommands = @{\n")
 	fmt.Fprintf(&out, "    '' = %s\n", powerShellWords(commandNames("")))
