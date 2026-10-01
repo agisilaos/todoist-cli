@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -159,19 +160,14 @@ func sectionDelete(ctx *Context, args []string) error {
 		printSectionHelp(ctx.Stderr)
 		return err
 	}
-	id, requiresConfirm, err := appsections.BuildDeletePlan(appsections.DeleteInput{
-		ID:     id,
-		Force:  ctx.Global.Force,
-		DryRun: ctx.Global.DryRun,
-	})
-	if err != nil {
+	if id == "" {
 		printSectionHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: err}
+		return &CodeError{Code: exitUsage, Err: errors.New("--id is required")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if requiresConfirm {
+	if !ctx.Global.Force && !ctx.Global.DryRun {
 		ok, err := confirm(ctx, fmt.Sprintf("Delete section %s?", id))
 		if err != nil {
 			return err
