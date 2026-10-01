@@ -57,9 +57,8 @@ func taskResourceCommand(args []string) bool {
 	case "filter":
 		return len(args) > 1 && args[1] == "show"
 	case "view":
-		if len(args) > 1 {
-			return taskResourceURL(args[1])
-		}
+		raw, _, err := parseViewArgs(args[1:])
+		return err == nil && taskResourceURL(raw)
 	}
 	return false
 }

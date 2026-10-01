@@ -87,6 +87,8 @@ func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 		{[]string{"completed", "--completed-by", "due"}, true},
 		{[]string{"filter", "show", "id:filterfixture"}, true},
 		{[]string{"view", "https://app.todoist.com/app/task/title-taskfixture"}, false},
+		{[]string{"view", "--help=false", "https://app.todoist.com/app/task/title-taskfixture"}, false},
+		{[]string{"view", "-h=false", "https://app.todoist.com/app/task/title-taskfixture"}, false},
 		{[]string{"view", "https://app.todoist.com/app/filter/title-filterfixture"}, true},
 		{[]string{"view", "https://app.todoist.com/app/label/title-labelfixture"}, true},
 		{[]string{"view", "https://app.todoist.com/app/inbox"}, true},
@@ -236,6 +238,15 @@ func TestTaskOutputVersionRejectedBeforeSideEffects(t *testing.T) {
 	code, out, errOut := executeAuthorization(t, configPath, "--task-output-version=2", "task", "view", "--help")
 	if code != 0 || !strings.Contains(out, "task-output-version 2") || errOut != "" {
 		t.Fatalf("help must not require config: %d %s %s", code, out, errOut)
+	}
+	for _, flag := range []string{"--help=true", "-h=true"} {
+		for _, viewArgs := range [][]string{{"view", flag}, {"view", flag, "https://app.todoist.com/app/settings"}} {
+			args := append([]string{"--task-output-version=2", "--progress-jsonl", filepath.Join(dir, "progress.jsonl")}, viewArgs...)
+			code, out, errOut := executeAuthorization(t, configPath, args...)
+			if code != 0 || !strings.Contains(out, "Usage:\n  todoist view") || errOut != "" {
+				t.Fatalf("view help must precede selection and config: %v: %d %s %s", args, code, out, errOut)
+			}
+		}
 	}
 	if requests != 0 {
 		t.Fatalf("rejected selection made %d requests", requests)

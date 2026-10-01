@@ -134,6 +134,12 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	} else if len(rest) > 1 && rest[1] == "help" {
 		helpArgs = append([]string{rest[0]}, rest[2:]...)
 		showHelp = true
+	} else if len(rest) > 0 && rest[0] == "view" {
+		// The local parser also accepts boolean help values. Honor them before
+		// resource selection, configuration reads, or progress file creation.
+		if _, help, err := parseViewArgs(rest[1:]); err == nil && help {
+			helpArgs, showHelp = []string{"view"}, true
+		}
 	}
 	if showHelp {
 		err := helpCommand(ctx, helpArgs)
