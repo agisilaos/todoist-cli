@@ -16,8 +16,9 @@ todoist schema --name task_list_v2
 
 The selector accepts exactly `1` or `2`, before or after the command. There is no
 config or environment override. Explicit selection requires `--json` or `--ndjson`.
-Valid help remains available without configuration or credentials; invalid
-values or unsupported uses return usage exit 2 before side effects.
+Valid help, including `--help=true` and `-h=true`, remains available without
+configuration or credentials; invalid values or unsupported uses return usage
+exit 2 before side effects.
 
 Supported commands are `task list`/`ls`, `task view`/`show`, `task add`,
 `task update`, `add`, `inbox add`, bare `inbox`, `today`, `upcoming`, `completed`,

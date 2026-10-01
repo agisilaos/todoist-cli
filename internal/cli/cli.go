@@ -134,12 +134,6 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	} else if len(rest) > 1 && rest[1] == "help" {
 		helpArgs = append([]string{rest[0]}, rest[2:]...)
 		showHelp = true
-	} else if len(rest) > 0 && rest[0] == "view" {
-		// The local parser also accepts boolean help values. Honor them before
-		// resource selection, configuration reads, or progress file creation.
-		if _, help, err := parseViewArgs(rest[1:]); err == nil && help {
-			helpArgs, showHelp = []string{"view"}, true
-		}
 	}
 	if showHelp {
 		err := helpCommand(ctx, helpArgs)
@@ -189,6 +183,14 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 		switch {
 		case arg == "--help" || arg == "-h":
 			opts.Help = true
+		case strings.HasPrefix(arg, "--help=") || strings.HasPrefix(arg, "-h="):
+			_, value, _ := strings.Cut(arg, "=")
+			help, err := strconv.ParseBool(value)
+			if err != nil {
+				recordError(fmt.Errorf("invalid value for --help: %s", value))
+				continue
+			}
+			opts.Help = help
 		case arg == "--version":
 			opts.Version = true
 		case arg == "--quiet" || arg == "-q":

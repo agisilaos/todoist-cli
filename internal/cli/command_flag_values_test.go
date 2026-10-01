@@ -32,7 +32,7 @@ func TestFlagShapedContentReachesAPI(t *testing.T) {
 	defer server.Close()
 	t.Setenv("TODOIST_TOKEN", "synthetic-flag-value-token")
 	t.Setenv("TODOIST_BASE_URL", server.URL)
-	for _, value := range []string{"--json", "--help", "--version", "--profile", "-n", "--ids-only", "--task-output-version", "--task-output-version=2"} {
+	for _, value := range []string{"--json", "--help", "--help=true", "-h=true", "--version", "--profile", "-n", "--ids-only", "--task-output-version", "--task-output-version=2"} {
 		code, out, errOut := executeAuthorization(t, filepath.Join(t.TempDir(), "config.json"), "task", "add", "--content", value, "--json")
 		if code != 0 || !json.Valid([]byte(out)) || received != value {
 			t.Errorf("value %q: received=%q exit=%d stdout=%q stderr=%q", value, received, code, out, errOut)

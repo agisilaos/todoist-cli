@@ -239,21 +239,49 @@ func TestTaskOutputVersionRejectedBeforeSideEffects(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "task-output-version 2") || errOut != "" {
 		t.Fatalf("help must not require config: %d %s %s", code, out, errOut)
 	}
-	for _, flag := range []string{"--help=true", "-h=true"} {
-		for _, viewArgs := range [][]string{{"view", flag}, {"view", flag, "https://app.todoist.com/app/settings"}} {
-			args := append([]string{"--task-output-version=2", "--progress-jsonl", filepath.Join(dir, "progress.jsonl")}, viewArgs...)
-			code, out, errOut := executeAuthorization(t, configPath, args...)
-			if code != 0 || !strings.Contains(out, "Usage:\n  todoist view") || errOut != "" {
-				t.Fatalf("view help must precede selection and config: %v: %d %s %s", args, code, out, errOut)
-			}
-		}
-	}
 	if requests != 0 {
 		t.Fatalf("rejected selection made %d requests", requests)
 	}
 	entries, err := os.ReadDir(dir)
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("rejected selection created files: %v %v", entries, err)
+	}
+}
+
+func TestTaskOutputBooleanHelpBeforeSideEffects(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { requests++ }))
+	defer server.Close()
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "uncreated", "config.json")
+	commands := [][]string{
+		{"task", "list"}, {"task", "ls"}, {"task", "view"}, {"task", "show"},
+		{"task", "add"}, {"task", "update"}, {"add"}, {"inbox"}, {"inbox", "add"},
+		{"today"}, {"upcoming"}, {"completed"}, {"filter", "show"},
+		{"view"}, {"view", "https://app.todoist.com/app/settings"},
+	}
+	for _, command := range commands {
+		for _, mode := range [][]string{nil, {"--json"}, {"--ndjson"}} {
+			for _, flag := range []string{"--help=true", "-h=true", "--help=1", "-h=T"} {
+				args := append([]string{"--base-url", server.URL, "--task-output-version=2", "--progress-jsonl", filepath.Join(dir, "progress.jsonl")}, mode...)
+				args = append(args, command...)
+				args = append(args, flag)
+				code, out, errOut := executeAuthorization(t, configPath, args...)
+				if code != 0 || !strings.Contains(out, "Usage:") || errOut != "" {
+					t.Errorf("help must precede selection and config: %v: %d %s %s", args, code, out, errOut)
+				}
+			}
+		}
+	}
+	for _, flag := range []string{"--help=invalid", "-h="} {
+		code, out, errOut := executeAuthorization(t, configPath, "--progress-jsonl", filepath.Join(dir, "progress.jsonl"), "--json", "--task-output-version=2", "task", "view", flag)
+		if code != exitUsage || out != "" || !strings.Contains(errOut, "invalid value for --help") {
+			t.Errorf("invalid help must fail before side effects: %s: %d %s %s", flag, code, out, errOut)
+		}
+	}
+	entries, err := os.ReadDir(dir)
+	if requests != 0 || err != nil || len(entries) != 0 {
+		t.Fatalf("help created side effects: requests=%d files=%v error=%v", requests, entries, err)
 	}
 }
 

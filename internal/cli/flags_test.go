@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -59,6 +60,46 @@ func TestParseGlobalFlagsInterspersed(t *testing.T) {
 	}
 	if len(rest) != 1 || rest[0] != "planner" {
 		t.Fatalf("unexpected rest args: %#v", rest)
+	}
+}
+
+func TestParseGlobalBooleanHelpValues(t *testing.T) {
+	for _, prefix := range []string{"--help=", "-h="} {
+		for _, value := range []string{"1", "t", "T", "TRUE", "true", "True", "0", "f", "F", "FALSE", "false", "False"} {
+			want := value == "1" || strings.EqualFold(value, "t") || strings.EqualFold(value, "true")
+			opts, rest, err := parseGlobalFlags([]string{"task", "view", prefix + value}, nil)
+			if err != nil || opts.Help != want || !reflect.DeepEqual(rest, []string{"task", "view"}) {
+				t.Errorf("help %s: %+v %v %v", prefix+value, opts, rest, err)
+			}
+		}
+	}
+	for _, tc := range []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"--help=true", "-h=false"}, false},
+		{[]string{"--help=false", "-h=true"}, true},
+		{[]string{"--help", "-h=false"}, false},
+	} {
+		opts, _, err := parseGlobalFlags(tc.args, nil)
+		if err != nil || opts.Help != tc.want {
+			t.Errorf("help order %v: %+v %v", tc.args, opts, err)
+		}
+	}
+	for _, args := range [][]string{
+		{"task", "add", "--content", "--help=true"},
+		{"task", "add", "--content", "-h=true"},
+		{"task", "add", "--content=--help=true"},
+		{"task", "list", "--id", "--help=true"},
+	} {
+		opts, rest, err := parseGlobalFlags(args, nil)
+		if err != nil || opts.Help || !reflect.DeepEqual(rest, args) {
+			t.Errorf("help-shaped value consumed: %v => %+v %v %v", args, opts, rest, err)
+		}
+	}
+	opts, rest, err := parseGlobalFlags([]string{"task", "view", "--", "--help=true"}, nil)
+	if err != nil || opts.Help || !reflect.DeepEqual(rest, []string{"task", "view", "--help=true"}) {
+		t.Errorf("help after terminator consumed: %+v %v %v", opts, rest, err)
 	}
 }
 
