@@ -1,0 +1,17 @@
+# Bounded consumer rerun: removed-profile recovery guidance
+
+Outcome: no actionable findings remain in this selected workflow. The actual installed authorization reference now directs cleanup repair to the removed profile and preserves the supplied configuration. Public install/list/update/uninstall and repeated operations succeeded with expected machine output and filesystem state.
+
+Binary `/tmp/todoist-skill-profile-recovery` reported `todoist dev (local) unreleased`; reviewed at HEAD `9202899c0536e28ddb76ed721dd0496747d9c5f1` plus the parent's uncommitted profile-recovery instruction/evidence edits. Its SHA-256 stayed unchanged throughout. The delivered package digest is in `metadata.json`.
+
+Before, the earlier delivered reference said to use the selected profile's `auth repair` after `profile remove NAME` failed native cleanup. The removed NAME can differ from the selected profile. This ambiguity was supplied by the parent's Spec review, not independently discovered in this rerun.
+
+After, the newly installed reference says to repeat `profile remove NAME` or run `todoist --profile NAME auth repair`, preserve the same `--config` when supplied, and use the error's `repair_command`, which names that profile and configuration. It explicitly explains why plain `auth repair` can repair the wrong profile. The exact before/after delivered paragraphs are in `authorization-before-after.md`.
+
+Public route: reread README agent skill section → empty JSON inventory → install help → actual Codex local install under a quoted space-containing `My Project/.agents/skills/todoist-cli`. The isolated HOME also contained spaces. No initial route friction was observed. This review reuses the original public workflow knowledge; it is not a fresh independent discovery attempt. The original 27-call record remains unchanged.
+
+Ten actual CLI commands were recorded. Install exited 0 with `installed`; NDJSON inventory reported `installed`. Repeated NDJSON install and JSON update exited 0 with `unchanged`; complete path/hash/mtime snapshots stayed equal. NDJSON uninstall exited 0 with `uninstalled`, removed all five owned files and the manifest, and reported the unrelated note retained. Repeated JSON uninstall exited 0 with `unchanged`; final JSON inventory reported `absent`. The unrelated skill note, project AGENTS.md, and scratch shell profile retained their exact bytes and mtimes throughout.
+
+Successful structured outputs parsed, stderr stayed empty, and NDJSON lifecycle/inventory outputs each contained one JSON record. Manifest hashes matched installed content; every relative installed Markdown reference resolved; delivered install usage/flags matched focused live help.
+
+Evidence and limits: exact argv, stream paths, exit statuses and durations are in `commands.jsonl`; outputs in `commands/`, before/after file state in `states/`, preserved delivered package in `installed-package/`, assertions in `verification-checks.jsonl`, binary/docs/environment/prior knowledge in `metadata.json`. All artifacts are nonsecret and outside the repository. Environment was an explicit nonsecret allowlist with no inherited credentials and stdin `/dev/null`. No source inspection, profile fault injection, credentials, remote calls, native loading repeat, broad audit, repository mutations, commits or publication occurred. This verifies delivered repair instructions, not native cleanup execution.

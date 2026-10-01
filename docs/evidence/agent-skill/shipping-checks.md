@@ -101,3 +101,23 @@ live help. No actionable
 findings or initial public-path friction remained. [The bounded report and text
 captures](current-main-consumer/README.md) preserve the pending-merge version,
 reviewer harness corrections, state checks, and verification limits.
+
+## Profile cleanup guidance repair
+
+Final Spec review found that the bundled guidance suggested the selected
+profile's `auth repair` after `profile remove NAME`. Removal retains selection
+and can target another profile, so that wording could direct recovery to the
+wrong credential. Guidance now uses `todoist --profile NAME auth repair`, keeps
+the same explicit `--config`, and points to the error's `repair_command`.
+The existing profile contract regression verifies that repair names the removed
+profile and selected configuration; this repair changes instructions, not CLI
+behavior. The earlier consumer attempt did not execute credential cleanup and
+therefore did not establish this recovery behavior.
+
+A [10-command lifecycle rerun](profile-recovery-rerun/README.md) confirmed the
+corrected instructions were actually installed, relative references resolved,
+repeated operations were deterministic, machine output parsed, and unrelated
+files were retained. The reviewer reused prior workflow knowledge and did not
+execute native credential cleanup. The corrected bundle also passed
+`go test ./...`, `make check` (31 curated examples), and the two existing
+named-profile/configuration recovery regressions.

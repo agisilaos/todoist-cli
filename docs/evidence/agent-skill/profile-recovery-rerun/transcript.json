@@ -1,0 +1,223 @@
+[
+  {
+    "label": "01-version",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "--version"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery --version",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.166,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/01-version.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/01-version.stderr",
+    "stdout": "todoist dev (local) unreleased\n",
+    "stderr": ""
+  },
+  {
+    "label": "02-list-empty",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "list",
+      "--no-input",
+      "--json"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill list --no-input --json",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.01,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/02-list-empty.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/02-list-empty.stderr",
+    "stdout": "[\n  {\n    \"target\": \"codex\",\n    \"scope\": \"local\",\n    \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\"\n  },\n  {\n    \"target\": \"codex\",\n    \"scope\": \"global\",\n    \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/Scratch Home/.agents/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\"\n  },\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"local\",\n    \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.claude/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\"\n  },\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"global\",\n    \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/Scratch Home/.claude/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "label": "03-install-help",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "install",
+      "--help"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill install --help",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.008,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/03-install-help.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/03-install-help.stderr",
+    "stdout": "Usage:\n  todoist skill install <codex|claude-code> --scope <local|global> --path <absolute-directory>\n\nFlags:\n  --scope <local|global>             Required placement: project or user\n  --path <absolute-directory>       Required full skill directory\n\nGlobal flags:\n  -h, --help             Show help without running the command\n  --json, --ndjson       Structured lifecycle output\n  --no-input            Noninteractive operation\n  See 'todoist --help' for all global flags and output modes.\n\nNotes:\n  Installs only the running binary's bundle; repeated identical installation is unchanged.\n  An existing unmanaged file is a conflict; install never adopts or overwrites it.\n  Path must be absolute and end in the selected target's skills/todoist-cli layout.\n  Local paths belong to a project; global paths belong to the selected user's home.\n  Named placement does not guarantee exclusive visibility: agents may scan other agents' directories.\n  Codex: start in the project, check its skill selector, and invoke $todoist-cli.\n  Claude Code: start an interactive project session, check /skills, and invoke /todoist-cli.\n  Start a fresh agent session if discovery has not refreshed. Custom homes and cloud agents need separate verification.\n  No credentials or prompts. --force and --dry-run are unsupported; inspect with skill list.\n\nExamples:\n  todoist skill list --json\n  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input --json\n  todoist skill install claude-code --scope global --path /home/user/.claude/skills/todoist-cli --json\n",
+    "stderr": ""
+  },
+  {
+    "label": "04-install",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "install",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill install codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --json",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.009,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/04-install.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/04-install.stderr",
+    "stdout": "{\n  \"operation\": \"install\",\n  \"status\": \"installed\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\n  \"package_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "05-list-installed",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "list",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill list codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --ndjson",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.026,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/05-list-installed.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/05-list-installed.stderr",
+    "stdout": "{\"target\":\"codex\",\"scope\":\"local\",\"path\":\"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\"installed\":true,\"package_digest\":\"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\",\"version\":\"dev\",\"modified\":[],\"missing\":[],\"status\":\"installed\",\"available_digest\":\"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\"}\n",
+    "stderr": ""
+  },
+  {
+    "label": "06-repeat-install",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "install",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill install codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --ndjson",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.009,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/06-repeat-install.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/06-repeat-install.stderr",
+    "stdout": "{\"operation\":\"install\",\"status\":\"unchanged\",\"target\":\"codex\",\"scope\":\"local\",\"path\":\"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\"package_digest\":\"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\",\"version\":\"dev\",\"files\":[],\"retained\":[]}\n",
+    "stderr": ""
+  },
+  {
+    "label": "07-update",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill update codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --json",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.009,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/07-update.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/07-update.stderr",
+    "stdout": "{\n  \"operation\": \"update\",\n  \"status\": \"unchanged\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\n  \"package_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\",\n  \"version\": \"dev\",\n  \"files\": [],\n  \"retained\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "08-uninstall",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill uninstall codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --ndjson",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.01,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/08-uninstall.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/08-uninstall.stderr",
+    "stdout": "{\"operation\":\"uninstall\",\"status\":\"uninstalled\",\"target\":\"codex\",\"scope\":\"local\",\"path\":\"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\"package_digest\":\"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\",\"version\":\"dev\",\"files\":[\"SKILL.md\",\"references/authorization.md\",\"references/commands.md\",\"references/machine-calls.md\",\"references/plans.md\"],\"retained\":[\"custom-note.txt\"]}\n",
+    "stderr": ""
+  },
+  {
+    "label": "09-repeat-uninstall",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill uninstall codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --json",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.008,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/09-repeat-uninstall.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/09-repeat-uninstall.stderr",
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"unchanged\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\n  \"files\": [],\n  \"retained\": [\n    \"custom-note.txt\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "10-list-absent",
+    "argv": [
+      "/tmp/todoist-skill-profile-recovery",
+      "skill",
+      "list",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "shell_command": "/tmp/todoist-skill-profile-recovery skill list codex --scope local --path '/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli' --no-input --json",
+    "cwd": "/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project",
+    "stdin": "/dev/null",
+    "exit_status": 0,
+    "duration_seconds": 0.008,
+    "stdout_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/10-list-absent.stdout",
+    "stderr_path": "/tmp/todoist-consumer-profile-recovery.ZgloN6/commands/10-list-absent.stderr",
+    "stdout": "[\n  {\n    \"target\": \"codex\",\n    \"scope\": \"local\",\n    \"path\": \"/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4\"\n  }\n]\n",
+    "stderr": ""
+  }
+]
