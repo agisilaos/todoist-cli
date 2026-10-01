@@ -166,7 +166,9 @@ func writeDetailDue(task api.Task, field func(string, string)) {
 	if value == "" {
 		value = due.Date
 	}
-	if due.Date != "" && due.Datetime != "" && !strings.HasPrefix(due.Datetime, due.Date) {
+	_, calendarDateError := time.Parse("2006-01-02", due.Date)
+	sameDue := due.Date == due.Datetime || (calendarDateError == nil && strings.HasPrefix(due.Datetime, due.Date))
+	if due.Date != "" && due.Datetime != "" && !sameDue {
 		field("Due date", due.Date)
 		field("Due time", due.Datetime)
 	} else {
@@ -183,9 +185,14 @@ func writeDetailDue(task api.Task, field func(string, string)) {
 		field("Timezone", timezone)
 	} else if due.Timezone != nil && *due.Timezone != "" {
 		field("Timezone", *due.Timezone)
-	} else if strings.Contains(value, "T") {
-		if _, err := time.Parse(time.RFC3339Nano, value); err != nil {
-			field("Timezone", "Not returned (time shown as returned)")
+	} else {
+		for _, timestamp := range []string{due.Date, due.Datetime} {
+			if strings.Contains(timestamp, "T") {
+				if _, err := time.Parse(time.RFC3339Nano, timestamp); err != nil {
+					field("Timezone", "Not returned (time shown as returned)")
+					break
+				}
+			}
 		}
 	}
 	recurrence := "Not returned"

@@ -84,6 +84,8 @@ can contain a calendar date, floating datetime, or fixed UTC timestamp;
 `datetime` is retained only when actually returned for compatibility. Null due
 means no due date; absent due means unknown. Null timezone identifies date-only
 or floating due data. No recurrence is inferred from the expression.
+Human detail shows distinct timestamp values when both `date` and `datetime`
+are returned; a floating value without a returned timezone remains unknown.
 
 Deadline is date-only and separate from due recurrence; its returned language is
 output metadata. Duration normally has a positive amount and unit `minute` or
