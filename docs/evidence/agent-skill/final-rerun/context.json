@@ -1,0 +1,11 @@
+{
+  "binary": "/tmp/todoist-installable-agent-skill-review",
+  "binary_sha256": "cebb1c7d65b8f9ce22188e22c5f2e98977f9829550893928f2df3c13f584f6c8",
+  "version": "todoist dev (local) unreleased",
+  "base_revision": "1ea11d5 plus uncommitted feature and consumer fixes",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "public_route": "README introduction and Agent skills section -> inventory -> focused help -> install -> list -> installed instructions -> repeat/update",
+  "knowledge_limit": "Prior target-conventions research, initial public consumer workflow, and prior native loopback loading probes; backend/source/tests never read.",
+  "prior_native_evidence": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/native-loading/summary.json",
+  "native_retest_decision": "Final installed main SKILL bodies byte-identical to both previously native-probed local/global entrypoints. Updated generated reference observed via filesystem, not model consumption. Native body probes need no repetition for unchanged content."
+}

@@ -1,0 +1,12 @@
+{
+  "task": "Public install/list/update/uninstall workflow with owned-file recovery and native target loading",
+  "binary": "/tmp/todoist-installable-agent-skill-review",
+  "base_revision": "1ea11d5",
+  "feature_state": "uncommitted implementation",
+  "repository": "/Users/agis/.codex/worktrees/installable-agent-skill/todoist-cli",
+  "interaction": "noninteractive subprocesses with stdin closed",
+  "implementation_knowledge_limit": "Reviewer researched target conventions and native loading probes beforehand. Installer backend/source/tests have not been read. Initial attempt uses README/help/installed package only.",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "binary_sha256": "f04d085c72b4916a150730f1158ed338f13dbb25b829869efe8999bb486bba76",
+  "initial_readme_section_sha256": "ed4d931e2d9f277f1e8f604d88a9468a7492225204c2deb2576b7eca35b686b3"
+}

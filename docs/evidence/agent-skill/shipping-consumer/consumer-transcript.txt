@@ -1,0 +1,985 @@
+CLI consumer review initial route
+Repository HEAD 1ea11d5f35da4faf3ce221b034146264d9724b5e plus uncommitted installable-agent-skill feature. Binary built via go build -o /tmp/todoist-skill-consumer ./cmd/todoist. macOS, noninteractive subprocess pipes. Public route: README opening paragraph -> Agent skills -> inventory and focused help -> explicit Codex local path under scratch My Project -> lifecycle recovery. No implementation/internal-test/prior-review reading at initial attempt. No credentials or service calls. Previously supplied native loader evidence is outside this bounded attempt.
+
+$ /tmp/todoist-skill-consumer --version
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+todoist dev (local) unreleased
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer --help
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+todoist - A terminal companion for Todoist
+
+Usage:
+  todoist [global flags] <command> [args]
+
+Everyday:
+  add           Capture tasks with natural language parsing
+  today         Tasks due today and overdue across projects
+  review        Guided daily task review
+  upcoming      Tasks due today and the next 6 days (default)
+  inbox         List Inbox tasks or add to Inbox
+
+Organization:
+  task          Manage tasks (list defaults to Inbox)
+  project       Manage projects
+  workspace     Manage workspaces
+  section       Manage sections
+  label         Manage labels
+  filter        Manage filters
+  comment       Manage comments
+  reminder      Manage task reminders
+  notification  Manage notifications
+  completed     Completed task history
+  activity      View activity logs
+  stats         View productivity stats
+  view          Open Todoist web URLs in CLI
+
+Automation:
+  agent         Plan and apply agentic actions
+  planner       Show or set planner command
+  schema        Show output schemas and wire-format contracts
+
+Setup and reference:
+  auth          Authenticate and manage tokens
+  settings      Manage user settings
+  completion    Shell completion
+  doctor        Run environment and configuration checks
+  help          Show help for a command
+  skill         Install and maintain coding-agent skills
+
+Global flags:
+  -h, --help            Show help
+  --version             Show version
+  -q, --quiet           Suppress non-essential output
+  --quiet-json          Compact single-line JSON errors
+  -v, --verbose         Enable verbose output
+  --accessible          Add text markers for screen-reader-friendly task output
+  --json                JSON output
+  --plain               Plain text output (tab-separated)
+  --ndjson              NDJSON output
+  --ids-only            One raw ID per line (supported lists only)
+  --no-color            Disable color
+  --no-input            Disable prompts
+  --timeout <seconds>   Request timeout (default 10)
+  --config <path>       Config file path
+  --profile <name>      Profile name (default "default")
+  -n, --dry-run         Preview changes without applying
+  -f, --force           Skip confirmation prompts
+  --fuzzy               Enable fuzzy name resolution
+  --no-fuzzy            Disable fuzzy name resolution
+  --progress-jsonl      Emit progress events as JSONL to stderr or file
+  --base-url <url>      Override API base URL
+
+Examples:
+  todoist auth login
+  todoist add "Review PR 42 today"
+  todoist inbox
+  todoist today
+  todoist upcoming
+  todoist task list --all-projects --all
+  todoist help task
+
+List scope:
+  task list defaults to Inbox; --all-projects selects across projects.
+  --all fetches every page. inbox, today, and upcoming fetch every page.
+
+Machine clients:
+  Use task add for explicit fields; add uses natural language parsing.
+  Use --no-input with explicit inputs and --json, --ndjson, --plain,
+  or --ids-only for stable output. --quiet-json makes JSON errors compact.
+  Example: todoist task list --all-projects --all --no-input --json
+  Output contracts: todoist schema --name task_list
+  ID output and supported commands: todoist schema --name ids_only
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill --help
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+Usage:
+  todoist skill list [codex|claude-code] [--scope local|global] [--path <absolute-directory>]
+  todoist skill install <codex|claude-code> --scope <local|global> --path <absolute-directory>
+  todoist skill update <codex|claude-code> --scope <local|global> --path <absolute-directory> [--backup]
+  todoist skill uninstall <codex|claude-code> --scope <local|global> --path <absolute-directory> [--keep-modified]
+
+Targets:
+  codex        <project-or-home>/.agents/skills/todoist-cli
+  claude-code  <project-or-home>/.claude/skills/todoist-cli
+
+Notes:
+  Install one selected target; supply its full absolute path and scope for every write.
+  List shows current-directory and user-home locations; explicit --path also requires a target and scope.
+  Uses the running binary's bundled skill. No automatic or network updates.
+  Modified files block update and uninstall by default. --backup preserves originals before update;
+  --keep-modified uninstalls unchanged owned files, leaves edits, and removes management ownership.
+  Unrelated files, global agent instructions, and shell profiles are preserved. No prompts or credentials.
+  --force and --dry-run are unsupported; use list for inspection.
+  Use --json or --ndjson for stable output; lifecycle errors are JSON on stderr in either mode.
+  See 'todoist --help' for global flags and 'todoist skill install --help' for loading checks.
+
+Examples:
+  todoist skill list --json
+  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill list --json
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+[
+  {
+    "target": "codex",
+    "scope": "local",
+    "path": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project/.agents/skills/todoist-cli",
+    "installed": false,
+    "modified": [],
+    "missing": [],
+    "status": "absent",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"
+  },
+  {
+    "target": "codex",
+    "scope": "global",
+    "path": "/Users/agis/.agents/skills/todoist-cli",
+    "installed": false,
+    "modified": [],
+    "missing": [],
+    "status": "absent",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"
+  },
+  {
+    "target": "claude-code",
+    "scope": "local",
+    "path": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project/.claude/skills/todoist-cli",
+    "installed": false,
+    "modified": [],
+    "missing": [],
+    "status": "absent",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"
+  },
+  {
+    "target": "claude-code",
+    "scope": "global",
+    "path": "/Users/agis/.claude/skills/todoist-cli",
+    "installed": false,
+    "modified": [],
+    "missing": [],
+    "status": "absent",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"
+  }
+]
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill install --help
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+Usage:
+  todoist skill install <codex|claude-code> --scope <local|global> --path <absolute-directory>
+
+Flags:
+  --scope <local|global>             Required placement: project or user
+  --path <absolute-directory>       Required full skill directory
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Structured lifecycle output
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Installs only the running binary's bundle; repeated identical installation is unchanged.
+  An existing unmanaged file is a conflict; install never adopts or overwrites it.
+  Path must be absolute and end in the selected target's skills/todoist-cli layout.
+  Local paths belong to a project; global paths belong to the selected user's home.
+  Named placement does not guarantee exclusive visibility: agents may scan other agents' directories.
+  Codex: start in the project, check its skill selector, and invoke $todoist-cli.
+  Claude Code: start an interactive project session, check /skills, and invoke /todoist-cli.
+  Start a fresh agent session if discovery has not refreshed. Custom homes and cloud agents need separate verification.
+  No credentials or prompts. --force and --dry-run are unsupported; inspect with skill list.
+
+Examples:
+  todoist skill list --json
+  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input --json
+  todoist skill install claude-code --scope global --path /home/user/.claude/skills/todoist-cli --json
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill list --help
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+Usage:
+  todoist skill list [codex|claude-code] [--scope <local|global>] [--path <absolute-directory>]
+
+Flags:
+  --scope <local|global>             Restrict placement
+  --path <absolute-directory>       Inspect one path; target and scope required
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Array or one installation per line
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Reports conventional current-directory and user-home locations without installing anything.
+  Status is absent, installed, outdated, modified, conflict, or error; inspect each row's status.
+  List succeeds when inventory is produced, including per-location conflicts/errors.
+  Filesystem state does not prove that the agent loaded the skill. For an ancestor project or custom home, inspect its explicit path.
+
+Examples:
+  todoist skill list --json
+  todoist skill list codex --scope local --path /work/project/.agents/skills/todoist-cli --ndjson
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill update --help
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+Usage:
+  todoist skill update <codex|claude-code> --scope <local|global> --path <absolute-directory> [--backup]
+
+Flags:
+  --scope <local|global>             Required placement
+  --path <absolute-directory>       Required managed skill directory
+  --backup                         Preserve modified originals before replacement
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Structured result; JSON errors on stderr
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Updates one owned installation from this binary. No network fetch or background update.
+  Modified or missing owned files block update by default; unrelated files are preserved.
+  --backup explicitly preserves modified originals outside the skills loading directory before replacement.
+  Keep customization in separate, unrelated files when possible; older binaries can install older bundles explicitly.
+  If failure reports recovery_required, preserve reported paths and reconcile them before retrying.
+  --force does not bypass ownership or customization protection.
+
+Examples:
+  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --json
+  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --backup --json
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill uninstall --help
+cwd: /var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist consumer review hm2toma7/My Project
+exit: 0
+stdout:
+Usage:
+  todoist skill uninstall <codex|claude-code> --scope <local|global> --path <absolute-directory> [--keep-modified]
+
+Flags:
+  --scope <local|global>             Required placement
+  --path <absolute-directory>       Required managed skill directory
+  --keep-modified                  Retain edits while removing ownership
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Structured result; JSON errors on stderr
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Removes unchanged owned files and management metadata; repeated absent uninstall is unchanged.
+  Modified or missing files block removal by default. --keep-modified explicitly retains edits and ends management.
+  Unrelated files and saved backups are preserved. Retained SKILL.md may remain discoverable by the agent.
+  Retained instructions may reference removed unchanged files; inspect or move them before continued use.
+  An unowned directory is never recursively deleted. Agent instructions and shell profiles are untouched.
+
+Examples:
+  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --json
+  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --keep-modified --json
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill install codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "install",
+  "status": "installed",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [
+    "SKILL.md",
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "retained": []
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill list codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+[
+  {
+    "target": "codex",
+    "scope": "local",
+    "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+    "installed": true,
+    "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+    "version": "dev",
+    "modified": [],
+    "missing": [],
+    "status": "installed",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"
+  }
+]
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill install codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "install",
+  "status": "unchanged",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [],
+  "retained": []
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill update codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "update",
+  "status": "unchanged",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [],
+  "retained": []
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer schema --name skill_result --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+[
+  {
+    "name": "skill_result",
+    "description": "Install, update, and uninstall result for a bundled agent skill",
+    "schema": {
+      "properties": {
+        "backup_path": {
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "operation": {
+          "enum": [
+            "install",
+            "update",
+            "uninstall"
+          ],
+          "type": "string"
+        },
+        "package_digest": {
+          "type": "string"
+        },
+        "path": {
+          "description": "Absolute destination, canonicalized when safely resolvable",
+          "type": "string"
+        },
+        "retained": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "scope": {
+          "enum": [
+            "local",
+            "global"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "installed",
+            "updated",
+            "uninstalled",
+            "unchanged"
+          ],
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "codex",
+            "claude-code"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation",
+        "status",
+        "target",
+        "scope",
+        "path",
+        "files",
+        "retained"
+      ],
+      "type": "object"
+    }
+  }
+]
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer schema --name skill_list --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+[
+  {
+    "name": "skill_list",
+    "description": "Agent skill installation inventory; inspect each item's status",
+    "schema": {
+      "items": {
+        "properties": {
+          "available_digest": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "modified": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "package_digest": {
+            "type": "string"
+          },
+          "path": {
+            "description": "Absolute destination, canonicalized when safely resolvable",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "local",
+              "global"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "absent",
+              "installed",
+              "outdated",
+              "modified",
+              "conflict",
+              "error"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "codex",
+              "claude-code"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target",
+          "scope",
+          "path",
+          "status",
+          "installed",
+          "available_digest",
+          "modified",
+          "missing"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  }
+]
+
+stderr:
+
+
+INITIAL ATTEMPT RECORDED BEFORE IMPLEMENTATION/INTERNAL TESTS: README opening link -> Agent skills section -> skill list/install help gave complete explicit-target/scope/path commands. Initial install, list, repeated install, unchanged update succeeded noninteractively with JSON on stdout and empty stderr. Returned path canonicalizes /tmp to /private/tmp as documented. No initial discovery or execution friction recorded. Native loading/authenticated workflow execution deliberately not repeated.
+
+$ /tmp/todoist-skill-consumer skill list codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --ndjson
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{"target":"codex","scope":"local","path":"/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli","installed":true,"package_digest":"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a","version":"dev","modified":["SKILL.md"],"missing":[],"status":"modified","available_digest":"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill update codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --ndjson
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 5
+stdout:
+
+stderr:
+{"code":"SKILL_MODIFIED","details":{"committed":false,"files":["SKILL.md"],"path":"/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli","recovery_required":false},"error":"Owned skill files were changed or removed. Restore them, or use update --backup to preserve changed originals before replacement.","meta":{}}
+
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 5
+stdout:
+
+stderr:
+{
+  "code": "SKILL_MODIFIED",
+  "details": {
+    "committed": false,
+    "files": [
+      "SKILL.md"
+    ],
+    "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+    "recovery_required": false
+  },
+  "error": "Owned skill files were changed or removed. Restore them, or use uninstall --keep-modified to remove management while retaining changed files.",
+  "meta": {}
+}
+
+
+STATE CHECK: Modified update and uninstall returned exit 5 / SKILL_MODIFIED with empty stdout, parseable error details, and no file changes. NDJSON list reported modified SKILL.md as one line and exit 0.
+
+$ /tmp/todoist-skill-consumer skill update codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --backup --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "update",
+  "status": "updated",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [
+    "SKILL.md",
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "retained": [],
+  "backup_path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/todoist-cli-backup-834974324"
+}
+
+stderr:
+
+
+STATE CHECK: Backup originals and ownership manifest exist outside .agents/skills; modified SKILL.md bytes match backup exactly; installed SKILL.md restored exactly; unrelated notes remain exact.
+
+$ /tmp/todoist-skill-consumer skill update codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 5
+stdout:
+
+stderr:
+{
+  "code": "SKILL_MODIFIED",
+  "details": {
+    "committed": false,
+    "files": [
+      "references/machine-calls.md"
+    ],
+    "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+    "recovery_required": false
+  },
+  "error": "Owned skill files were changed or removed. Restore them, or use update --backup to preserve changed originals before replacement.",
+  "meta": {}
+}
+
+
+$ /tmp/todoist-skill-consumer skill update codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --backup --ndjson
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{"operation":"update","status":"updated","target":"codex","scope":"local","path":"/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli","package_digest":"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a","version":"dev","files":["SKILL.md","references/authorization.md","references/commands.md","references/machine-calls.md","references/plans.md"],"retained":[]}
+
+stderr:
+
+
+STATE CHECK: Missing managed reference blocked normal update, --backup restored the bundled reference; missing file had no original to back up.
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --ndjson
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{"operation":"uninstall","status":"uninstalled","target":"codex","scope":"local","path":"/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli","package_digest":"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a","version":"dev","files":["SKILL.md","references/authorization.md","references/commands.md","references/machine-calls.md","references/plans.md"],"retained":["personal notes.txt"]}
+
+stderr:
+
+
+STATE CHECK: Uninstall removed all owned files plus manifest, preserved exact unrelated notes and prior backup directory.
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "uninstall",
+  "status": "unchanged",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "files": [],
+  "retained": [
+    "personal notes.txt"
+  ]
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill install codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "install",
+  "status": "installed",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [
+    "SKILL.md",
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "retained": []
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 5
+stdout:
+
+stderr:
+error: Owned skill files were changed or removed. Restore them, or use uninstall --keep-modified to remove management while retaining changed files.
+Code: SKILL_MODIFIED
+Path: "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli"
+Affected file: "SKILL.md"
+
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --keep-modified --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "uninstall",
+  "status": "uninstalled",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "retained": [
+    "SKILL.md",
+    "personal notes.txt"
+  ]
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill list codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+[
+  {
+    "target": "codex",
+    "scope": "local",
+    "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+    "installed": false,
+    "modified": [],
+    "missing": [],
+    "status": "conflict",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+    "code": "SKILL_CONFLICT",
+    "error": "An unowned skill already exists here. Choose another destination or move it before installing."
+  }
+]
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "uninstall",
+  "status": "unchanged",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+  "files": [],
+  "retained": [
+    "SKILL.md",
+    "personal notes.txt"
+  ]
+}
+
+stderr:
+
+
+STATE CHECK: Human error supplies uninstall --keep-modified recovery. Retention removed references and ownership, kept exact edited SKILL.md and unrelated notes; explicit list reports conflict because remaining entrypoint is unmanaged, as documented.
+
+$ /tmp/todoist-skill-consumer skill install codex --scope local --path '/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 5
+stdout:
+
+stderr:
+{
+  "code": "SKILL_CONFLICT",
+  "details": {
+    "committed": false,
+    "files": [
+      "SKILL.md"
+    ],
+    "path": "/private/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli/SKILL.md",
+    "recovery_required": false
+  },
+  "error": "An unowned file conflicts with this package. Move it or choose another destination; backup does not replace unowned content.",
+  "meta": {}
+}
+
+
+$ /tmp/todoist-skill-consumer skill list codex --scope local --path '/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+[
+  {
+    "target": "codex",
+    "scope": "local",
+    "path": "/private/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli",
+    "installed": false,
+    "modified": [],
+    "missing": [],
+    "status": "conflict",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+    "code": "SKILL_CONFLICT",
+    "error": "An unowned skill already exists here. Choose another destination or move it before installing."
+  }
+]
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill install codex --scope local --path '/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "install",
+  "status": "installed",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [
+    "SKILL.md",
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "retained": []
+}
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill uninstall codex --scope local --path '/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+{
+  "operation": "uninstall",
+  "status": "uninstalled",
+  "target": "codex",
+  "scope": "local",
+  "path": "/private/tmp/todoist consumer review u_h_88ww/Existing Project/.agents/skills/todoist-cli",
+  "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+  "version": "dev",
+  "files": [
+    "SKILL.md",
+    "references/authorization.md",
+    "references/commands.md",
+    "references/machine-calls.md",
+    "references/plans.md"
+  ],
+  "retained": []
+}
+
+stderr:
+
+
+STATE CHECK: Unmanaged entrypoint was rejected without modification; public recovery of moving it aside allowed install and uninstall. Preserved original matches exactly.
+
+$ /tmp/todoist-skill-consumer skill install codex --path '/tmp/todoist consumer review u_h_88ww/Invalid Project/.agents/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 2
+stdout:
+
+stderr:
+{
+  "code": "SKILL_USAGE",
+  "details": {
+    "committed": false,
+    "files": [],
+    "path": "",
+    "recovery_required": false
+  },
+  "error": "select one target and supply --scope local|global and --path with its full absolute skill directory; run 'todoist skill list' for conventional locations",
+  "meta": {}
+}
+
+
+$ /tmp/todoist-skill-consumer skill install codex --scope local --path .agents/skills/todoist-cli --no-input --ndjson
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 2
+stdout:
+
+stderr:
+{"code":"SKILL_PATH_INVALID","details":{"committed":false,"files":[],"path":".agents/skills/todoist-cli","recovery_required":false},"error":"Use a full absolute skill destination path.","meta":{}}
+
+
+STATE CHECK: Missing scope and relative destination fail before mutation with exit 2 and parseable stderr JSON; no implicit default destination was written.
+
+$ /tmp/todoist-skill-consumer skill install claude-code --scope global --path '/tmp/todoist consumer review u_h_88ww/Isolated Home/.claude/skills/todoist-cli' --no-input
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+install	installed	claude-code	global	"/private/tmp/todoist consumer review u_h_88ww/Isolated Home/.claude/skills/todoist-cli"
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill list claude-code --scope global --path '/tmp/todoist consumer review u_h_88ww/Isolated Home/.claude/skills/todoist-cli' --no-input --json
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+[
+  {
+    "target": "claude-code",
+    "scope": "global",
+    "path": "/private/tmp/todoist consumer review u_h_88ww/Isolated Home/.claude/skills/todoist-cli",
+    "installed": true,
+    "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+    "version": "dev",
+    "modified": [],
+    "missing": [],
+    "status": "installed",
+    "available_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a"
+  }
+]
+
+stderr:
+
+
+$ /tmp/todoist-skill-consumer skill uninstall claude-code --scope global --path '/tmp/todoist consumer review u_h_88ww/Isolated Home/.claude/skills/todoist-cli' --no-input --plain
+cwd: /tmp/todoist consumer review u_h_88ww/My Project
+exit: 0
+stdout:
+uninstall	uninstalled	claude-code	global	"/private/tmp/todoist consumer review u_h_88ww/Isolated Home/.claude/skills/todoist-cli"
+
+stderr:
+
+
+STATE CHECK: Claude Code explicit global layout under isolated home with spaces installed, listed, and uninstalled successfully. Human success output and explicit plain output remain readable; no real user home changed.
+
+STATE CHECK: All main-body and curated-reference local Markdown links resolve in the installed snapshot. Main entrypoint gives live help/schema discovery and conditional reference reading; generated command-reference headings are searchable.
