@@ -79,7 +79,7 @@ func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 			"action_count":  len(plan.Actions),
 			"summary":       plan.Summary,
 		}
-		return writeStructuredValue(ctx, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload)
 	}
 	if plan.Review != nil {
 		previewCtx := *ctx
@@ -164,7 +164,7 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 			}
 			out.Results = append(out.Results, entry)
 		}
-		return writeStructuredValue(ctx, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+		return writeStructuredValue(ctx, out)
 	}
 	okCount, failedCount, skippedReplay := summarizeApplyResults(results)
 	if skippedReplay == len(results) {

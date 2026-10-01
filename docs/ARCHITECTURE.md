@@ -81,6 +81,9 @@ serve detail enrichment after selection; failed or partial loads cannot. Detail
 still checks section ownership, and the cache does not change reference matching
 or persist between commands.
 
+Output writers serialize raw values; the CLI owns the machine error envelope and
+its request metadata. Machine-output pagination notices remain on stderr.
+
 Section deletion owns its confirmation and dry-run checks in `internal/cli`.
 
 Agent status rendering, apply, and replay persistence remain in `internal/cli`;

@@ -277,7 +277,7 @@ func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, 
 		if hasPlan && plan != nil {
 			payload["plan"] = *plan
 		}
-		return writeStructuredValue(ctx, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload)
 	}
 	fmt.Fprintf(ctx.Stdout, "Current authorization: %s\n", currentAuthorization(ctx).Summary())
 	if plannerCmd == "" {

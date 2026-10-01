@@ -115,7 +115,7 @@ func authStorageCommand(ctx *Context, operation string, args []string) error {
 	}
 	payload := map[string]any{"profile": ctx.Profile, "operation": operation, "completed": true, "backend": info.Backend}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+		return output.WriteJSON(ctx.Stdout, payload)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSON(ctx.Stdout, []any{payload})

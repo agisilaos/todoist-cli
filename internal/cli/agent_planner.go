@@ -33,14 +33,14 @@ func agentPlanner(ctx *Context, args []string) error {
 			return err
 		}
 		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-			return writeStructuredValue(ctx, map[string]any{"planner_cmd": cmd}, output.Meta{})
+			return writeStructuredValue(ctx, map[string]any{"planner_cmd": cmd})
 		}
 		fmt.Fprintf(ctx.Stdout, "Planner command set to: %s\n", cmd)
 		return nil
 	}
 	effective, source := resolvePlannerCmd(ctx, "", false)
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		return writeStructuredValue(ctx, map[string]any{"planner_cmd": effective, "source": source}, output.Meta{})
+		return writeStructuredValue(ctx, map[string]any{"planner_cmd": effective, "source": source})
 	}
 	fmt.Fprintf(ctx.Stdout, "Planner command: %s (source: %s)\n", effective, source)
 	return nil

@@ -91,7 +91,7 @@ func taskMove(ctx *Context, args []string) error {
 				"moved":  moved,
 				"failed": failed,
 				"count":  len(resolved.IDs),
-			}, output.Meta{RequestID: ctx.RequestID})
+			})
 		}
 		fmt.Fprintf(ctx.Stdout, "bulk move complete: moved=%d failed=%d total=%d\n", moved, failed, len(resolved.IDs))
 		return nil
@@ -186,7 +186,7 @@ func taskComplete(ctx *Context, args []string) error {
 				"completed": completed,
 				"failed":    failed,
 				"count":     len(resolved.IDs),
-			}, output.Meta{RequestID: ctx.RequestID})
+			})
 		}
 		fmt.Fprintf(ctx.Stdout, "bulk complete done: completed=%d failed=%d total=%d\n", completed, failed, len(resolved.IDs))
 		return nil

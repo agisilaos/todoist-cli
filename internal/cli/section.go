@@ -199,7 +199,7 @@ func writeSectionList(ctx *Context, sections []api.Section, cursor string) error
 		return writeIDs(ctx, sections, func(item api.Section) string { return item.ID }, cursor)
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, sections, output.Meta{RequestID: ctx.RequestID, Count: len(sections), Cursor: cursor})
+		return output.WriteJSON(ctx.Stdout, sections)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSONSlice(ctx.Stdout, sections)

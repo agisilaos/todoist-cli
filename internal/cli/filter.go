@@ -292,7 +292,7 @@ func writeFilterList(ctx *Context, filters []api.Filter) error {
 		return writeIDs(ctx, filters, func(item api.Filter) string { return item.ID }, "")
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, filters, output.Meta{RequestID: ctx.RequestID, Count: len(filters)})
+		return output.WriteJSON(ctx.Stdout, filters)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		items := make([]any, 0, len(filters))

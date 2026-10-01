@@ -3,7 +3,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -109,7 +108,7 @@ func notificationView(ctx *Context, args []string) error {
 		return err
 	}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		return writeStructuredValue(ctx, n, output.Meta{RequestID: ctx.RequestID})
+		return writeStructuredValue(ctx, n)
 	}
 	if ctx.Mode == output.ModePlain {
 		rows := [][]string{
@@ -341,7 +340,7 @@ func writeNotificationList(ctx *Context, out appnotifications.ListResult) error 
 		items = []api.Notification{}
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, items, output.Meta{RequestID: ctx.RequestID, Count: len(items), Cursor: nextOffsetCursor(out)})
+		return output.WriteJSON(ctx.Stdout, items)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSONSlice(ctx.Stdout, items)
@@ -370,13 +369,6 @@ func writeNotificationList(ctx *Context, out appnotifications.ListResult) error 
 		fmt.Fprintf(ctx.Stdout, "\nMore available. Use --offset %d\n", out.Offset+out.Limit)
 	}
 	return nil
-}
-
-func nextOffsetCursor(out appnotifications.ListResult) string {
-	if !out.HasMore {
-		return ""
-	}
-	return strconv.Itoa(out.Offset + out.Limit)
 }
 
 func notificationSummary(n api.Notification) string {

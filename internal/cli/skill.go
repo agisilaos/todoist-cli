@@ -216,7 +216,7 @@ func skillList(ctx *Context, args []string) error {
 	}
 	switch ctx.Mode {
 	case output.ModeJSON:
-		return skillInventoryOutputError(output.WriteJSONArray(ctx.Stdout, items))
+		return skillInventoryOutputError(output.WriteJSON(ctx.Stdout, items))
 	case output.ModeNDJSON:
 		return skillInventoryOutputError(output.WriteNDJSONSlice(ctx.Stdout, items))
 	default:
@@ -242,7 +242,7 @@ func writeSkillResult(ctx *Context, result skillinstall.Result) error {
 	var err error
 	switch ctx.Mode {
 	case output.ModeJSON:
-		err = output.WriteJSON(ctx.Stdout, result, output.Meta{})
+		err = output.WriteJSON(ctx.Stdout, result)
 	case output.ModeNDJSON:
 		err = json.NewEncoder(ctx.Stdout).Encode(result)
 	default:

@@ -52,7 +52,7 @@ func writeWorkspaceList(ctx *Context, workspaces []api.Workspace) error {
 		return writeIDs(ctx, workspaces, func(item api.Workspace) string { return item.ID }, "")
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, workspaces, output.Meta{RequestID: ctx.RequestID, Count: len(workspaces)})
+		return output.WriteJSON(ctx.Stdout, workspaces)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		items := make([]any, 0, len(workspaces))

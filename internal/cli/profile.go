@@ -140,7 +140,7 @@ func profileListCommand(ctx *Context, args []string) error {
 	}
 	payload := map[string]any{"profiles": rows, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		if err := writeStructuredValue(ctx, payload, output.Meta{}); err != nil {
+		if err := writeStructuredValue(ctx, payload); err != nil {
 			return err
 		}
 	} else {
@@ -205,7 +205,7 @@ func profileCurrentCommand(ctx *Context, args []string) error {
 		payload["error"] = problem
 	}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		if err := writeStructuredValue(ctx, payload, output.Meta{}); err != nil {
+		if err := writeStructuredValue(ctx, payload); err != nil {
 			return err
 		}
 	} else {
@@ -261,7 +261,7 @@ func profileUseCommand(ctx *Context, args []string) error {
 	shadowed := source != "user"
 	payload := map[string]any{"profile": name, "saved": true, "config_path": ctx.ConfigPath, "selected_profile": selected, "selection_source": source, "shadowed": shadowed, "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		return writeStructuredValue(ctx, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload)
 	}
 	fmt.Fprintf(ctx.Stdout, "Saved default credential profile %q in %s.\n", name, ctx.ConfigPath)
 	if shadowed {
@@ -283,7 +283,7 @@ func profileRemoveCommand(ctx *Context, args []string) error {
 	}
 	payload := map[string]any{"profile": name, "removed": true, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "selection_retained": true, "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		return writeStructuredValue(ctx, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload)
 	}
 	fmt.Fprintf(ctx.Stdout, "Removed stored credential profile %q. Saved defaults were retained; no other credential was selected.\n", name)
 	if name == ctx.Profile {

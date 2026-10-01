@@ -49,9 +49,9 @@ func TestDetectMode(t *testing.T) {
 	}
 }
 
-func TestWriteJSONArray(t *testing.T) {
+func TestWriteJSONArrayValue(t *testing.T) {
 	var buf bytes.Buffer
-	if err := WriteJSONArray(&buf, []string{"a", "b"}); err != nil {
+	if err := WriteJSON(&buf, []string{"a", "b"}); err != nil {
 		t.Fatalf("write json array: %v", err)
 	}
 	var got []string
@@ -89,7 +89,7 @@ func TestDetectModePlainAndNDJSONConflict(t *testing.T) {
 
 func TestWriteJSON(t *testing.T) {
 	var buf bytes.Buffer
-	if err := WriteJSON(&buf, map[string]any{"ok": true}, Meta{RequestID: "rid"}); err != nil {
+	if err := WriteJSON(&buf, map[string]any{"ok": true}); err != nil {
 		t.Fatalf("WriteJSON: %v", err)
 	}
 	var got map[string]any

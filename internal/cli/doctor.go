@@ -265,7 +265,7 @@ func writeDoctorReport(ctx *Context, checks []doctorCheck, warnCount, failCount 
 				"fail":  failCount,
 				"total": len(checks),
 			},
-		}, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+		})
 	}
 	rows := make([][]string, 0, len(checks))
 	for _, c := range checks {

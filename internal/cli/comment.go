@@ -218,7 +218,7 @@ func writeCommentList(ctx *Context, comments []api.Comment, cursor string) error
 		return writeIDs(ctx, comments, func(item api.Comment) string { return item.ID }, cursor)
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, comments, output.Meta{RequestID: ctx.RequestID, Count: len(comments), Cursor: cursor})
+		return output.WriteJSON(ctx.Stdout, comments)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSONSlice(ctx.Stdout, comments)

@@ -320,7 +320,7 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 		"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+		return output.WriteJSON(ctx.Stdout, payload)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSON(ctx.Stdout, []any{payload})
@@ -344,7 +344,7 @@ func writeAuthPrintEnv(ctx *Context, token string) error {
 			"profile": ctx.Profile,
 			"env_var": "TODOIST_TOKEN",
 			"export":  exportLine,
-		}, output.Meta{})
+		})
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSON(ctx.Stdout, []any{
@@ -375,7 +375,7 @@ func authStatus(ctx *Context) error {
 		if ctx.Mode == output.ModeNDJSON {
 			err = output.WriteNDJSON(ctx.Stdout, []any{payload})
 		} else {
-			err = output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+			err = output.WriteJSON(ctx.Stdout, payload)
 		}
 		if err != nil {
 			return err
@@ -403,7 +403,7 @@ func authLogout(ctx *Context) error {
 		"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, payload, output.Meta{})
+		return output.WriteJSON(ctx.Stdout, payload)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSON(ctx.Stdout, []any{payload})

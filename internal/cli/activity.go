@@ -94,7 +94,7 @@ func writeActivityList(ctx *Context, events []api.ActivityEvent, cursor string) 
 		events = []api.ActivityEvent{}
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, events, output.Meta{RequestID: ctx.RequestID, Count: len(events), Cursor: cursor})
+		return output.WriteJSON(ctx.Stdout, events)
 	}
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSONSlice(ctx.Stdout, events)
