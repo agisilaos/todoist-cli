@@ -1,0 +1,34 @@
+{
+  "task": "README -> help -> install/list/update/uninstall in an isolated Codex local target, then relevant modified-file recovery; cheap Claude Code global path verification",
+  "executable": "/tmp/todoist-skill-current-main",
+  "binary_sha256": "268dc76429eb3605b96a374fe3159d4b3c9b4fd091f138e80eab11c8fef9b596",
+  "revision": "8322db33e02e86fd395f166811b2f59902d6573e plus pending merge of b12585b main profile/OAuth support (provided by parent)",
+  "docs": "current public worktree README/docs reflecting pending integration; copies and hashes preserved",
+  "prior_knowledge": "No implementation, internal tests, or earlier review evidence inspected before this public attempt. Parent supplied feature scope, executable/revision, profile integration expectation, and native loading already verified; those limit independence.",
+  "environment": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/tmp/todoist-consumer-current-main.FM9841/Scratch Home",
+    "TMPDIR": "/tmp/todoist-consumer-current-main.FM9841/tmp",
+    "LANG": "en_US.UTF-8",
+    "LC_ALL": "en_US.UTF-8",
+    "NO_COLOR": "1"
+  },
+  "interactive": false,
+  "credentials": "None; environment replaced with listed allowlist; empty isolated home; stdin /dev/null; no auth login or remote command attempted",
+  "evidence_storage": "Temporary directory outside repository per MEMORY.md",
+  "limits": [
+    "No real Todoist service calls or credentials",
+    "No native agent discovery/loading repeated",
+    "No TTY interaction",
+    "Same binary update establishes unchanged package handling; cross-version package update is untested"
+  ],
+  "docs_sha256": {
+    "CONTEXT.md": "4048931d8d0f7816fd1390d19cba2ba9baf640392f434c29cdf4c54298b6fca0",
+    "README.md": "e5df5efc52759f367d03a9c62cd0bd0a4b1ca9b6e01fe3b0d71659cdd353f13a",
+    "docs/adr/0007-own-installed-skill-files-and-update-explicitly.md": "d0d9125d9934e05216bbfaf25631f8976362c816b41c5f1488149dff0cdd6679",
+    "docs/agent-skill.md": "b3da14dfdd7aae687ce54a54a1daa5021d1188e2ce432fcad441c527cba43822"
+  },
+  "binary_sha256_at_completion": "268dc76429eb3605b96a374fe3159d4b3c9b4fd091f138e80eab11c8fef9b596",
+  "completed_command_count": 27,
+  "profile_execution_limit": "Only profile list/current and auth login help were compared with the installed reference; no profile/OAuth execution or remote audit."
+}

@@ -200,6 +200,10 @@ func writeError(ctx *Context, err error) {
 		if errors.As(err, &authorizationErr) {
 			payload["code"] = authorizationErr.Code
 			details = map[string]any{"profile": ctx.Profile, "source": ctx.TokenSource, "authorization": currentAuthorization(ctx)}
+			if authorizationErr.Code == "OAUTH_SCOPE_INVALID" {
+				// Scope rejection describes a new grant, not the credential it would replace.
+				details = map[string]any{"profile": ctx.Profile}
+			}
 			if authorizationErr.Reason != "" {
 				details["reason"] = authorizationErr.Reason
 			}
@@ -208,6 +212,32 @@ func writeError(ctx *Context, err error) {
 		if errors.As(err, &storageErr) {
 			payload["code"] = storageErr.Kind
 			details = storageErrorDetails(err)
+			var targetErr *profileStorageError
+			if errors.As(err, &targetErr) {
+				if details == nil {
+					details = map[string]any{}
+				}
+				details["profile"] = targetErr.Profile
+				details["operation"] = "remove"
+				if storageErr.Kind == credentials.Cleanup || storageErr.Kind == credentials.Recovery {
+					details["retry_command"] = credentialCommand(ctx, "", "profile", "remove", targetErr.Profile)
+					details["repair_command"] = credentialCommand(ctx, targetErr.Profile, "auth", "repair")
+				}
+			}
+		}
+		var profileErr *profileCommandError
+		if errors.As(err, &profileErr) {
+			payload["code"] = profileErr.Code
+			details = map[string]any{"profile": profileErr.Profile}
+			if profileErr.Authorization != nil {
+				details["authorization"] = profileErr.Authorization
+			}
+		}
+		var oauthErr *oauthError
+		if errors.As(err, &oauthErr) {
+			payload["code"] = oauthErr.Code
+			// This failure concerns the candidate grant, never the active credential.
+			details = nil
 		}
 		if isSkillError {
 			payload["code"] = skillErr.Code

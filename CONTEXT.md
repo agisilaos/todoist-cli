@@ -73,8 +73,12 @@ How a stored credential was acquired, such as PKCE, device authorization, or man
 _Avoid_: Credential source, authorization mode
 
 **Credential profile**:
-A named stored credential and its associated authorization information, selected together for an invocation. A token supplied through the environment overrides that selection without inheriting the profile's authorization information.
+A named stored credential and its associated authorization information, selected together for an invocation. Multiple profiles may hold separate grants for the same Todoist account; an environment token overrides selection without inheriting profile authorization information.
 _Avoid_: Todoist account, authorization mode
+
+**Todoist account**:
+The Todoist identity to which a credential grants access. Credential profiles do not establish distinct account identities, and a profile name is not verified account identity.
+_Avoid_: Credential profile, token identity
 
 **Authorization metadata**:
 The recorded authorization information associated with a particular credential, including its authorization mode, credential origin, requested and effective scopes, and scope evidence. It does not establish current token validity or transfer to a replacement credential.

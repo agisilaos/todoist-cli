@@ -1,0 +1,241 @@
+[
+  {
+    "check": "initial installed owned hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "SKILL.md"
+    }
+  },
+  {
+    "check": "initial installed owned hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/authorization.md"
+    }
+  },
+  {
+    "check": "initial installed owned hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/commands.md"
+    }
+  },
+  {
+    "check": "initial installed owned hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/machine-calls.md"
+    }
+  },
+  {
+    "check": "initial installed owned hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/plans.md"
+    }
+  },
+  {
+    "check": "modified file conflict is classified and leaves stdout empty",
+    "passed": true,
+    "details": {
+      "label": "16-update-blocked",
+      "exit": 5,
+      "error": {
+        "code": "SKILL_MODIFIED",
+        "details": {
+          "committed": false,
+          "files": [
+            "SKILL.md"
+          ],
+          "path": "/private/tmp/todoist-consumer-current-main.FM9841/My Project/.agents/skills/todoist-cli",
+          "recovery_required": false
+        },
+        "error": "Owned skill files were changed or removed. Restore them, or use update --backup to preserve changed originals before replacement.",
+        "meta": {}
+      }
+    }
+  },
+  {
+    "check": "blocked operation preserves full snapshot",
+    "passed": true,
+    "details": {
+      "label": "16-update-blocked"
+    }
+  },
+  {
+    "check": "modified file conflict is classified and leaves stdout empty",
+    "passed": true,
+    "details": {
+      "label": "17-uninstall-blocked",
+      "exit": 5,
+      "error": {
+        "code": "SKILL_MODIFIED",
+        "details": {
+          "committed": false,
+          "files": [
+            "SKILL.md"
+          ],
+          "path": "/private/tmp/todoist-consumer-current-main.FM9841/My Project/.agents/skills/todoist-cli",
+          "recovery_required": false
+        },
+        "error": "Owned skill files were changed or removed. Restore them, or use uninstall --keep-modified to remove management while retaining changed files.",
+        "meta": {}
+      }
+    }
+  },
+  {
+    "check": "blocked operation preserves full snapshot",
+    "passed": true,
+    "details": {
+      "label": "17-uninstall-blocked"
+    }
+  },
+  {
+    "check": "backup and retained skill preserve exact edited bytes",
+    "passed": true,
+    "details": {
+      "backup": "/private/tmp/todoist-consumer-current-main.FM9841/My Project/.agents/todoist-cli-backup-1898322421",
+      "retained": "/tmp/todoist-consumer-current-main.FM9841/My Project/.agents/skills/todoist-cli/SKILL.md"
+    }
+  },
+  {
+    "check": "backup stays outside loading root",
+    "passed": true,
+    "details": {
+      "backup": "/private/tmp/todoist-consumer-current-main.FM9841/My Project/.agents/todoist-cli-backup-1898322421"
+    }
+  },
+  {
+    "check": "retention uninstall removes unchanged owned files and manifest",
+    "passed": true,
+    "details": {
+      "references_removed": 4
+    }
+  },
+  {
+    "check": "unrelated skill note and shared guidance survive",
+    "passed": true,
+    "details": {
+      "files": 3
+    }
+  },
+  {
+    "check": "installed reference agrees with focused live help",
+    "passed": true,
+    "details": {
+      "command": "profile list",
+      "help_evidence": "21-profile-list-help"
+    }
+  },
+  {
+    "check": "installed reference agrees with focused live help",
+    "passed": true,
+    "details": {
+      "command": "profile current",
+      "help_evidence": "22-profile-current-help"
+    }
+  },
+  {
+    "check": "installed reference agrees with focused live help",
+    "passed": true,
+    "details": {
+      "command": "auth login",
+      "help_evidence": "23-auth-login-help"
+    }
+  },
+  {
+    "check": "successful exit and stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "NDJSON lifecycle one line",
+    "passed": true,
+    "details": {
+      "records": 1
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "expected": "installed",
+      "actual": "installed"
+    }
+  },
+  {
+    "check": "successful exit and stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "global target inventory uses selected scratch home",
+    "passed": true,
+    "details": [
+      {
+        "target": "claude-code",
+        "scope": "global",
+        "path": "/private/tmp/todoist-consumer-current-main.FM9841/Scratch Home/.claude/skills/todoist-cli",
+        "installed": true,
+        "package_digest": "18e281cb9f50ee559c2fe3f7759a5028adbe97d53cc6833f00b0244856107b9f",
+        "version": "dev",
+        "modified": [],
+        "missing": [],
+        "status": "installed",
+        "available_digest": "18e281cb9f50ee559c2fe3f7759a5028adbe97d53cc6833f00b0244856107b9f"
+      }
+    ]
+  },
+  {
+    "check": "successful exit and stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "expected": "unchanged",
+      "actual": "unchanged"
+    }
+  },
+  {
+    "check": "successful exit and stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "NDJSON lifecycle one line",
+    "passed": true,
+    "details": {
+      "records": 1
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "expected": "uninstalled",
+      "actual": "uninstalled"
+    }
+  },
+  {
+    "check": "global uninstall removes owned skill files",
+    "passed": true,
+    "details": {
+      "path": "/tmp/todoist-consumer-current-main.FM9841/Scratch Home/.claude/skills/todoist-cli"
+    }
+  }
+]

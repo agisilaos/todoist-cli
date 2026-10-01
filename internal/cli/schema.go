@@ -20,6 +20,10 @@ var schemas = []schemaDef{
 	{Name: "review_report", Description: "Final report for review and application of review plans", Schema: reviewReportSchema()},
 	{Name: "authorization", Description: "Safe authorization report for the active credential", Schema: authorizationReportSchema()},
 	{Name: "auth_status", Description: "Offline credential presence and authorization from auth status", Schema: authStatusSchema()},
+	{Name: "profile_list", Description: "Metadata-only credential profile inventory (JSON and one-record NDJSON)", Schema: profileListSchema()},
+	{Name: "profile_current", Description: "Selected profile and effective credential source, including environment overrides", Schema: profileCurrentSchema()},
+	{Name: "profile_use", Description: "Saved user default and effective selection after profile use", Schema: profileUseSchema()},
+	{Name: "profile_remove", Description: "Completed profile removal with selection retained", Schema: profileRemoveSchema()},
 	{Name: "doctor", Description: "Doctor diagnostics including safe credential authorization", Schema: doctorReportSchema()},
 	{
 		Name:        "ids_only",
@@ -91,8 +95,8 @@ var schemas = []schemaDef{
 			"type": "object",
 			"properties": map[string]any{
 				"error":   map[string]string{"type": "string"},
-				"code":    map[string]any{"type": "string", "description": "Stable authorization, credential-storage, or SKILL_* lifecycle error code where defined"},
-				"details": map[string]any{"type": "object", "properties": map[string]any{"profile": map[string]any{"type": "string"}, "source": map[string]any{"type": "string"}, "authorization": authorizationReportSchema()}},
+				"code":    map[string]any{"type": "string", "description": "Stable authorization, profile, storage, OAuth, or SKILL_* lifecycle error code; see the specification"},
+				"details": map[string]any{"type": "object", "properties": map[string]any{"profile": map[string]any{"type": "string"}, "source": map[string]any{"type": "string"}, "authorization": authorizationReportSchema(), "operation": map[string]any{"type": "string"}, "committed": map[string]any{"type": "boolean"}, "retry_command": map[string]any{"type": "string"}, "repair_command": map[string]any{"type": "string"}}},
 				"meta": map[string]any{
 					"type": "object",
 					"properties": map[string]any{

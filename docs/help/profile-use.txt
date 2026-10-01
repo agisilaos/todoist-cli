@@ -1,0 +1,22 @@
+Usage:
+  todoist profile use <name>
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --config <path>       Configuration receiving the saved default
+  --json, --ndjson       Structured acknowledgement output
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Requires an existing, enabled profile with valid or legacy metadata; native accessibility is unchecked.
+  Saves only default_profile in the resolved user config, preserving unrelated and unknown fields.
+  Precedence remains --profile > TODOIST_PROFILE > project .todoist.json > user config > default.
+  Reports when project, environment, or flag selection shadows the saved choice.
+  TODOIST_TOKEN still overrides the credential. Project config is never modified.
+
+Examples:
+  todoist profile use work
+  todoist --config ./scratch/config.json profile use reader --json

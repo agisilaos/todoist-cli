@@ -14,7 +14,7 @@ an embedded command reference generated from live help. `internal/skillinstall`
 owns explicit placement, deterministic package identity, owned-file manifests,
 staging, backup, rollback, and removal. CLI lifecycle adapters render structured
 results and classified errors before Todoist configuration or credential loading.
-The [lifecycle contract](agent-skill.md) and [ownership decision](adr/0005-own-installed-skill-files-and-update-explicitly.md)
+The [lifecycle contract](agent-skill.md) and [ownership decision](adr/0007-own-installed-skill-files-and-update-explicitly.md)
 describe customization and recovery boundaries. Reference/example checks run in
 the shared documentation gate; pending feature branches cannot supply references.
 
@@ -101,6 +101,13 @@ The API guard is authoritative. Agent preflight calls the same authorization pol
 Unknown credential compatibility is deliberate; see [ADR-0003](adr/0003-preserve-write-capability-for-unknown-credentials.md). The [authorization contract](authorization-design.md) separates metadata absence from invalid metadata and describes the machine output contract. External planners and older CLI binaries are outside the guard's enforcement boundary.
 
 ## Credential storage boundary
+
+Profile commands use `credentials.Store.List/Inspect/Delete`; list/current/use
+never retrieve native secrets or make API calls. Configuration selection remains
+outside the store. A narrow user-default update preserves raw unknown config
+fields and excludes merged project/environment values. Removal retains dangling
+selection rather than selecting fallback credentials; cleanup uses the existing
+disabled-before-delete protocol. See the [profile/OAuth contract](profile-oauth-design.md).
 
 `internal/credentials` owns profile persistence and recovery. CLI workflows use its
 Store interface for load/save/delete, metadata inspection, enumeration, migration,

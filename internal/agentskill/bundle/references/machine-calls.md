@@ -23,8 +23,13 @@ commands of the separate Doist `td` CLI or features described on unmerged branch
 - `--json` emits the command's raw array or object, not a universal result
   envelope. Empty resource lists emit `[]`. A task list is an array; a task view
   is an object. Consult the relevant published schema when one exists.
-- `--ndjson` emits one object per line for lists, or one record for supported
-  single results. An empty list emits no records.
+- `--ndjson` emits one object per line for resource lists, or one record for
+  supported single results. An empty resource list emits no records. Profile
+  commands emit one complete report/acknowledgement; an empty inventory retains
+  `profiles: []`. Consult the `profile_list`, `profile_current`, `profile_use`, and
+  `profile_remove` schemas. A profile list with invalid rows still returns its
+  report, then exits 3; a missing or disabled current selection reports state
+  and exits 4.
 - `--ids-only` supports the lists named by its wire-format descriptor. It emits
   one opaque ID plus LF per result, with zero stdout bytes for empty results.
   Activity IDs identify events and collaborator IDs identify users. The mode

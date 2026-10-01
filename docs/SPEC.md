@@ -11,8 +11,11 @@ A terminal companion for Todoist. Binary name: `todoist`. Everyday capture and v
 - Manual login rejects embedded whitespace, control characters, surrounding quotes, and token-assignment input before HTTP dispatch (exit 2). It verifies the entered token with `GET /projects?limit=1` before saving or `--print-env`, independently of stored credentials and `TODOIST_TOKEN`. Rejection (401/403) returns exit 3; connectivity/server/response failures return exit 1. Failed validation leaves credentials unchanged and never echoes candidate tokens or provider response bodies. OAuth continues to validate through its exchange.
 - Successful manual validation establishes authentication only; scopes remain unknown. JSON/NDJSON success fields are unchanged; human output confirms connection and storage with a next command.
 - Profiles supported via `--profile` / `TODOIST_PROFILE`
+- `profile list|current|use NAME|remove NAME` manages credential profiles; creation remains `--profile NAME auth login`. Profiles are grants, not verified Todoist accounts. See [profile and OAuth contract](profile-oauth-design.md).
 - OAuth PKCE login supported via `todoist auth login --oauth` (client ID from `--client-id` or `TODOIST_OAUTH_CLIENT_ID`)
-- The existing configurable device-flow client is available via `todoist auth login --oauth-device`; live Todoist device support is unverified.
+- The configurable device-flow client requires an explicit `--oauth-device-url` or `TODOIST_OAUTH_DEVICE_URL`; Todoist discovery does not advertise device authorization, so no guessed default device request is sent.
+- OAuth requires a real public PKCE client and accepted redirect. No client ID/secret is bundled and no registration is performed automatically. Callback configuration is validated and the listener binds before browser launch; `--no-browser` prints the URL for manual approval. Cancellation before persistence and rejected exchanges preserve credentials, and diagnostics exclude provider bodies and arbitrary callback text.
+- Refresh-bearing responses and finite `expires_in` values other than documented legacy `315360000` are rejected before save/export with `OAUTH_LIFECYCLE_UNSUPPORTED` (exit 3); omitted expiry remains legacy-compatible. New-app one-hour grants require durable refresh support outside this feature. Live client/redirect/exchange verification remains an external prerequisite.
 - OAuth endpoint/listen overrides: `TODOIST_OAUTH_AUTHORIZE_URL`, `TODOIST_OAUTH_TOKEN_URL`, `TODOIST_OAUTH_DEVICE_URL`, `TODOIST_OAUTH_LISTEN`
 
 ## Authorization
@@ -501,6 +504,7 @@ the existing nonhuman path. No general presentation framework is introduced.
 - `AUTH_METADATA_INVALID`: `Stored authorization metadata is invalid; log in again or remove the affected profile.`
 - `AUTH_METADATA_UNSUPPORTED`: `Stored authorization metadata uses an unsupported version; upgrade the CLI or replace the affected credential.`
 - `OAUTH_SCOPE_INVALID`: `OAuth returned an unacceptable scope grant; the stored credential was not changed.`
+- OAuth exchange, callback, cancellation, timeout, and lifecycle errors have fixed safe codes/messages; errors about a new grant never attach the previous credential's authorization. Profile target errors identify only the target's metadata. See [the profile/OAuth contract](profile-oauth-design.md).
 - Doctor retains its existing diagnostic-failure exit behavior and report shape.
 - ID-mode errors use the same JSON envelope on stderr, including global parsing, output conflicts, unsupported commands, and runtime failures. `--quiet-json` compacts the envelope; existing runtime exit codes remain 1 (generic), 3 (auth), 4 (not found), and 5 (conflict). Usage errors return 2. Invocations without `--ids-only` retain their existing error behavior.
 
@@ -520,6 +524,15 @@ introduced. See [errors and recovery](error-recovery.md) for the bounded invento
 Precedence: flags > env > project config > user config.
 
 Config file: `~/.config/todoist/config.json`
+
+### Credential profile commands
+
+- Profile precedence: `--profile` > `TODOIST_PROFILE` > current directory project `default_profile` > resolved user `default_profile` > `default`. Config path: `--config` > `TODOIST_CONFIG` > default user path. Explicit user config still uses current-directory project configuration.
+- `profile list` reports all stored names in sorted order, including disabled cleanup records, using metadata only. Invalid rows include safe errors and the complete report precedes exit 3. No native secret retrieval, availability probe, account lookup, or Todoist request occurs. Empty JSON contains `profiles: []`.
+- `profile current` separates selected profile/selection source from effective credential source/authorization. `TODOIST_TOKEN` means `source=env`, external unknown authorization, and `profile_active=false`, bypassing stored metadata entirely. Without the override, missing/disabled selection yields a report and exit 4; invalid metadata fails closed.
+- `profile use NAME` requires an enabled profile with valid or legacy metadata, with native accessibility unchecked. It serializes a narrow `default_profile` update to the resolved user config, atomically replaces it, preserves unknown/unrelated fields and excludes merged project/env fields. Failed or uncertain persistence receives no success acknowledgement. Existing higher-precedence selections remain and are reported as shadowing the saved default; project config is not modified.
+- `profile remove NAME` is explicit and idempotent when absent. It reuses disabled-before-delete and cleanup-pending recovery, retains default/selected names without activating another credential, and does not revoke the remote grant or change environment variables. Repeat remove or selected-profile `auth repair` retries recorded cleanup. Invalid authorization metadata can be removed; corrupt/unsupported storage requires deliberate recovery.
+- JSON and NDJSON profile commands emit one complete report/acknowledgement; safe errors stay on stderr using existing mode conventions. Schemas: `profile_list`, `profile_current`, `profile_use`, `profile_remove`. `auth status` and IDs-only eligibility remain compatible.
 
 ## Credential storage contract
 

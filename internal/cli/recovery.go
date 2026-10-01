@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/credentials"
@@ -17,6 +19,26 @@ var (
 
 const credentialSelectionHint = "Keep the same --config, --profile and --base-url selections. TODOIST_TOKEN overrides stored credentials; login does not replace that environment value."
 
+func credentialCommand(ctx *Context, profile string, args ...string) string {
+	words := []string{"todoist"}
+	if ctx.ConfigPath != "" {
+		path, err := filepath.Abs(ctx.ConfigPath)
+		if err != nil {
+			path = ctx.ConfigPath
+		}
+		words = append(words, "--config", path)
+	}
+	if profile != "" {
+		words = append(words, "--profile", profile)
+	}
+	// Local recovery needs no API endpoint. Remote next commands retain explicit
+	// endpoint selection rather than relying on unrelated defaults.
+	if ctx.Global.BaseURL != "" && len(args) > 0 && args[0] == "today" {
+		words = append(words, "--base-url", ctx.Global.BaseURL)
+	}
+	return strings.Join(escapeArgs(append(words, args...)), " ")
+}
+
 func writeRecoveryHints(ctx *Context, err error) {
 	if !humanCommandHints(ctx.Global) {
 		return
@@ -24,7 +46,11 @@ func writeRecoveryHints(ctx *Context, err error) {
 	var storage *credentials.Error
 	var remote *api.APIError
 	var usage *CodeError
+	var target *profileStorageError
 	switch {
+	case errors.As(err, &target) && errors.As(err, &storage) && (storage.Kind == credentials.Cleanup || storage.Kind == credentials.Recovery):
+		fmt.Fprintf(ctx.Stderr, "Retry the named profile: %s\n", credentialCommand(ctx, "", "profile", "remove", target.Profile))
+		fmt.Fprintf(ctx.Stderr, "Repair that profile: %s\n", credentialCommand(ctx, target.Profile, "auth", "repair"))
 	case errors.Is(err, errMissingToken), errors.Is(err, errInvalidManualToken), errors.Is(err, errRejectedManualToken):
 		if errors.Is(err, errMissingToken) {
 			fmt.Fprintln(ctx.Stderr, "The authenticated operation did not start.")

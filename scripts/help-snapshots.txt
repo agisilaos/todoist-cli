@@ -1,6 +1,11 @@
 # output_file<TAB>command args
 root.txt	--help
 auth.txt	auth --help
+profile.txt	profile --help
+profile-list.txt	profile list --help
+profile-current.txt	profile current --help
+profile-use.txt	profile use --help
+profile-remove.txt	profile remove --help
 task.txt	task --help
 project.txt	project --help
 filter.txt	filter --help

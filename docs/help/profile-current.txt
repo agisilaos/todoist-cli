@@ -1,0 +1,21 @@
+Usage:
+  todoist profile current
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --profile <name>      Override profile selection for this invocation
+  --config <path>       Choose the user configuration
+  --json, --ndjson       Structured report output
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Reports profile selection and the effective credential source offline.
+  TODOIST_TOKEN reports external/unknown authorization; the selected profile is overridden context.
+  Without an environment token, missing or disabled selection is reported and exits 4.
+  Native accessibility stays unchecked; invalid metadata fails closed.
+
+Examples:
+  todoist profile current --json

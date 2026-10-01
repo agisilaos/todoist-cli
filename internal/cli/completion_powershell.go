@@ -155,7 +155,7 @@ $todoistValues = @{
     'agent apply|--on-error' = @('fail', 'continue')
     'agent run|--on-error' = @('fail', 'continue')
     'agent schedule print|--on-error' = @('fail', 'continue')
-    'schema|--name' = @('skill_result', 'skill_list', 'review_report', 'authorization', 'auth_status', 'doctor', 'ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
+    'schema|--name' = @('skill_result', 'skill_list', 'review_report', 'authorization', 'auth_status', 'profile_list', 'profile_current', 'profile_use', 'profile_remove', 'doctor', 'ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
 }
 
 $todoistCompleter = {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 	"unicode"
@@ -107,6 +108,34 @@ func authLogin(ctx *Context, args []string) error {
 		printAuthLoginHelp(ctx.Stdout)
 		return nil
 	}
+	if len(fs.Args()) != 0 {
+		return &CodeError{Code: exitUsage, Err: errors.New("auth login accepts no positional arguments; use --token-stdin for a manual token")}
+	}
+	if readOnly && !oauth && !oauthDevice {
+		return &CodeError{Code: exitUsage, Err: errors.New("--read-only requires --oauth or --oauth-device")}
+	}
+	if oauth && oauthDevice {
+		return &CodeError{Code: exitUsage, Err: errors.New("--oauth and --oauth-device are mutually exclusive")}
+	}
+	var cfg oauthConfig
+	if oauth || oauthDevice {
+		if tokenStdin {
+			flag := "--oauth"
+			if oauthDevice {
+				flag = "--oauth-device"
+			}
+			return &CodeError{Code: exitUsage, Err: fmt.Errorf("--token-stdin cannot be used with %s", flag)}
+		}
+		var err error
+		cfg, err = buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, noBrowser || oauthDevice)
+		if err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
+		cfg.ReadOnly = readOnly
+		if oauthDevice && cfg.DeviceURL == "" {
+			return &CodeError{Code: exitUsage, Err: errors.New("Todoist does not advertise OAuth device authorization. Use --oauth with a public PKCE client or manual auth login. --oauth-device requires an explicitly configured provider device endpoint; live Todoist support is unverified")}
+		}
+	}
 	if !printEnv {
 		selected, err := loginBackend(ctx, backend)
 		if err != nil {
@@ -114,47 +143,31 @@ func authLogin(ctx *Context, args []string) error {
 		}
 		ctx.SavingBackend = selected
 	}
-	if readOnly && !oauth && !oauthDevice {
-		return &CodeError{Code: exitUsage, Err: errors.New("--read-only requires --oauth or --oauth-device")}
-	}
-	if oauth {
+	if oauth || oauthDevice {
+		previous := ctx.OperationContext
+		operation, stop := signal.NotifyContext(operationContext(ctx), os.Interrupt)
+		defer stop()
+		ctx.OperationContext = operation
+		defer func() { ctx.OperationContext = previous }()
+		login := performOAuthLogin
 		if oauthDevice {
-			return &CodeError{Code: exitUsage, Err: errors.New("--oauth and --oauth-device are mutually exclusive")}
+			login = performOAuthDeviceLogin
 		}
-		if tokenStdin {
-			return &CodeError{Code: exitUsage, Err: errors.New("--token-stdin cannot be used with --oauth")}
-		}
-		cfg, err := buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, noBrowser)
-		if err != nil {
-			return &CodeError{Code: exitUsage, Err: err}
-		}
-		cfg.ReadOnly = readOnly
-		token, err := performOAuthLogin(ctx, cfg)
+		token, err := login(ctx, cfg)
 		if err != nil {
 			return err
+		}
+		if err := operation.Err(); err != nil {
+			return oauthContextError(err)
 		}
 		if printEnv {
 			return writeAuthPrintEnv(ctx, token.AccessToken)
 		}
-		return storeProfileCredential(ctx, token.AccessToken, token.Authorization)
-	}
-	if oauthDevice {
-		if tokenStdin {
-			return &CodeError{Code: exitUsage, Err: errors.New("--token-stdin cannot be used with --oauth-device")}
+		err = storeProfileCredential(ctx, token.AccessToken, token.Authorization)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return oauthContextError(err)
 		}
-		cfg, err := buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, true)
-		if err != nil {
-			return &CodeError{Code: exitUsage, Err: err}
-		}
-		cfg.ReadOnly = readOnly
-		token, err := performOAuthDeviceLogin(ctx, cfg)
-		if err != nil {
-			return err
-		}
-		if printEnv {
-			return writeAuthPrintEnv(ctx, token.AccessToken)
-		}
-		return storeProfileCredential(ctx, token.AccessToken, token.Authorization)
+		return err
 	}
 	var token string
 	if tokenStdin {
@@ -212,6 +225,9 @@ func validateManualLoginToken(ctx *Context, token string) error {
 }
 
 func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
+	if err := operationContext(ctx).Err(); err != nil {
+		return oauthToken{}, oauthContextError(err)
+	}
 	verifier, err := generateOAuthRandomFn(32)
 	if err != nil {
 		return oauthToken{}, err
@@ -220,6 +236,11 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	if err != nil {
 		return oauthToken{}, err
 	}
+	cfg, err = prepareOAuthCallback(cfg, state)
+	if err != nil {
+		return oauthToken{}, err
+	}
+	defer cfg.callback.close()
 	authURL, err := buildOAuthAuthorizationURLFn(cfg, oauthCodeChallenge(verifier), state)
 	if err != nil {
 		return oauthToken{}, err
@@ -227,11 +248,11 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	fmt.Fprintf(ctx.Stderr, "OAuth authorization URL:\n%s\n", authURL)
 	if !cfg.NoBrowser {
 		if err := openOAuthBrowserFn(authURL); err != nil {
-			fmt.Fprintf(ctx.Stderr, "warning: could not open browser automatically: %v\n", err)
+			fmt.Fprintln(ctx.Stderr, "warning: could not open browser automatically.")
 			fmt.Fprintln(ctx.Stderr, "Open the OAuth authorization URL manually to continue.")
 		}
 	}
-	code, err := waitForOAuthCodeFn(context.Background(), cfg, state, 3*time.Minute)
+	code, err := waitForOAuthCodeFn(operationContext(ctx), cfg, state, 3*time.Minute)
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -261,7 +282,7 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	}
 	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
 	cfg.RequestTimeout = time.Duration(ctx.Config.TimeoutSeconds) * time.Second
-	token, err := pollOAuthDeviceToken(context.Background(), cfg, deviceCode, intervalSec, expiresInSec)
+	token, err := pollOAuthDeviceToken(operationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec)
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -280,6 +301,9 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 	report := authorization.Resolve(raw, "credentials", true)
 	req, cancel := requestContext(ctx)
 	defer cancel()
+	if err := req.Err(); err != nil {
+		return err
+	}
 	if err := profileStore(ctx).Save(req, ctx.Profile, config.Credential{Token: token, Authorization: raw}, ctx.SavingBackend); err != nil {
 		return err
 	}
@@ -306,11 +330,7 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 		storage = "macOS Keychain"
 	}
 	fmt.Fprintf(ctx.Stdout, "Connected to Todoist. Token saved in %s for profile %q.\n", storage, ctx.Profile)
-	if ctx.Profile == "default" {
-		fmt.Fprintln(ctx.Stdout, "Run `todoist today` to see your tasks.")
-	} else {
-		fmt.Fprintf(ctx.Stdout, "Run `todoist --profile %s today` to see your tasks.\n", shellEscape(ctx.Profile))
-	}
+	fmt.Fprintf(ctx.Stdout, "Run `%s` to see your tasks.\n", credentialCommand(ctx, ctx.Profile, "today"))
 	if os.Getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN still overrides the stored profile.")
 	}
@@ -318,7 +338,7 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 }
 
 func writeAuthPrintEnv(ctx *Context, token string) error {
-	exportLine := fmt.Sprintf("export TODOIST_TOKEN=%s", token)
+	exportLine := fmt.Sprintf("export TODOIST_TOKEN=%s", shellEscape(token))
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, map[string]any{
 			"profile": ctx.Profile,

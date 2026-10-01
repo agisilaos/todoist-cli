@@ -3,7 +3,7 @@
 The bundled `todoist-cli` skill supplies curated workflows and a generated command
 reference for this CLI. It is guidance, not a planner executable, credential grant,
 or enforcement boundary. Read [the public workflow](../README.md#agent-skills)
-and [the ownership decision](adr/0005-own-installed-skill-files-and-update-explicitly.md).
+and [the ownership decision](adr/0007-own-installed-skill-files-and-update-explicitly.md).
 
 ## Targets and placement
 

@@ -76,3 +76,28 @@ PowerShell was unavailable during the original September 30 review; the October 
 check closes that local verification limit. It does not substitute for Linux CI.
 No release matrix, live Todoist, real-model compliance, cloud distribution,
 enterprise precedence, or power-loss verification is claimed.
+
+## Integration with current main
+
+Before publishing the conflict resolution, the candidate tree combined feature
+head `8322db3` with main `b12585b696d7019915e2182685af80b3610d9989`. Main had gained
+credential-profile commands and stricter OAuth onboarding. The resolution keeps
+both command families, regenerates help and bundled references, and updates
+curated profile/OAuth guidance to those merged contracts. The ownership ADR is
+now 0007, preserving main's existing 0005 and 0006 decisions.
+
+That candidate passed `go test ./...`, `make check` (including 30 curated-example
+checks), PowerShell completion smoke, Linux/Windows amd64 cross-compilation, and
+`go test ./internal/skillinstall -race -count=1 -cover` (89.1%). Its `SKILL.md`
+main body still matches the native-probed package byte-for-byte. References have
+changed; the earlier probes continue to establish entrypoint loading only.
+
+A new reviewer completed 27 public-route invocations against this candidate,
+without implementation, test, or earlier-evidence inspection. Codex local
+installation, update, uninstall, edited-file recovery, exact backup preservation,
+and JSON/NDJSON behavior passed; Claude Code global placement also passed. The
+installed `profile list`, `profile current`, and `auth login` references matched
+live help. No actionable
+findings or initial public-path friction remained. [The bounded report and text
+captures](current-main-consumer/README.md) preserve the pending-merge version,
+reviewer harness corrections, state checks, and verification limits.

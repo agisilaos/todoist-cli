@@ -11,6 +11,8 @@
 - [Agent skill lifecycle](agent-skill.md): supported targets, ownership, updates, machine output, and recovery
 - [Errors and recovery](error-recovery.md): failure classifications, safe next steps, and compatibility boundaries
 - [Daily review](review-design.md): interaction, review-plan compatibility, and recovery
+- [Credential profiles and OAuth onboarding](profile-oauth-design.md): selection, removal recovery, and external OAuth prerequisites
+- [Profile consumer review](profile-consumer-review.md): isolated public-path execution, repairs, and verification limits
 
 ## Release
 

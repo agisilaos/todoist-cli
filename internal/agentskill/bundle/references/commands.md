@@ -897,6 +897,81 @@ Usage:
   todoist agent planner --set --cmd "<command>"  # set planner command
 ```
 
+## todoist profile
+
+```text
+Usage:
+  todoist profile list
+  todoist profile current
+  todoist profile use <name>
+  todoist profile remove <name>
+```
+
+## todoist profile current
+
+```text
+Usage:
+  todoist profile current
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --profile <name>      Override profile selection for this invocation
+  --config <path>       Choose the user configuration
+  --json, --ndjson       Structured report output
+  See 'todoist --help' for all global flags and output modes.
+```
+
+## todoist profile list
+
+```text
+Usage:
+  todoist profile list
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --config <path>       Choose the configuration directory
+  --json, --ndjson       Structured report output
+  See 'todoist --help' for all global flags and output modes.
+```
+
+## todoist profile remove
+
+```text
+Usage:
+  todoist profile remove <name>
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --config <path>       Choose the configuration directory
+  --json, --ndjson       Structured acknowledgement output
+  See 'todoist --help' for all global flags and output modes.
+```
+
+## todoist profile use
+
+```text
+Usage:
+  todoist profile use <name>
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --config <path>       Configuration receiving the saved default
+  --json, --ndjson       Structured acknowledgement output
+  See 'todoist --help' for all global flags and output modes.
+```
+
 ## todoist project
 
 ```text
