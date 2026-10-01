@@ -58,10 +58,3 @@ func validatePlan(plan Plan, expectedVersion int, allowEmptyActions bool) error 
 	}
 	return nil
 }
-
-func validateActionFields(a Action) error {
-	if err := coreagent.ValidateActionFields(a); err != nil {
-		return &CodeError{Code: exitUsage, Err: err}
-	}
-	return nil
-}

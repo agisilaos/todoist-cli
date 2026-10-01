@@ -28,10 +28,6 @@ func resolveProjectSelector(ctx *Context, explicitID, reference string) (string,
 	return cliTaskSelectorResolver{ctx: ctx}.ResolveProjectSelector(explicitID, reference)
 }
 
-func resolveSectionSelector(ctx *Context, explicitID, reference, projectRef string) (string, error) {
-	return cliTaskSelectorResolver{ctx: ctx}.ResolveSectionSelector(explicitID, reference, projectRef)
-}
-
 func resolveAssigneeSelector(ctx *Context, explicitID, reference, projectRef, taskID string) (string, error) {
 	return cliTaskSelectorResolver{ctx: ctx}.ResolveAssigneeSelector(explicitID, reference, projectRef, taskID)
 }

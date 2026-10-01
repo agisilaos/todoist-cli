@@ -296,13 +296,6 @@ func writeError(ctx *Context, err error) {
 	}
 }
 
-func requireNonEmpty(value, field string) error {
-	if strings.TrimSpace(value) == "" {
-		return &CodeError{Code: exitUsage, Err: errors.New(field + " is required")}
-	}
-	return nil
-}
-
 func terminalWidth() int {
 	if env := os.Getenv("COLUMNS"); env != "" {
 		if val, err := strconv.Atoi(env); err == nil && val > 0 {

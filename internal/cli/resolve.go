@@ -243,13 +243,6 @@ func listAllLabels(ctx *Context) ([]api.Label, error) {
 	return all, nil
 }
 
-func parseLimit(limit int) string {
-	if limit <= 0 {
-		return "50"
-	}
-	return strconv.Itoa(limit)
-}
-
 func inboxProjectID(ctx *Context) (string, error) {
 	projects, err := listAllProjects(ctx)
 	if err != nil {

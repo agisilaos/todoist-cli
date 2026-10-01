@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/output"
 
 	"io"
@@ -131,14 +130,6 @@ func lastPlanPath(ctx *Context) string {
 		return ""
 	}
 	return filepath.Join(filepath.Dir(ctx.ConfigPath), "last_plan.json")
-}
-
-func newConfirmToken() string {
-	id := api.NewRequestID()
-	if len(id) >= 4 {
-		return id[:4]
-	}
-	return "confirm"
 }
 
 func toAnySlice[T any](items []T) []any {
