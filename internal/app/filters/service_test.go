@@ -39,7 +39,7 @@ func TestResolveReferenceExactByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveReference: %v", err)
 	}
-	if got.ResolvedID != "f1" || got.NotFound || len(got.Ambiguous) != 0 {
+	if got.ResolvedID != "f1" || len(got.Ambiguous) != 0 {
 		t.Fatalf("unexpected result: %#v", got)
 	}
 }
@@ -54,7 +54,7 @@ func TestResolveReferenceFromURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveReference: %v", err)
 	}
-	if got.ResolvedID != "f1" || !got.DirectID {
+	if got.ResolvedID != "f1" {
 		t.Fatalf("unexpected result: %#v", got)
 	}
 }
@@ -71,22 +71,23 @@ func TestResolveReferenceFuzzyAmbiguous(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveReference: %v", err)
 	}
-	if len(got.Ambiguous) != 2 || got.NotFound || got.ResolvedID != "" {
+	if len(got.Ambiguous) != 2 || got.ResolvedID != "" {
 		t.Fatalf("unexpected result: %#v", got)
 	}
 }
 
 func TestResolveReferenceNotFoundDirectID(t *testing.T) {
 	got, err := ResolveReference(ResolveReferenceInput{
-		Ref: "id:f9",
+		Ref:         "id:f9",
+		EnableFuzzy: true,
 		References: []Reference{
-			{ID: "f1", Name: "Today"},
+			{ID: "f1", Name: "f9 follow-up"},
 		},
 	})
 	if err != nil {
 		t.Fatalf("ResolveReference: %v", err)
 	}
-	if !got.NotFound || !got.DirectID {
+	if got.ResolvedID != "" || len(got.Ambiguous) != 0 || got.Normalized != "f9" {
 		t.Fatalf("unexpected result: %#v", got)
 	}
 }

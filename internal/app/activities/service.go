@@ -16,7 +16,6 @@ type ListInput struct {
 	By        string
 	Limit     int
 	Cursor    string
-	All       bool
 }
 
 func NormalizeListInput(in ListInput) (ListInput, error) {

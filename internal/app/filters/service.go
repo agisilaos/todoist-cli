@@ -43,8 +43,6 @@ type ResolveReferenceInput struct {
 type ResolveReferenceResult struct {
 	ResolvedID string
 	Normalized string
-	DirectID   bool
-	NotFound   bool
 	Ambiguous  []apprefs.Candidate
 }
 
@@ -119,22 +117,17 @@ func ResolveReference(in ResolveReferenceInput) (ResolveReferenceResult, error) 
 			return ResolveReferenceResult{
 				ResolvedID: candidate.ID,
 				Normalized: ref,
-				DirectID:   directID,
 			}, nil
 		}
 	}
 	if directID {
 		return ResolveReferenceResult{
 			Normalized: ref,
-			DirectID:   true,
-			NotFound:   true,
 		}, nil
 	}
 	if !in.EnableFuzzy {
 		return ResolveReferenceResult{
 			Normalized: ref,
-			DirectID:   false,
-			NotFound:   true,
 		}, nil
 	}
 	candidates := apprefs.FuzzyCandidates(ref, in.References, func(v Reference) string { return v.Name }, func(v Reference) string { return v.ID })
@@ -142,19 +135,15 @@ func ResolveReference(in ResolveReferenceInput) (ResolveReferenceResult, error) 
 		return ResolveReferenceResult{
 			ResolvedID: candidates[0].ID,
 			Normalized: ref,
-			DirectID:   false,
 		}, nil
 	}
 	if len(candidates) > 1 {
 		return ResolveReferenceResult{
 			Normalized: ref,
-			DirectID:   false,
 			Ambiguous:  candidates,
 		}, nil
 	}
 	return ResolveReferenceResult{
 		Normalized: ref,
-		DirectID:   false,
-		NotFound:   true,
 	}, nil
 }

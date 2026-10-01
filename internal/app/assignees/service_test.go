@@ -4,7 +4,7 @@ import "testing"
 
 func TestParseRef(t *testing.T) {
 	got := ParseRef("id:123")
-	if got.ID != "123" || got.IsMe || got.NeedsLookup {
+	if got.ID != "123" || got.IsMe {
 		t.Fatalf("unexpected parsed ref: %#v", got)
 	}
 }

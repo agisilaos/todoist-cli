@@ -70,12 +70,11 @@ func activityCommand(ctx *Context, args []string) error {
 		By:        by,
 		Limit:     limit,
 		Cursor:    cursor,
-		All:       all,
 	})
 	if err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
-	events, next, err := fetchPaginated[api.ActivityEvent](ctx, "/activities", appactivities.BuildQuery(in), in.All)
+	events, next, err := fetchPaginated[api.ActivityEvent](ctx, "/activities", appactivities.BuildQuery(in), all)
 	if err != nil {
 		return err
 	}
