@@ -119,7 +119,7 @@ func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 }
 
 func TestTaskResourceV2PresenceAndDiagnostics(t *testing.T) {
-	for _, name := range []string{"absent", "null", "false-zero-empty", "malformed"} {
+	for _, name := range []string{"absent", "null", "false-zero-empty", "malformed", "integral-numbers"} {
 		var task api.Task
 		data := taskResourceFixture(t, name)
 		if err := json.Unmarshal(data, &task); err != nil {
@@ -168,6 +168,10 @@ func TestTaskResourceV2PresenceAndDiagnostics(t *testing.T) {
 		case "malformed":
 			if _, present := got["responsible_uid"]; present || got["deadline"].(map[string]any)["date"] != "2026-10-10" {
 				t.Fatalf("invalid facts included or valid sibling lost: %#v", got)
+			}
+		case "integral-numbers":
+			if got["child_order"] != json.Number("0.0") || got["day_order"] != json.Number("9007199254740993.0") || got["duration"].(map[string]any)["amount"] != json.Number("6e1") {
+				t.Fatalf("integral numeric representation changed: %#v", got)
 			}
 		}
 	}
@@ -286,6 +290,7 @@ func TestTaskDetailFaithfulFacts(t *testing.T) {
 		{"null", []string{"Deadline: No deadline", "Duration: No duration", "Assignee ID: Unassigned", "Assigner ID: None", "Due language: None (no due date)", "Sibling order: Unavailable (returned null)", "Reference item: Not returned (content unavailable)"}},
 		{"false-zero-empty", []string{"Duration: 0 minutes", "Assignee ID: (empty returned value)", "Recurrence: None", "Timezone: None (date-only or floating time)", "Due language: (empty returned value)", "Sibling order: 0", "Reference item: No (title syntax)"}},
 		{"malformed", []string{"Duration: Amount: Unavailable (invalid returned type); unit: minute", "Assignee ID: Unavailable (invalid returned type)", "Recurrence: Unavailable (invalid returned type)", "Timezone: Unavailable (invalid returned type)", "Deadline: 2026-10-10"}},
+		{"integral-numbers", []string{"Duration: 60 minutes", "Sibling order: 0.0", "Day order: 9007199254740993.0"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var task api.Task

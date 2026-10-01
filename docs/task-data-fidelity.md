@@ -40,6 +40,11 @@ empty objects remain exact. Typed values do not imply that missing sibling facts
 were returned. Unknown properties are excluded; v2's allowlist and semantics are
 fixed, and changing them requires a new output version.
 
+New integer facts accept whole numeric values such as `1.0` or `6e1` under JSON
+Schema's integer semantics. Their returned numeric representation is preserved
+without floating-point rounding. Existing strict decoding of legacy fields such
+as `priority` is unchanged.
+
 Human detail distinguishes `Not returned`, known absence (such as `No deadline`
 or `Unassigned`), and unknown explicit null for fields where null does not
 establish absence. New malformed optional facts show `Unavailable (invalid

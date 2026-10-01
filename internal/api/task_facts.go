@@ -37,8 +37,36 @@ func (f ResponseFact) Bool() (bool, bool) {
 }
 
 func (f ResponseFact) Int() (int, bool) {
+	if f.State != ResponseValue || jsonValueType([]byte(f.raw)) != "number" {
+		return 0, false
+	}
 	value, err := strconv.Atoi(f.raw)
-	return value, f.State == ResponseValue && err == nil
+	if err == nil {
+		return value, true
+	}
+	mantissa, shift, integral := jsonIntegerParts(f.raw)
+	if !integral {
+		return 0, false
+	}
+	negative := strings.HasPrefix(mantissa, "-")
+	digits := strings.TrimLeft(strings.ReplaceAll(strings.TrimPrefix(mantissa, "-"), ".", ""), "0")
+	if digits == "" {
+		return 0, true
+	}
+	if shift < 0 {
+		digits = digits[:len(digits)+shift]
+	} else {
+		maxDigits := len(strconv.Itoa(int(^uint(0) >> 1)))
+		if shift > maxDigits-len(digits) {
+			return 0, false
+		}
+		digits += strings.Repeat("0", shift)
+	}
+	if negative {
+		digits = "-" + digits
+	}
+	value, err = strconv.Atoi(digits)
+	return value, err == nil
 }
 
 // JSON returns owned bytes; callers cannot change retained response facts.
@@ -158,7 +186,11 @@ func matchesFactType(raw []byte, kind string) bool {
 	actual := jsonValueType(raw)
 	switch kind {
 	case "integer":
-		return actual == "number" && !bytes.ContainsAny(raw, ".eE")
+		if actual != "number" {
+			return false
+		}
+		_, _, integral := jsonIntegerParts(string(raw))
+		return integral
 	case "string array":
 		if actual != "array" {
 			return false
@@ -174,6 +206,50 @@ func matchesFactType(raw []byte, kind string) bool {
 	default:
 		return actual == kind
 	}
+}
+
+// JSON Schema integers are whole numeric values, including 1.0 and 1e2.
+// Inspect decimal digits exactly: floating-point conversion would round large
+// values, and expanding an unbounded exponent would allocate unbounded memory.
+// The input has already been validated as a JSON number by the decoder.
+func jsonIntegerParts(raw string) (mantissa string, shift int, integral bool) {
+	if !strings.ContainsAny(raw, ".eE") {
+		return raw, 0, true
+	}
+	mantissa = raw
+	exponentText := "0"
+	if index := strings.IndexAny(raw, "eE"); index >= 0 {
+		mantissa, exponentText = raw[:index], raw[index+1:]
+	}
+	if strings.Trim(mantissa, "-0.") == "" {
+		return "0", 0, true
+	}
+	fractionalDigits := 0
+	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
+		fractionalDigits = len(mantissa) - dot - 1
+	}
+	trailingZeros := 0
+	for index := len(mantissa) - 1; index >= 0; index-- {
+		if mantissa[index] == '.' {
+			continue
+		}
+		if mantissa[index] != '0' {
+			break
+		}
+		trailingZeros++
+	}
+	exponent, err := strconv.Atoi(exponentText)
+	if err != nil {
+		if strings.HasPrefix(exponentText, "-") {
+			return "", 0, false
+		}
+		// A positive exponent beyond int range exceeds any possible input length.
+		exponent = int(^uint(0) >> 1)
+	}
+	if exponent < fractionalDigits-trailingZeros {
+		return "", 0, false
+	}
+	return mantissa, exponent - fractionalDigits, true
 }
 
 func factAt(snapshot *responseFacts, path string) ResponseFact {

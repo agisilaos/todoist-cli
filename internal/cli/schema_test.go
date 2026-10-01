@@ -130,7 +130,7 @@ func TestTaskV2ReturnedFactsMatchAdvertisedSchema(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &definitions); err != nil || len(definitions) != 1 {
 		t.Fatalf("schema output: %v %s", err, out.String())
 	}
-	for _, name := range []string{"populated", "absent", "null", "false-zero-empty", "malformed"} {
+	for _, name := range []string{"populated", "absent", "null", "false-zero-empty", "malformed", "integral-numbers"} {
 		var task api.Task
 		if err := json.Unmarshal(taskResourceFixture(t, name), &task); err != nil {
 			t.Fatal(err)

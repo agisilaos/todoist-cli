@@ -2,6 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"math/big"
 	"os"
 	"reflect"
 	"strings"
@@ -18,7 +20,7 @@ func responseFixture(t *testing.T, name string) []byte {
 }
 
 func TestTaskFaithfulResponseFixtures(t *testing.T) {
-	for _, name := range []string{"populated", "absent", "null", "false-zero-empty"} {
+	for _, name := range []string{"populated", "absent", "null", "false-zero-empty", "integral-numbers"} {
 		t.Run(name, func(t *testing.T) {
 			data := responseFixture(t, name)
 			var task Task
@@ -120,6 +122,82 @@ func TestTaskMalformedOptionalFactsRetainValidSiblings(t *testing.T) {
 	for _, data := range []string{`{"priority":"high"}`, `{"due":{"date":42}}`, `{"due":false}`} {
 		if err := json.Unmarshal([]byte(data), &task); err == nil {
 			t.Fatalf("existing strict decoder weakened: %s", data)
+		}
+	}
+}
+
+func TestTaskIntegralNumberRepresentations(t *testing.T) {
+	for _, raw := range []string{"0.0", "-0.0e-999999999999999999999", "1.0", "6e1", "1200e-2", "1.200e1", "9007199254740993.0", "1e999999999999999999999"} {
+		var task Task
+		data := []byte(`{"child_order":` + raw + `,"duration":{"amount":` + raw + `,"unit":"minute"}}`)
+		if err := json.Unmarshal(data, &task); err != nil {
+			t.Fatal(err)
+		}
+		if task.ResponseFact("child_order").State != ResponseValue || len(task.ResponseIssues()) != 0 {
+			t.Errorf("integral %s discarded: %+v", raw, task.ResponseIssues())
+		}
+		if got := task.FaithfulResource()["child_order"]; got != json.Number(raw) {
+			t.Errorf("integral representation changed: got %v want %s", got, raw)
+		}
+	}
+	for _, raw := range []string{"0.1", "1e-1", "1.200e0", "9007199254740993.1", "1e-999999999999999999999"} {
+		var task Task
+		if err := json.Unmarshal([]byte(`{"child_order":`+raw+`}`), &task); err != nil {
+			t.Fatal(err)
+		}
+		if task.ResponseFact("child_order").State != ResponseInvalid {
+			t.Errorf("fractional %s established an integer", raw)
+		}
+	}
+	for _, tc := range []struct {
+		raw  string
+		want int
+	}{{"0.0", 0}, {"-0.0e-999999999999999999999", 0}, {"1.0", 1}, {"6e1", 60}, {"1200e-2", 12}, {"-1.20e1", -12}} {
+		var task Task
+		if err := json.Unmarshal([]byte(`{"duration":{"amount":`+tc.raw+`}}`), &task); err != nil {
+			t.Fatal(err)
+		}
+		if got, ok := task.ResponseFact("duration.amount").Int(); !ok || got != tc.want {
+			t.Errorf("integer accessor for %s: %d %t", tc.raw, got, ok)
+		}
+	}
+	for _, raw := range []string{"1e999999999999999999999", "-1e999999999999999999999"} {
+		var task Task
+		if err := json.Unmarshal([]byte(`{"duration":{"amount":`+raw+`}}`), &task); err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := task.ResponseFact("duration.amount").Int(); ok {
+			t.Errorf("out-of-range integer %s fit in native int", raw)
+		}
+	}
+	// Preserve the established strict decoder for existing legacy fields.
+	var task Task
+	if err := json.Unmarshal([]byte(`{"priority":1.0}`), &task); err == nil {
+		t.Fatal("legacy priority decoding changed")
+	}
+}
+
+func TestTaskIntegralFactsAgainstExactArithmetic(t *testing.T) {
+	for _, mantissa := range []string{"0.0", "-0.0", "1.00", "-1.20", "100.01", "9007199254740993.0", "9223372036854775807.0", "-9223372036854775808.0"} {
+		for exponent := -6; exponent <= 6; exponent++ {
+			raw := fmt.Sprintf("%se%d", mantissa, exponent)
+			exact, ok := new(big.Rat).SetString(raw)
+			if !ok {
+				t.Fatal("invalid oracle input", raw)
+			}
+			var task Task
+			if err := json.Unmarshal([]byte(`{"child_order":`+raw+`}`), &task); err != nil {
+				t.Fatal(err)
+			}
+			fact := task.ResponseFact("child_order")
+			if (fact.State == ResponseValue) != exact.IsInt() {
+				t.Errorf("integer classification differs from exact arithmetic: %s", raw)
+			}
+			value, available := fact.Int()
+			fits := exact.IsInt() && exact.Num().IsInt64() && int64(int(exact.Num().Int64())) == exact.Num().Int64()
+			if available != fits || (available && int64(value) != exact.Num().Int64()) {
+				t.Errorf("integer accessor differs from exact arithmetic: %s => %d %t", raw, value, available)
+			}
 		}
 	}
 }
