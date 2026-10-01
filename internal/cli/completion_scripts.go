@@ -46,6 +46,14 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${inbox_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
+    profile)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "{{commands:profile}}" -- "$cur") )
+        return 0
+      fi
+      COMPREPLY=( $(compgen -W "${global_flags}" -- "$cur") )
+      return 0
+      ;;
     auth)
       local subs="{{commands:auth}}"
       if [[ ${COMP_CWORD} -eq 2 ]]; then
@@ -246,6 +254,9 @@ case $words[1] in
   add)
     _arguments '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
     ;;
+  profile)
+    _arguments '2:subcommand:({{commands:profile}})' '*:flags:(--config --profile --json --ndjson --plain --no-input)'
+    ;;
   auth)
     _arguments '2:subcommand:({{commands:auth}})' '*:flags:(--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
@@ -352,6 +363,9 @@ complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (co
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-device-url -d "OAuth device code URL"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-listen -d "OAuth callback listen address"
 complete -c todoist -n '__fish_seen_subcommand_from auth; and contains login (commandline -opc)' -l oauth-redirect-uri -d "OAuth redirect URI"
+
+# profile
+complete -c todoist -n '__fish_seen_subcommand_from profile; and __fish_use_subcommand' -a '{{commands:profile}}'
 
 # task
 complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a '{{commands:task}}'

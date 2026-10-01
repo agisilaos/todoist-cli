@@ -29,7 +29,9 @@ Notes:
   New profiles use native storage; select file explicitly for portable storage. Existing profiles retain their backend; use auth migrate to change it.
   OAuth defaults to read-write. --read-only requires OAuth and blocks Todoist mutations; planning and previews remain available.
   Manual, environment, and legacy tokens have unknown scopes and permit write attempts. --print-env exports a secret and loses local scope evidence on later environment use.
-  Device flow support by Todoist is unverified; token refresh is not implemented.
+  Supply your own public PKCE client and registered redirect; no client ID or secret is bundled.
+  Short-lived or refresh-bearing grants are rejected before replacement; token refresh is not implemented.
+  Device flow support by Todoist is unverified. See README OAuth onboarding for prerequisites.
 
 Examples:
   todoist auth login

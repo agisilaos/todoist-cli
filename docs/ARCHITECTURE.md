@@ -93,6 +93,13 @@ Unknown credential compatibility is deliberate; see [ADR-0003](adr/0003-preserve
 
 ## Credential storage boundary
 
+Profile commands use `credentials.Store.List/Inspect/Delete`; list/current/use
+never retrieve native secrets or make API calls. Configuration selection remains
+outside the store. A narrow user-default update preserves raw unknown config
+fields and excludes merged project/environment values. Removal retains dangling
+selection rather than selecting fallback credentials; cleanup uses the existing
+disabled-before-delete protocol. See the [profile/OAuth contract](profile-oauth-design.md).
+
 `internal/credentials` owns profile persistence and recovery. CLI workflows use its
 Store interface for load/save/delete, metadata inspection, enumeration, migration,
 repair and health. A smaller Secrets adapter handles native secret CRUD/probing;

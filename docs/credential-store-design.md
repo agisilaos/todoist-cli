@@ -54,6 +54,18 @@ The selector native resolves to concrete backend keychain on supported macOS bui
 
 ## Logout, profile switching, and corrupted state
 
+The [profile-management contract](profile-oauth-design.md) adds metadata-only
+list/current and explicit use/remove workflows around the existing store APIs.
+Use persists only the user default and retains project/environment/flag overrides;
+remove retains a missing selected/default name rather than activating fallback
+credentials. Disabled cleanup records remain visible until recorded cleanup
+completes. These commands never infer or deduplicate Todoist account identity.
+
+Save checks cancellation after writer-lock acquisition and before selected-record
+publication. Cancelled staging retains the previous credential and either repairs
+its journal/native work or reports recovery required. Once selected-record
+publication starts, the existing durability and cleanup contract governs the result.
+
 Logout first durably disables the selected local profile and removes its token/authorization data, retaining only references necessary for pending native cleanup. It then deletes native entries. If deletion fails, return cleanup pending; the profile remains disabled and cannot authenticate. Repeated logout or auth repair retries cleanup. A missing native item is already deleted for cleanup purposes. Logout does not revoke a Todoist token remotely or unset an overriding environment token.
 
 Profile switching loads only the selected profile's token and associated evidence. Missing referenced secrets are errors, never invitations to use a stale file credential or another profile. Invalid metadata in an inactive profile does not invalidate a healthy selected profile.

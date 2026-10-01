@@ -64,7 +64,7 @@ func TestCommandMetadataStructure(t *testing.T) {
 // a bounded contract for these routers, not a general Go control-flow analyzer.
 func dispatchedCommandInventory(t *testing.T) (map[string]bool, map[string]string) {
 	t.Helper()
-	routers := map[string]string{"dispatch": "", "authCommand": "auth", "taskCommand": "task", "projectCommand": "project", "filterCommand": "filter", "workspaceCommand": "workspace", "sectionCommand": "section", "labelCommand": "label", "commentCommand": "comment", "reminderCommand": "reminder", "notificationCommand": "notification", "statsCommand": "stats", "settingsCommand": "settings", "agentCommand": "agent", "agentSchedule": "agent schedule", "inboxCommand": "inbox", "completionScript": "completion"}
+	routers := map[string]string{"dispatch": "", "authCommand": "auth", "profileCommand": "profile", "taskCommand": "task", "projectCommand": "project", "filterCommand": "filter", "workspaceCommand": "workspace", "sectionCommand": "section", "labelCommand": "label", "commentCommand": "comment", "reminderCommand": "reminder", "notificationCommand": "notification", "statsCommand": "stats", "settingsCommand": "settings", "agentCommand": "agent", "agentSchedule": "agent schedule", "inboxCommand": "inbox", "completionScript": "completion"}
 	commands, aliases, seen := map[string]bool{}, map[string]string{}, map[string]bool{}
 	files, err := filepath.Glob("*.go")
 	if err != nil {
@@ -244,7 +244,7 @@ func TestCompletionInventoryRendering(t *testing.T) {
 	}
 	// Check each shell context, not just whether a name appears somewhere among
 	// flags or examples. Shells keep their existing depth and traversal behavior.
-	for _, parent := range []string{"auth", "task", "filter", "project", "workspace", "section", "label", "comment", "reminder", "notification", "stats", "settings", "inbox", "agent"} {
+	for _, parent := range []string{"auth", "profile", "task", "filter", "project", "workspace", "section", "label", "comment", "reminder", "notification", "stats", "settings", "inbox", "agent"} {
 		names := strings.Join(commandNames(parent), " ")
 		for shell, template := range map[string]string{"bash": bashCompletionTemplate, "zsh": zshCompletionTemplate, "fish": fishCompletionTemplate} {
 			if !strings.Contains(template, "{{commands:"+parent+"}}") {
@@ -277,7 +277,7 @@ func TestBashCommandInventories(t *testing.T) {
 	if err := os.WriteFile(script, []byte(bashCompletion), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, parent := range []string{"", "auth", "task", "project", "filter", "workspace", "section", "label", "comment", "reminder", "notification", "stats", "settings", "inbox", "agent"} {
+	for _, parent := range []string{"", "auth", "profile", "task", "project", "filter", "workspace", "section", "label", "comment", "reminder", "notification", "stats", "settings", "inbox", "agent"} {
 		t.Run(parent, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()

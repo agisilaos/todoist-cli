@@ -7,6 +7,7 @@ Read-only means remote reads without Todoist mutations. Local-only commands may 
 | Commands, including aliases | Classification and qualifications |
 | --- | --- |
 | Bare invocation, `help [command]`, command help flags, `--version`, `help examples` | Local-only |
+| `profile list`, `profile current`, `profile use`, `profile remove` | Local-only; metadata inspection, user-default selection, or explicit credential removal; no identity lookup or Todoist request |
 | `auth status`, `auth logout` | Local-only; logout removes a stored profile and does not revoke the remote token |
 | `auth login`, `auth login --token-stdin` | Local credential replacement; OAuth variants also perform a remote authorization exchange |
 | `task list/ls`, `task view/show` | Read-only |

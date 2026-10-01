@@ -14,6 +14,8 @@ func dispatch(ctx *Context, args []string) int {
 	switch cmd {
 	case "auth":
 		err = authCommand(ctx, rest)
+	case "profile":
+		err = profileCommand(ctx, rest)
 	case "task":
 		err = taskCommand(ctx, rest)
 	case "project":
