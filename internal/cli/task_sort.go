@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 )
 
 type taskSortOptions struct {
@@ -66,13 +67,13 @@ func explicitTaskSortKey(task api.Task, key string) taskSortKey {
 	result := taskSortKey{}
 	switch key {
 	case "due":
-		evidence, err := taskDueFacts(task, false)
+		evidence, err := apptasks.DueFacts(task, false)
 		if err != nil {
 			return result
 		}
-		result.text = evidence.value.Format("2006-01-02")
-		if evidence.kind != "date" {
-			result.text += "T" + evidence.value.Format("15:04:05.999999999")
+		result.text = evidence.Value.Format("2006-01-02")
+		if evidence.Kind != "date" {
+			result.text += "T" + evidence.Value.Format("15:04:05.999999999")
 		}
 		result.available = true
 	case "deadline":
@@ -90,7 +91,7 @@ func explicitTaskSortKey(task api.Task, key string) taskSortKey {
 		if !ok {
 			return result
 		}
-		t, err := parseTaskInstant(value)
+		t, err := apptasks.ParseInstant(value)
 		if err == nil {
 			result.available = true
 			result.instant = t
@@ -117,7 +118,7 @@ func (s taskSortOptions) apply(tasks []api.Task) error {
 	}
 
 	for _, task := range tasks {
-		if !usableTaskID(task.ID) {
+		if !apptasks.ValidTaskID(task.ID) {
 			return errors.New("sorting requires returned task IDs")
 		}
 	}

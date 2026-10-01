@@ -262,7 +262,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		_ = resp.Body.Close()
 		if err != nil {
 			if taskWrite {
-				return requestID, &TaskWriteError{Outcome: "accepted", RequestID: requestID, Err: err}
+				return requestID, &TaskWriteError{Outcome: TaskWriteAccepted, RequestID: requestID, Err: err}
 			}
 			return requestID, err
 		}
@@ -271,7 +271,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		}
 		if err := json.Unmarshal(data, out); err != nil {
 			if taskWrite {
-				return requestID, &TaskWriteError{Outcome: "accepted", RequestID: requestID, Err: fmt.Errorf("decode optional response: %w", err)}
+				return requestID, &TaskWriteError{Outcome: TaskWriteAccepted, RequestID: requestID, Err: fmt.Errorf("decode optional response: %w", err)}
 			}
 			return requestID, fmt.Errorf("decode response: %w", err)
 		}

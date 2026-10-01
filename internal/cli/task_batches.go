@@ -22,11 +22,11 @@ type plannedTaskAction struct {
 	unchanged bool
 }
 type taskBatchTarget struct {
-	ID         string `json:"id"`
-	Outcome    string `json:"outcome"`
-	Dispatched bool   `json:"dispatched"`
-	RequestID  string `json:"request_id,omitempty"`
-	Error      string `json:"error,omitempty"`
+	ID         string             `json:"id"`
+	Outcome    api.TaskWriteState `json:"outcome"`
+	Dispatched bool               `json:"dispatched"`
+	RequestID  string             `json:"request_id,omitempty"`
+	Error      string             `json:"error,omitempty"`
 }
 
 func (o *taskActionOptions) bind(fs *flag.FlagSet, move bool) {
@@ -228,18 +228,18 @@ func taskAction(ctx *Context, args []string, move bool) error {
 	for _, plan := range plans {
 		target := taskBatchTarget{ID: plan.id, Outcome: "unattempted"}
 		if plan.unchanged {
-			target.Outcome = "accepted"
+			target.Outcome = api.TaskWriteAccepted
 		} else if !stop {
 			_, requestID, err := dispatchTaskAction(ctx, plan, move)
 			target.RequestID = requestID
 			target.Outcome = api.TaskWriteOutcome(err)
-			target.Dispatched = target.Outcome != "not_dispatched"
+			target.Dispatched = target.Outcome != api.TaskWriteNotDispatched
 			if err != nil {
 				target.Error = safeErrorText(ctx, err)
-				if target.Outcome == "not_dispatched" {
-					target.Outcome = "rejected"
+				if target.Outcome == api.TaskWriteNotDispatched {
+					target.Outcome = api.TaskWriteRejected
 				}
-				if target.Outcome == "uncertain" || target.Outcome == "accepted" {
+				if target.Outcome == api.TaskWriteUncertain || target.Outcome == api.TaskWriteAccepted {
 					stop = true
 				}
 			}
@@ -268,18 +268,18 @@ func dispatchTaskAction(ctx *Context, plan plannedTaskAction, move bool) ([]byte
 func writeBatchPreflightFailure(ctx *Context, filter string, tasks []api.Task, operation string, err error) error {
 	targets := make([]taskBatchTarget, 0, len(tasks))
 	for _, task := range tasks {
-		targets = append(targets, taskBatchTarget{ID: task.ID, Outcome: "rejected", Error: "preflight rejected batch: " + safeErrorText(ctx, err)})
+		targets = append(targets, taskBatchTarget{ID: task.ID, Outcome: api.TaskWriteRejected, Error: "preflight rejected batch: " + safeErrorText(ctx, err)})
 	}
 	return writeTaskBatch(ctx, filter, operation, targets, err)
 }
 func writeTaskBatch(ctx *Context, filter, operation string, targets []taskBatchTarget, preflight error) error {
-	counts := map[string]int{"accepted": 0, "rejected": 0, "uncertain": 0, "unattempted": 0}
+	counts := map[api.TaskWriteState]int{"accepted": 0, "rejected": 0, "uncertain": 0, "unattempted": 0}
 	dispatched, unchanged := 0, 0
 	for _, target := range targets {
 		counts[target.Outcome]++
 		if target.Dispatched {
 			dispatched++
-		} else if target.Outcome == "accepted" {
+		} else if target.Outcome == api.TaskWriteAccepted {
 			unchanged++
 		}
 	}

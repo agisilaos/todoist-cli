@@ -89,6 +89,17 @@ func (s *fileReplayStore) RecordApplied(key string, at time.Time) error {
 	})
 }
 
+func (s *fileReplayStore) HasPendingTaskWrite(key string) bool {
+	_, ok := s.journal.Pending[key]
+	return ok
+}
+func (s *fileReplayStore) BeginTaskWrite(key, taskID string) error {
+	return s.updateJournal(func(candidate *replayJournal) { candidate.Pending[key] = taskID })
+}
+func (s *fileReplayStore) ClearPendingTaskWrite(key string) error {
+	return s.updateJournal(func(candidate *replayJournal) { delete(candidate.Pending, key) })
+}
+
 // updateJournal publishes a candidate before changing in-memory evidence.
 // Callers replace checkpoint values; their snapshot maps are treated as immutable.
 func (s *fileReplayStore) updateJournal(change func(*replayJournal)) error {

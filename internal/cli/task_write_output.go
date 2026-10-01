@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strings"
-	"unicode"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -18,10 +17,10 @@ type taskAcknowledgement struct {
 	ResultAvailable *bool  `json:"result_available,omitempty"`
 }
 type taskWriteStep struct {
-	Operation  string `json:"operation"`
-	Outcome    string `json:"outcome"`
-	Dispatched bool   `json:"dispatched"`
-	RequestID  string `json:"request_id,omitempty"`
+	Operation  string             `json:"operation"`
+	Outcome    api.TaskWriteState `json:"outcome"`
+	Dispatched bool               `json:"dispatched"`
+	RequestID  string             `json:"request_id,omitempty"`
 }
 
 func writeTaskAcknowledgement(ctx *Context, id, operation, status string) error {
@@ -51,7 +50,7 @@ func returnedTask(raw []byte, id string) (api.Task, bool) {
 		return task, false
 	}
 	value, ok := task.ResponseFact("id").Text()
-	return task, ok && usableTaskID(value) && (id == "" || value == id)
+	return task, ok && apptasks.ValidTaskID(value) && (id == "" || value == id)
 }
 func writeReturnedTask(ctx *Context, raw []byte, id, operation string, capture bool) error {
 	task, ok := returnedTask(raw, id)
@@ -91,8 +90,4 @@ func writePartialTaskEdit(ctx *Context, id string, steps []taskWriteStep, err er
 		}
 	}
 	return &CodeError{Code: exitError, Err: fmt.Errorf("task edit incomplete; inspect id:%s before resubmitting: %w", id, err)}
-}
-
-func usableTaskID(id string) bool {
-	return id != "" && !strings.ContainsFunc(id, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) })
 }

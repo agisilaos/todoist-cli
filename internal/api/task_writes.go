@@ -12,30 +12,39 @@ import (
 	"strings"
 )
 
+type TaskWriteState string
+
+const (
+	TaskWriteAccepted      TaskWriteState = "accepted"
+	TaskWriteRejected      TaskWriteState = "rejected"
+	TaskWriteUncertain     TaskWriteState = "uncertain"
+	TaskWriteNotDispatched TaskWriteState = "not_dispatched"
+)
+
 // TaskWriteError retains uncertainty at the HTTP boundary, independently of
 // optional resource decoding. Other resources keep their existing retry policy.
 type TaskWriteError struct {
-	Outcome   string
+	Outcome   TaskWriteState
 	RequestID string
 	Err       error
 }
 
 func (e *TaskWriteError) Error() string { return fmt.Sprintf("task write %s: %v", e.Outcome, e.Err) }
 func (e *TaskWriteError) Unwrap() error { return e.Err }
-func TaskWriteOutcome(err error) string {
+func TaskWriteOutcome(err error) TaskWriteState {
 	if err == nil {
-		return "accepted"
+		return TaskWriteAccepted
 	}
 	var write *TaskWriteError
 	if errors.As(err, &write) {
 		return write.Outcome
 	}
-	return "not_dispatched"
+	return TaskWriteNotDispatched
 }
 func taskWriteFailure(err error, status int, requestID string) error {
-	outcome := "uncertain"
+	outcome := TaskWriteUncertain
 	if status >= 400 && status < 500 && status != http.StatusRequestTimeout {
-		outcome = "rejected"
+		outcome = TaskWriteRejected
 	}
 	return &TaskWriteError{Outcome: outcome, RequestID: requestID, Err: err}
 }
@@ -134,12 +143,12 @@ func (c *Client) TaskCommand(ctx context.Context, kind string, args map[string]a
 	status := statuses[uuid]
 	var value string
 	if json.Unmarshal(status, &value) != nil || value != "ok" {
-		outcome := "uncertain"
+		outcome := TaskWriteUncertain
 		if rejectedTaskAcknowledgement(status) {
-			outcome = "rejected"
+			outcome = TaskWriteRejected
 		}
 		cause := error(errors.New("required command acknowledgement did not establish acceptance"))
-		if outcome == "rejected" {
+		if outcome == TaskWriteRejected {
 			fields, _ := uniqueJSONObject(status)
 			var message, tag string
 			var code int

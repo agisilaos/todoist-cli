@@ -15,7 +15,10 @@ import (
 )
 
 func TestNativeTaskCommandAcknowledgements(t *testing.T) {
-	for _, tc := range []struct{ name, status, outcome string }{
+	for _, tc := range []struct {
+		name, status string
+		outcome      TaskWriteState
+	}{
 		{"ok", `"ok"`, "accepted"}, {"error", `{"error":"forbidden","http_code":403}`, "rejected"},
 		{"code", `{"error_code":42}`, "rejected"}, {"empty object", `{}`, "uncertain"},
 		{"null", `null`, "uncertain"}, {"unknown string", `"done"`, "uncertain"},
@@ -64,7 +67,7 @@ func TestNativeTaskCommandRequiredEvidenceAndOptionalResource(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		response func(string) string
-		outcome  string
+		outcome  TaskWriteState
 		resource bool
 	}{
 		{"missing", func(u string) string { return `{}` }, "uncertain", false},
@@ -125,9 +128,9 @@ func TestTaskWritesDispatchOnceAndNeverFollowRedirects(t *testing.T) {
 				} else {
 					_, err = c.Post(context.Background(), "/tasks/opaque", nil, map[string]any{"description": ""}, nil, true)
 				}
-				want := "uncertain"
+				want := TaskWriteUncertain
 				if status == 429 {
-					want = "rejected"
+					want = TaskWriteRejected
 				}
 				if source != 1 || target != 0 || TaskWriteOutcome(err) != want {
 					t.Fatalf("source=%d target=%d outcome=%s err=%v", source, target, TaskWriteOutcome(err), err)

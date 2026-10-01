@@ -21,12 +21,12 @@ configuration or credentials; invalid values or unsupported uses return usage
 exit 2 before side effects.
 
 Supported commands are `task list`/`ls`, `task view`/`show`, `task add`,
-`task update`, `add`, `inbox add`, bare `inbox`, `today`, `upcoming`, `completed`,
+`task update`, `task reschedule`, `add`, `inbox add`, bare `inbox`, `today`, `upcoming`, `completed`,
 and `filter show`. Task/filter/label entity URLs and Inbox/Today/Upcoming/Completed
 page URLs through `view` use the same representation. Acknowledgements such as
 move/complete/reopen/delete, dry runs, and agent/review contracts reject selection.
 
-JSON views remain objects; lists and successful add/update resources remain arrays.
+Ordinary JSON views remain objects; lists and returned add/update/reschedule resources remain arrays. Expanded views and accepted-write fallbacks use the separate contracts below.
 NDJSON emits the same object once per line. Pagination and diagnostics go only
 to stderr; `--all`, selection, order, priorities, and IDs-only behavior are unchanged.
 `--full` never changes either machine representation. Numeric machine priority

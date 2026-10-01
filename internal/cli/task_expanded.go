@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/output"
 	"net/url"
 )
 
 func writeExpandedTaskView(ctx *Context, task api.Task, full bool, sorting taskSortOptions) error {
-	if !usableTaskID(task.ID) {
+	if !apptasks.ValidTaskID(task.ID) {
 		return errors.New("expanded parent identity unavailable")
 	}
 	query := url.Values{"parent_id": {task.ID}, "limit": {"200"}}
@@ -19,7 +20,7 @@ func writeExpandedTaskView(ctx *Context, task api.Task, full bool, sorting taskS
 	}
 	seen := map[string]bool{task.ID: true}
 	for _, child := range children {
-		if !usableTaskID(child.ID) || seen[child.ID] {
+		if !apptasks.ValidTaskID(child.ID) || seen[child.ID] {
 			return errors.New("expanded children missing or duplicate identity")
 		}
 		seen[child.ID] = true

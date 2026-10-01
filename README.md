@@ -407,13 +407,14 @@ todoist auth repair
 List and modify tasks (IDs or names accepted where noted).
 
 ```
-todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort due|priority] [--truncate-width <cols>] [--wide] [--all-projects]
+todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort <key>] [--sort-order asc|desc] [--truncate-width <cols>] [--wide] [--all-projects]
 todoist task add --content <text> [flags]
-todoist task view <ref> [--full]
+todoist task view <ref> [--full] [--include-children]
 todoist task update <ref> [flags]
+todoist task reschedule <ref> (--due-date <date> | --due-datetime <RFC3339> | --due-local-datetime <local>)
 todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
 todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [--parent <id>] --yes
-todoist task complete <ref>
+todoist task complete <ref> [--forever]
 todoist task complete --filter <query> --yes
 todoist task reopen <ref>
 todoist task delete <ref> --yes
@@ -464,7 +465,8 @@ List presentation and selection options:
 --wide    Detailed table (API priority numbering; broad terminal recommended)
 --all-projects    List tasks from all projects (default is Inbox)
 --preset today|overdue|next7    Shortcut filters (ignored if --filter set)
---sort due|priority             Client-side sort for active tasks
+--sort due|deadline|priority|added|updated|completed|content|order|none
+--sort-order asc|desc           Direction for an explicit sort across the fetched task selection
 --truncate-width <cols>         Override human output width
 ```
 
@@ -852,7 +854,7 @@ todoist completed [--completed-by completion|due] [--since <date>] [--until <dat
 List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks.
 
 ```
-todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]
+todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort <key>] [--sort-order asc|desc] [--wide]
 ```
 
 ### Projects
@@ -1086,7 +1088,7 @@ todoist schema [--name task_list|task_item_ndjson|profile_list|profile_current|p
 
 Task schemas: `task_item` and `task_item_ndjson` describe legacy objects;
 `task_list` describes legacy arrays. With `--task-output-version 2`, use
-`task_item_v2` for JSON views and NDJSON records, and `task_list_v2` for JSON arrays.
+`task_item_v2` for ordinary JSON views and NDJSON records, and `task_list_v2` for JSON arrays. Expanded views use `task_expanded_view` or `task_expanded_view_v2`; add/update/reschedule result unions also admit `task_write_ack` when optional returned task data is unavailable.
 
 ## Shell Completions
 
@@ -1199,7 +1201,7 @@ context would require a separate compatibility decision.
 - TTY active-task lists use the [everyday overview](#everyday-overview). Other resource lists, completed history, and saved `filter show` retain their tables. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
 - Non-TTY defaults to `--plain` (tab-separated, no headers), with the existing
   [task-detail exceptions](#task-detail).
-- `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
+- `--json` ordinarily outputs raw resource arrays/objects. Expanded task views and accepted-write fallbacks use the separate contracts described in [task editing](#editing-tasks-and-preserving-recurrence). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Single-task views, mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--task-output-version 2` selects the [faithful task-resource contract](docs/task-data-fidelity.md)
   with `--json` or `--ndjson`. Omission defaults to legacy version 1. Explicit

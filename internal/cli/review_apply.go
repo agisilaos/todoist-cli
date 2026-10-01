@@ -151,7 +151,7 @@ func (s *reviewReplayStore) failed(action Action, err error) error {
 		}
 		return err
 	}
-	if api.TaskWriteOutcome(err) == "accepted" {
+	if api.TaskWriteOutcome(err) == api.TaskWriteAccepted {
 		return fmt.Errorf("mutation accepted; required checkpoint unavailable; inspect Todoist before a fresh review: %w", err)
 	}
 	return fmt.Errorf("remote outcome uncertain; inspect Todoist before a fresh review: %w", err)

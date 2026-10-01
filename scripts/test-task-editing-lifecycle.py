@@ -201,7 +201,7 @@ def main():
         assert len(fixture.writes) == 12
         run('task', 'update', '--id', due_task, '--clear-due', '--due', 'today', expected=2)
         run('task', 'view', '--id', 'missing', expected=4)
-        run('task', 'move', 'Consumer', '--clear-parent', expected=5)
+        run('task', 'move', 'Consumer', '--clear-parent', expected=2)
         run('task', 'update', '--id', due_task, '--reference=false')
         run('task', 'reschedule', '--id', due_task, '--due-date', '2026-10-16', expected=2)
         run('task', 'update', '--id', due_task, '--description', 'preview', '--dry-run')

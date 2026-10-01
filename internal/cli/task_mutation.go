@@ -11,6 +11,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apprefs "github.com/agisilaos/todoist-cli/internal/app/refs"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 )
 
 type taskEditOptions struct {
@@ -172,7 +173,7 @@ func (o *taskEditOptions) prepare(ctx *Context, fs *flag.FlagSet, update bool) e
 		if field.value != "" {
 			var err error
 			if field.layout == time.RFC3339Nano {
-				_, err = parseTaskInstant(field.value)
+				_, err = apptasks.ParseInstant(field.value)
 			} else {
 				_, err = time.Parse(field.layout, field.value)
 			}
@@ -344,11 +345,11 @@ func taskEdit(ctx *Context, args []string, update bool) error {
 		if len(body) == 0 {
 			return writeReturnedTask(ctx, raw, o.id, operation, false)
 		}
-		steps := []taskWriteStep{{Operation: "clear_due", Outcome: "accepted", Dispatched: true, RequestID: reqID}}
+		steps := []taskWriteStep{{Operation: "clear_due", Outcome: api.TaskWriteAccepted, Dispatched: true, RequestID: reqID}}
 		raw, reqID, err = postTaskResource(ctx, path, body)
 		if err != nil {
 			outcome := api.TaskWriteOutcome(err)
-			steps = append(steps, taskWriteStep{Operation: "update_fields", Outcome: outcome, Dispatched: outcome != "not_dispatched", RequestID: reqID})
+			steps = append(steps, taskWriteStep{Operation: "update_fields", Outcome: outcome, Dispatched: outcome != api.TaskWriteNotDispatched, RequestID: reqID})
 			return writePartialTaskEdit(ctx, o.id, steps, err)
 		}
 		return writeReturnedTask(ctx, raw, o.id, operation, false)
@@ -375,7 +376,7 @@ func resolveEditingTarget(ctx *Context, id, ref string, needFacts bool) (string,
 	if err != nil {
 		return "", nil, err
 	}
-	if !usableTaskID(task.ID) {
+	if !apptasks.ValidTaskID(task.ID) {
 		return "", nil, errors.New("resolved task identity unavailable")
 	}
 	return task.ID, &task, nil
@@ -389,7 +390,7 @@ func normalizeTaskInputID(value string) (string, error) {
 		}
 		id = taskRef
 	}
-	if !usableTaskID(id) {
+	if !apptasks.ValidTaskID(id) {
 		return "", fmt.Errorf("task ID must be nonempty without whitespace/control characters")
 	}
 	return id, nil
