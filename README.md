@@ -1,6 +1,6 @@
 # todoist-cli
 
-A terminal companion for Todoist: capture ideas and see what needs doing without leaving the terminal. Scripts and agents get stable structured output and explicit commands; see [machine output](#output) and [planner integration](#agent-planner-integration).
+A terminal companion for Todoist: capture ideas and see what needs doing without leaving the terminal. Scripts and agents get stable structured output and explicit commands; see [agent skill installation](#agent-skills), [machine output](#output), and [planner integration](#agent-planner-integration).
 
 ## Why this CLI
 
@@ -151,6 +151,74 @@ Environment variables:
 - `TODOIST_ACCESSIBLE` (1 to add screen-reader-friendly labels in human output)
 - `TODOIST_TABLE_WIDTH` (override table width for human output)
 - `TODOIST_PLANNER_CMD` (external planner command)
+
+## Agent skills
+
+Install maintained Todoist guidance for **Codex** or **Claude Code**. The skill
+teaches command discovery, machine output, exact IDs, credential profiles,
+authorization, reviewed plans, replay, and uncertain-write recovery. Its command
+reference is generated from this CLI's authoritative help; curated workflows
+describe the capabilities bundled with the running binary.
+
+Start with the inventory and focused help; these commands need no credentials:
+
+```bash
+todoist skill list --json
+todoist skill install --help
+```
+
+Every write requires one target, an explicit `--scope local|global`, and the full
+absolute `--path` of its skill directory. Quote paths containing spaces.
+
+| Target | Local project placement | Global user placement |
+| --- | --- | --- |
+| `codex` | `/path/project/.agents/skills/todoist-cli` | `/home/user/.agents/skills/todoist-cli` |
+| `claude-code` | `/path/project/.claude/skills/todoist-cli` | `/home/user/.claude/skills/todoist-cli` |
+
+Replace the sample project or home with your chosen absolute path:
+
+```bash
+todoist skill install codex --scope local --path "/work/My Project/.agents/skills/todoist-cli" --no-input --json
+todoist skill list codex --scope local --path "/work/My Project/.agents/skills/todoist-cli" --json
+todoist skill update codex --scope local --path "/work/My Project/.agents/skills/todoist-cli" --json
+todoist skill uninstall codex --scope local --path "/work/My Project/.agents/skills/todoist-cli" --json
+
+todoist skill install claude-code --scope global --path /home/user/.claude/skills/todoist-cli --json
+```
+
+`list` without `--path` checks conventional locations in the current directory
+and user home. It does not search ancestor projects; use their explicit paths
+when needed. Installation state does not establish agent loading. Start an agent
+session in the selected project: check Codex's skill selector and invoke
+`$todoist-cli`; in an interactive Claude Code session, check `/skills` and invoke
+`/todoist-cli`. Start a fresh session if discovery has not refreshed. Agents can
+scan each other's directories, so selecting a target does not promise exclusive
+visibility. Custom agent homes, enterprise overrides, and cloud loading require
+separate verification. See the [target conventions and contract](docs/agent-skill.md).
+
+The installation manifest tracks owned files by content hash. Reinstalling or
+updating an unchanged package is a no-op. An unmanaged existing skill is a
+conflict. Update uses only this binary's bundle, with no network fetch, background
+updates, or automatic changes when the binary is upgraded. Running an older
+binary's explicit update can install an older bundle.
+
+Modified or missing managed files block update and uninstall by default. To
+deliberately replace edits, `skill update --backup` saves existing originals
+outside the skills loading directory first. To end management while retaining
+edits, `skill uninstall --keep-modified` removes unchanged owned files and the
+manifest, and reports retained paths. A retained `SKILL.md` can remain
+discoverable and may reference unchanged files that uninstall removed; inspect
+or move retained instructions before continued use. Unrelated files and backups survive
+uninstall. Shared agent instructions and shell profiles are untouched.
+
+Use `--json` for a lifecycle result object or inventory array; `--ndjson` emits
+one record per result or inventory item. Lifecycle errors go to stderr as JSON
+in either mode, with stable `SKILL_*` codes and recovery details. List succeeds
+when it produces an inventory, including entries marked `conflict` or `error`;
+check every entry's `status`. Schemas are available as `skill_result` and
+`skill_list`. No prompts are used. `--force` and `--dry-run` are rejected; use
+`list` to inspect state. A recovery-required error means preserve its reported
+paths and reconcile them before retrying; see [failure recovery](docs/agent-skill.md#failure-recovery).
 
 ## Usage
 

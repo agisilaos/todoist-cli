@@ -36,6 +36,7 @@ Setup and reference:
   completion    Shell completion
   doctor        Run environment and configuration checks
   help          Show help for a command
+  skill         Install and maintain coding-agent skills
 
 Global flags:
   -h, --help            Show help

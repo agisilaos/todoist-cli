@@ -1,0 +1,25 @@
+Usage:
+  todoist skill update <codex|claude-code> --scope <local|global> --path <absolute-directory> [--backup]
+
+Flags:
+  --scope <local|global>             Required placement
+  --path <absolute-directory>       Required managed skill directory
+  --backup                         Preserve modified originals before replacement
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Structured result; JSON errors on stderr
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Updates one owned installation from this binary. No network fetch or background update.
+  Modified or missing owned files block update by default; unrelated files are preserved.
+  --backup explicitly preserves modified originals outside the skills loading directory before replacement.
+  Keep customization in separate, unrelated files when possible; older binaries can install older bundles explicitly.
+  If failure reports recovery_required, preserve reported paths and reconcile them before retrying.
+  --force does not bypass ownership or customization protection.
+
+Examples:
+  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --json
+  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --backup --json

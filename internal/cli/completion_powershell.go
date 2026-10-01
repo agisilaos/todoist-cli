@@ -6,6 +6,7 @@ var powerShellCompletion = renderPowerShellInventory(powerShellCompletionTemplat
 
 const powerShellCompletionTemplate = powerShellCompletionMarker + `
 {{powershell-commands}}
+$todoistSkillTargets = {{powershell-skill-targets}}
 $todoistGlobalFlags = @(
     '-h', '--help', '--version', '-q', '--quiet', '--quiet-json', '-v', '--verbose',
     '--accessible', '--json', '--plain', '--ndjson', '--ids-only', '--no-color',
@@ -15,6 +16,8 @@ $todoistGlobalFlags = @(
 
 # Command switches and value-taking flags are disjoint; suggestions combine both.
 $todoistSwitchFlags = @{
+    'skill update' = @('--backup')
+    'skill uninstall' = @('--keep-modified')
     'completed' = @('--all', '--wide')
     'upcoming' = @('--wide')
     'add' = @('--strict')
@@ -51,6 +54,10 @@ $todoistSwitchFlags = @{
 }
 
 $todoistValueFlags = @{
+    'skill install' = @('--scope', '--path')
+    'skill list' = @('--scope', '--path')
+    'skill update' = @('--scope', '--path')
+    'skill uninstall' = @('--scope', '--path')
     '' = @('--timeout', '--config', '--profile', '--progress-jsonl', '--base-url')
     'review' = @('--filter', '--out')
     'completed' = @('--completed-by', '--since', '--until', '--project', '--section', '--filter', '--cursor', '--limit')
@@ -117,6 +124,10 @@ $todoistValueFlags = @{
 }
 
 $todoistValues = @{
+    'skill install|--scope' = @('local', 'global')
+    'skill list|--scope' = @('local', 'global')
+    'skill update|--scope' = @('local', 'global')
+    'skill uninstall|--scope' = @('local', 'global')
     'completed|--completed-by' = @('completion', 'due')
     'upcoming|--sort' = @('due', 'priority')
     'add|--priority' = @('1', '2', '3', '4', 'p1', 'p2', 'p3', 'p4')
@@ -144,7 +155,7 @@ $todoistValues = @{
     'agent apply|--on-error' = @('fail', 'continue')
     'agent run|--on-error' = @('fail', 'continue')
     'agent schedule print|--on-error' = @('fail', 'continue')
-    'schema|--name' = @('review_report', 'ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
+    'schema|--name' = @('skill_result', 'skill_list', 'review_report', 'authorization', 'auth_status', 'doctor', 'ids_only', 'task_list', 'task_item_ndjson', 'error', 'plan', 'plan_preview', 'planner_request')
 }
 
 $todoistCompleter = {
@@ -242,6 +253,9 @@ $todoistCompleter = {
 		$candidates = $flags
 	} else {
 		$candidates = @($todoistCommands[$path]) + $flags
+		if ($path -in @('skill install', 'skill list', 'skill update', 'skill uninstall')) {
+			$candidates += $todoistSkillTargets
+		}
 	}
 
 	foreach ($candidate in ($candidates | Sort-Object -Unique)) {
@@ -253,5 +267,5 @@ $todoistCompleter = {
 
 Register-ArgumentCompleter -Native -CommandName todoist -ScriptBlock $todoistCompleter
 
-Remove-Variable todoistCommands, todoistAliases, todoistGlobalFlags, todoistSwitchFlags, todoistValueFlags, todoistValues, todoistCompleter
+Remove-Variable todoistCommands, todoistAliases, todoistGlobalFlags, todoistSwitchFlags, todoistValueFlags, todoistValues, todoistSkillTargets, todoistCompleter
 `

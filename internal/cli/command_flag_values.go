@@ -18,7 +18,7 @@ func commandFlagTakesValue(name string) bool {
 		"order", "out", "parent", "path", "plan",
 		"plan-version", "planner", "policy", "preset", "priority",
 		"project", "query", "reminder-desktop", "reminder-email", "reminder-push",
-		"section", "since", "sort", "start-day", "start-page",
+		"scope", "section", "since", "sort", "start-day", "start-page",
 		"task", "theme", "time-format", "timezone", "to-workspace",
 		"truncate-width", "type", "until", "view", "visibility",
 		"weekly", "workspace":

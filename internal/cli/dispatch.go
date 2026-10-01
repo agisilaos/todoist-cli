@@ -42,6 +42,8 @@ func dispatch(ctx *Context, args []string) int {
 		err = viewCommand(ctx, rest)
 	case "agent":
 		err = agentCommand(ctx, rest)
+	case "skill":
+		err = skillCommand(ctx, rest)
 	case "completion":
 		err = completionCommand(ctx, rest)
 	case "doctor":

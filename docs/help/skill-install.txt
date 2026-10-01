@@ -1,0 +1,28 @@
+Usage:
+  todoist skill install <codex|claude-code> --scope <local|global> --path <absolute-directory>
+
+Flags:
+  --scope <local|global>             Required placement: project or user
+  --path <absolute-directory>       Required full skill directory
+
+Global flags:
+  -h, --help             Show help without running the command
+  --json, --ndjson       Structured lifecycle output
+  --no-input            Noninteractive operation
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Installs only the running binary's bundle; repeated identical installation is unchanged.
+  An existing unmanaged file is a conflict; install never adopts or overwrites it.
+  Path must be absolute and end in the selected target's skills/todoist-cli layout.
+  Local paths belong to a project; global paths belong to the selected user's home.
+  Named placement does not guarantee exclusive visibility: agents may scan other agents' directories.
+  Codex: start in the project, check its skill selector, and invoke $todoist-cli.
+  Claude Code: start an interactive project session, check /skills, and invoke /todoist-cli.
+  Start a fresh agent session if discovery has not refreshed. Custom homes and cloud agents need separate verification.
+  No credentials or prompts. --force and --dry-run are unsupported; inspect with skill list.
+
+Examples:
+  todoist skill list --json
+  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input --json
+  todoist skill install claude-code --scope global --path /home/user/.claude/skills/todoist-cli --json

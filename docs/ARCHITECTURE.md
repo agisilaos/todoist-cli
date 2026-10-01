@@ -9,6 +9,15 @@ This project follows a layered design:
 
 The intent is to keep business/use-case logic in app/domain packages and keep `internal/cli` focused on transport concerns (arguments, prompts, output modes, exit codes).
 
+Installable agent guidance lives in `internal/agentskill`: curated workflows plus
+an embedded command reference generated from live help. `internal/skillinstall`
+owns explicit placement, deterministic package identity, owned-file manifests,
+staging, backup, rollback, and removal. CLI lifecycle adapters render structured
+results and classified errors before Todoist configuration or credential loading.
+The [lifecycle contract](agent-skill.md) and [ownership decision](adr/0005-own-installed-skill-files-and-update-explicitly.md)
+describe customization and recovery boundaries. Reference/example checks run in
+the shared documentation gate; pending feature branches cannot supply references.
+
 ## Current flow
 
 ```text

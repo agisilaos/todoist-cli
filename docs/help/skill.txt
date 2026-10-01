@@ -1,0 +1,24 @@
+Usage:
+  todoist skill list [codex|claude-code] [--scope local|global] [--path <absolute-directory>]
+  todoist skill install <codex|claude-code> --scope <local|global> --path <absolute-directory>
+  todoist skill update <codex|claude-code> --scope <local|global> --path <absolute-directory> [--backup]
+  todoist skill uninstall <codex|claude-code> --scope <local|global> --path <absolute-directory> [--keep-modified]
+
+Targets:
+  codex        <project-or-home>/.agents/skills/todoist-cli
+  claude-code  <project-or-home>/.claude/skills/todoist-cli
+
+Notes:
+  Install one selected target; supply its full absolute path and scope for every write.
+  List shows current-directory and user-home locations; explicit --path also requires a target and scope.
+  Uses the running binary's bundled skill. No automatic or network updates.
+  Modified files block update and uninstall by default. --backup preserves originals before update;
+  --keep-modified uninstalls unchanged owned files, leaves edits, and removes management ownership.
+  Unrelated files, global agent instructions, and shell profiles are preserved. No prompts or credentials.
+  --force and --dry-run are unsupported; use list for inspection.
+  Use --json or --ndjson for stable output; lifecycle errors are JSON on stderr in either mode.
+  See 'todoist --help' for global flags and 'todoist skill install --help' for loading checks.
+
+Examples:
+  todoist skill list --json
+  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input

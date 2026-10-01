@@ -2,7 +2,7 @@ Usage:
   todoist schema [--name <schema>] [--json]
 
 Schemas:
-  review_report, authorization, auth_status, doctor, ids_only, task_list, task_item_ndjson, error, plan, plan_preview, planner_request
+  skill_result, skill_list, review_report, authorization, auth_status, doctor, ids_only, task_list, task_item_ndjson, error, plan, plan_preview, planner_request
 
 Examples:
   todoist schema --json

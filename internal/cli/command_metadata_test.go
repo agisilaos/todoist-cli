@@ -64,7 +64,7 @@ func TestCommandMetadataStructure(t *testing.T) {
 // a bounded contract for these routers, not a general Go control-flow analyzer.
 func dispatchedCommandInventory(t *testing.T) (map[string]bool, map[string]string) {
 	t.Helper()
-	routers := map[string]string{"dispatch": "", "authCommand": "auth", "taskCommand": "task", "projectCommand": "project", "filterCommand": "filter", "workspaceCommand": "workspace", "sectionCommand": "section", "labelCommand": "label", "commentCommand": "comment", "reminderCommand": "reminder", "notificationCommand": "notification", "statsCommand": "stats", "settingsCommand": "settings", "agentCommand": "agent", "agentSchedule": "agent schedule", "inboxCommand": "inbox", "completionScript": "completion"}
+	routers := map[string]string{"dispatch": "", "authCommand": "auth", "taskCommand": "task", "projectCommand": "project", "filterCommand": "filter", "workspaceCommand": "workspace", "sectionCommand": "section", "labelCommand": "label", "commentCommand": "comment", "reminderCommand": "reminder", "notificationCommand": "notification", "statsCommand": "stats", "settingsCommand": "settings", "agentCommand": "agent", "agentSchedule": "agent schedule", "inboxCommand": "inbox", "completionScript": "completion", "skillCommand": "skill"}
 	commands, aliases, seen := map[string]bool{}, map[string]string{}, map[string]bool{}
 	files, err := filepath.Glob("*.go")
 	if err != nil {

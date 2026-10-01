@@ -200,6 +200,22 @@ _todoist() {
       COMPREPLY=( $(compgen -W "${agent_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
+    skill)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "{{commands:skill}}" -- "$cur") )
+      elif [[ "$prev" == "--scope" ]]; then
+        COMPREPLY=( $(compgen -W "local global" -- "$cur") )
+      elif [[ "$prev" == "--path" ]]; then
+        local skill_dir
+        while IFS= read -r skill_dir; do COMPREPLY+=("$skill_dir"); done < <(compgen -d -- "$cur")
+      else
+        local skill_flags="--scope --path"
+        [[ "${COMP_WORDS[2]}" == "update" ]] && skill_flags+=" --backup"
+        [[ "${COMP_WORDS[2]}" == "uninstall" ]] && skill_flags+=" --keep-modified"
+        COMPREPLY=( $(compgen -W "{{skill-targets}} ${skill_flags} ${global_flags}" -- "$cur") )
+      fi
+      return 0
+      ;;
     schema)
       local schema_flags="--name"
       COMPREPLY=( $(compgen -W "${schema_flags} ${global_flags}" -- "$cur") )
@@ -290,6 +306,15 @@ case $words[1] in
     ;;
   agent)
     _arguments '2:subcommand:({{commands:agent}})' '*:flags:(--out --planner --policy --plan --confirm --instruction --on-error --plan-version --context-project --context-label --context-completed)'
+    ;;
+  skill)
+    local -a skill_options
+    skill_options=('--scope[Placement]:scope:(local global)' '--path[Absolute skill directory]:directory:_files -/')
+    case $words[2] in
+      update) skill_options+=('--backup[Back up modified files before update]') ;;
+      uninstall) skill_options+=('--keep-modified[Retain edited files during uninstall]') ;;
+    esac
+    _arguments '2:subcommand:({{commands:skill}})' '3:target:({{skill-targets}})' "${skill_options[@]}"
     ;;
   schema)
     _arguments '*:flags:(--name)'
@@ -424,6 +449,14 @@ complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l descripti
 # agent
 complete -c todoist -n '__fish_seen_subcommand_from agent; and __fish_use_subcommand' -a '{{commands:agent}}'
 complete -c todoist -n '__fish_seen_subcommand_from agent' -l out -l planner -l policy -l plan -l confirm -l instruction -l on-error -l plan-version -l context-project -l context-label -l context-completed
+
+# skill
+complete -c todoist -n '__fish_seen_subcommand_from skill; and __fish_use_subcommand' -a '{{commands:skill}}'
+complete -c todoist -n '__fish_seen_subcommand_from skill; and __fish_seen_subcommand_from install list update uninstall' -a '{{skill-targets}}'
+complete -c todoist -n '__fish_seen_subcommand_from skill' -l scope -r -a 'local global'
+complete -c todoist -n '__fish_seen_subcommand_from skill' -l path -r -a '(__fish_complete_directories)'
+complete -c todoist -n '__fish_seen_subcommand_from skill; and __fish_seen_subcommand_from update' -l backup
+complete -c todoist -n '__fish_seen_subcommand_from skill; and __fish_seen_subcommand_from uninstall' -l keep-modified
 
 # doctor
 complete -c todoist -n '__fish_seen_subcommand_from doctor' -l strict

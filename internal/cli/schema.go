@@ -15,6 +15,8 @@ type schemaDef struct {
 }
 
 var schemas = []schemaDef{
+	{Name: "skill_result", Description: "Install, update, and uninstall result for a bundled agent skill", Schema: skillResultSchema()},
+	{Name: "skill_list", Description: "Agent skill installation inventory; inspect each item's status", Schema: skillListSchema()},
 	{Name: "review_report", Description: "Final report for review and application of review plans", Schema: reviewReportSchema()},
 	{Name: "authorization", Description: "Safe authorization report for the active credential", Schema: authorizationReportSchema()},
 	{Name: "auth_status", Description: "Offline credential presence and authorization from auth status", Schema: authStatusSchema()},
@@ -89,7 +91,7 @@ var schemas = []schemaDef{
 			"type": "object",
 			"properties": map[string]any{
 				"error":   map[string]string{"type": "string"},
-				"code":    map[string]any{"type": "string", "description": "Stable authorization code: READ_ONLY, AUTH_METADATA_INVALID, AUTH_METADATA_UNSUPPORTED, or OAUTH_SCOPE_INVALID"},
+				"code":    map[string]any{"type": "string", "description": "Stable authorization, credential-storage, or SKILL_* lifecycle error code where defined"},
 				"details": map[string]any{"type": "object", "properties": map[string]any{"profile": map[string]any{"type": "string"}, "source": map[string]any{"type": "string"}, "authorization": authorizationReportSchema()}},
 				"meta": map[string]any{
 					"type": "object",

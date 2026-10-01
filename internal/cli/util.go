@@ -17,6 +17,7 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
+	"github.com/agisilaos/todoist-cli/internal/skillinstall"
 )
 
 type multiValue []string
@@ -174,7 +175,9 @@ func writeError(ctx *Context, err error) {
 			meta.RequestID = apiErr.RequestID
 		}
 	}
-	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeIDsOnly {
+	var skillErr *skillinstall.Error
+	isSkillError := errors.As(err, &skillErr)
+	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeIDsOnly || (ctx.Mode == output.ModeNDJSON && isSkillError) {
 		details := map[string]any(nil)
 		var ambiguousErr *AmbiguousMatchError
 		if errors.As(err, &ambiguousErr) {
@@ -186,7 +189,7 @@ func writeError(ctx *Context, err error) {
 			}
 		}
 		enc := json.NewEncoder(ctx.Stderr)
-		if !ctx.Global.QuietJSON {
+		if !ctx.Global.QuietJSON && ctx.Mode != output.ModeNDJSON {
 			enc.SetIndent("", "  ")
 		}
 		payload := map[string]any{
@@ -206,6 +209,23 @@ func writeError(ctx *Context, err error) {
 			payload["code"] = storageErr.Kind
 			details = storageErrorDetails(err)
 		}
+		if isSkillError {
+			payload["code"] = skillErr.Code
+			files := skillErr.Files
+			if files == nil {
+				files = []string{}
+			}
+			details = map[string]any{"path": skillErr.Path, "files": files, "committed": skillErr.Committed, "recovery_required": skillErr.RecoveryRequired}
+			if skillErr.BackupPath != "" {
+				details["backup_path"] = skillErr.BackupPath
+			}
+			if skillErr.RecoveryPath != "" {
+				details["recovery_path"] = skillErr.RecoveryPath
+			}
+			if skillErr.LockPath != "" {
+				details["lock_path"] = skillErr.LockPath
+			}
+		}
 		if details != nil {
 			payload["details"] = details
 		}
@@ -216,6 +236,24 @@ func writeError(ctx *Context, err error) {
 		fmt.Fprintf(ctx.Stderr, "error: %s (request_id=%s)\n", safeErrorText(ctx, err), meta.RequestID)
 	} else {
 		fmt.Fprintf(ctx.Stderr, "error: %s\n", safeErrorText(ctx, err))
+	}
+	if isSkillError {
+		fmt.Fprintf(ctx.Stderr, "Code: %s\n", skillErr.Code)
+		for _, field := range []struct{ label, path string }{{"Path", skillErr.Path}, {"Backup", skillErr.BackupPath}, {"Recovery", skillErr.RecoveryPath}, {"Lock", skillErr.LockPath}} {
+			if field.path != "" {
+				fmt.Fprintf(ctx.Stderr, "%s: %s\n", field.label, strconv.Quote(field.path))
+			}
+		}
+		for _, path := range skillErr.Files {
+			fmt.Fprintf(ctx.Stderr, "Affected file: %s\n", strconv.Quote(path))
+		}
+		if skillErr.Committed {
+			fmt.Fprintln(ctx.Stderr, "File changes committed; inspect state before retrying.")
+		}
+		if skillErr.RecoveryRequired {
+			fmt.Fprintln(ctx.Stderr, "Recovery required; preserve the reported copies and reconcile state before retrying.")
+		}
+		return
 	}
 	var unknown *unknownCommandError
 	if humanCommandHints(ctx.Global) && errors.As(err, &unknown) {

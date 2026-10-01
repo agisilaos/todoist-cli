@@ -4,6 +4,69 @@ package cli
 // parser registrations by TestLeafHelpFlagsMatchRegistrations.
 
 var leafHelpPages = map[string]commandHelp{
+	"skill install": {
+		usage: `<codex|claude-code> --scope <local|global> --path <absolute-directory>`,
+		flags: `  --scope <local|global>             Required placement: project or user
+  --path <absolute-directory>       Required full skill directory`,
+		examples: `  todoist skill list --json
+  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input --json
+  todoist skill install claude-code --scope global --path /home/user/.claude/skills/todoist-cli --json`,
+		notes: `  Installs only the running binary's bundle; repeated identical installation is unchanged.
+  An existing unmanaged file is a conflict; install never adopts or overwrites it.
+  Path must be absolute and end in the selected target's skills/todoist-cli layout.
+  Local paths belong to a project; global paths belong to the selected user's home.
+  Named placement does not guarantee exclusive visibility: agents may scan other agents' directories.
+  Codex: start in the project, check its skill selector, and invoke $todoist-cli.
+  Claude Code: start an interactive project session, check /skills, and invoke /todoist-cli.
+  Start a fresh agent session if discovery has not refreshed. Custom homes and cloud agents need separate verification.
+  No credentials or prompts. --force and --dry-run are unsupported; inspect with skill list.`,
+		globals: `  --json, --ndjson       Structured lifecycle output
+  --no-input            Noninteractive operation`,
+	},
+	"skill list": {
+		usage: `[codex|claude-code] [--scope <local|global>] [--path <absolute-directory>]`,
+		flags: `  --scope <local|global>             Restrict placement
+  --path <absolute-directory>       Inspect one path; target and scope required`,
+		examples: `  todoist skill list --json
+  todoist skill list codex --scope local --path /work/project/.agents/skills/todoist-cli --ndjson`,
+		notes: `  Reports conventional current-directory and user-home locations without installing anything.
+  Status is absent, installed, outdated, modified, conflict, or error; inspect each row's status.
+  List succeeds when inventory is produced, including per-location conflicts/errors.
+  Filesystem state does not prove that the agent loaded the skill. For an ancestor project or custom home, inspect its explicit path.`,
+		globals: `  --json, --ndjson       Array or one installation per line
+  --no-input            Noninteractive operation`,
+	},
+	"skill update": {
+		usage: `<codex|claude-code> --scope <local|global> --path <absolute-directory> [--backup]`,
+		flags: `  --scope <local|global>             Required placement
+  --path <absolute-directory>       Required managed skill directory
+  --backup                         Preserve modified originals before replacement`,
+		examples: `  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --json
+  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --backup --json`,
+		notes: `  Updates one owned installation from this binary. No network fetch or background update.
+  Modified or missing owned files block update by default; unrelated files are preserved.
+  --backup explicitly preserves modified originals outside the skills loading directory before replacement.
+  Keep customization in separate, unrelated files when possible; older binaries can install older bundles explicitly.
+  If failure reports recovery_required, preserve reported paths and reconcile them before retrying.
+  --force does not bypass ownership or customization protection.`,
+		globals: `  --json, --ndjson       Structured result; JSON errors on stderr
+  --no-input            Noninteractive operation`,
+	},
+	"skill uninstall": {
+		usage: `<codex|claude-code> --scope <local|global> --path <absolute-directory> [--keep-modified]`,
+		flags: `  --scope <local|global>             Required placement
+  --path <absolute-directory>       Required managed skill directory
+  --keep-modified                  Retain edits while removing ownership`,
+		examples: `  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --json
+  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --keep-modified --json`,
+		notes: `  Removes unchanged owned files and management metadata; repeated absent uninstall is unchanged.
+  Modified or missing files block removal by default. --keep-modified explicitly retains edits and ends management.
+  Unrelated files and saved backups are preserved. Retained SKILL.md may remain discoverable by the agent.
+  Retained instructions may reference removed unchanged files; inspect or move them before continued use.
+  An unowned directory is never recursively deleted. Agent instructions and shell profiles are untouched.`,
+		globals: `  --json, --ndjson       Structured result; JSON errors on stderr
+  --no-input            Noninteractive operation`,
+	},
 	"auth login": {
 		usage: `[--token-stdin] [--credential-store <native|file>] [flags]
 --oauth [--read-only] [--client-id <id>] [flags]

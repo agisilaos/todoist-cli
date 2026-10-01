@@ -123,6 +123,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printViewHelp(ctx.Stdout)
 	case "agent":
 		printAgentHelp(ctx.Stdout)
+	case "skill":
+		printSkillHelp(ctx.Stdout)
 	case "completion":
 		printCompletionHelp(ctx.Stdout)
 	case "doctor":

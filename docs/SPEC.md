@@ -250,7 +250,26 @@ Notes:
 - Supports page URLs like `/app/inbox`, `/app/today`, `/app/upcoming`, `/app/completed`, `/app/settings`, `/app/activity`.
 - Project URLs use best-effort slug/name fallback when legacy URL IDs are rejected by API v1.
 
-### Agent commands
+### Installable agent skill
+
+`todoist skill install|list|update|uninstall` maintains this binary's bundled
+`todoist-cli` skill for `codex` or `claude-code`. Writes require one target,
+`--scope local|global`, and a full absolute `--path` ending in
+`.agents/skills/todoist-cli` or `.claude/skills/todoist-cli` respectively. The
+[lifecycle contract](agent-skill.md) defines validated placement, content-hash
+ownership, deterministic repeated operations, customization protection,
+explicit update backup/uninstall retention, and partial-failure recovery.
+
+Lifecycle maintenance is local, noninteractive, and independent of Todoist
+configuration, credentials, API requests, and progress logs. `--force` and
+`--dry-run` are rejected; list is the inspection path. JSON returns one result
+object or an inventory array; NDJSON emits one record per result/item. Lifecycle
+JSON/NDJSON errors use the existing stderr envelope plus stable `SKILL_*` codes
+and committed/recovery details. List inventory entries can report errors with
+exit 0, so callers inspect status. Schemas: `skill_result` and `skill_list`.
+No network or background skill updates occur. Agent loading is separately verified.
+
+### Agent planner commands
 
 ```
 todoist agent plan <instruction> [--out <file>] [--planner <cmd>]
