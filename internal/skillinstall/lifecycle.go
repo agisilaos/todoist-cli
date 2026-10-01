@@ -270,21 +270,17 @@ func (m manager) backup(location Location, inspection inspected) (string, error)
 	for _, relative := range names {
 		before := inspection.snapshot[relative]
 		full := filepath.Join(name, filepath.FromSlash(relative))
-		if err := os.MkdirAll(filepath.Dir(full), 0o700); err == nil {
+		err := os.MkdirAll(filepath.Dir(full), 0o700)
+		if err == nil {
 			err = m.fs.writeFile(full, before.data, before.mode)
-			if err == nil {
-				continue
-			}
-			if cleanupErr := m.fs.removeAll(name); cleanupErr != nil {
-				return name, &Error{Code: "SKILL_RECOVERY_REQUIRED", Message: "The backup was incomplete and could not be removed. The installed skill is unchanged; preserve and inspect the backup directory before retrying.", Path: name, RecoveryRequired: true, RecoveryPath: name, err: err}
-			}
-			return "", ioError(full, "The backup could not be completed; the installed skill was preserved. Check directory access and retry.", err)
-		} else {
-			if cleanupErr := m.fs.removeAll(name); cleanupErr != nil {
-				return name, &Error{Code: "SKILL_RECOVERY_REQUIRED", Message: "The backup was incomplete and could not be removed. The installed skill is unchanged; inspect the backup directory before retrying.", Path: name, RecoveryRequired: true, RecoveryPath: name, err: err}
-			}
-			return "", ioError(full, "The backup could not be completed; the installed skill was preserved. Check directory access and retry.", err)
 		}
+		if err == nil {
+			continue
+		}
+		if cleanupErr := m.fs.removeAll(name); cleanupErr != nil {
+			return name, &Error{Code: "SKILL_RECOVERY_REQUIRED", Message: "The backup was incomplete and could not be removed. The installed skill is unchanged; preserve and inspect the backup directory before retrying.", Path: name, RecoveryRequired: true, RecoveryPath: name, err: err}
+		}
+		return "", ioError(full, "The backup could not be completed; the installed skill was preserved. Check directory access and retry.", err)
 	}
 	return name, nil
 }
