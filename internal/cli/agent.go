@@ -266,32 +266,31 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 }
 
 func writeAgentStatus(ctx *Context, plannerCmd, plannerSource, planPath string, hasPlan bool, plan *Plan) error {
-	status := appagent.Service{}.BuildStatus(plannerCmd, plannerSource, planPath, hasPlan)
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		payload := map[string]any{
-			"planner_cmd":      status.PlannerCmd,
-			"planner_source":   status.PlannerSource,
-			"last_plan_path":   status.LastPlanPath,
-			"last_plan_exists": status.LastPlanExists,
+			"planner_cmd":      plannerCmd,
+			"planner_source":   plannerSource,
+			"last_plan_path":   planPath,
+			"last_plan_exists": hasPlan,
 			"authorization":    currentAuthorization(ctx),
 		}
-		if status.LastPlanExists && plan != nil {
+		if hasPlan && plan != nil {
 			payload["plan"] = *plan
 		}
 		return writeStructuredValue(ctx, payload, output.Meta{})
 	}
 	fmt.Fprintf(ctx.Stdout, "Current authorization: %s\n", currentAuthorization(ctx).Summary())
-	if status.PlannerCmd == "" {
-		fmt.Fprintf(ctx.Stdout, "Planner: (none) [source: %s]\n", status.PlannerSource)
+	if plannerCmd == "" {
+		fmt.Fprintf(ctx.Stdout, "Planner: (none) [source: %s]\n", plannerSource)
 	} else {
-		fmt.Fprintf(ctx.Stdout, "Planner: %s [source: %s]\n", status.PlannerCmd, status.PlannerSource)
+		fmt.Fprintf(ctx.Stdout, "Planner: %s [source: %s]\n", plannerCmd, plannerSource)
 	}
-	if !status.LastPlanExists {
+	if !hasPlan {
 		fmt.Fprintln(ctx.Stdout, "Last plan: none")
 		return nil
 	}
-	if status.LastPlanPath != "" {
-		fmt.Fprintf(ctx.Stdout, "Last plan file: %s\n", status.LastPlanPath)
+	if planPath != "" {
+		fmt.Fprintf(ctx.Stdout, "Last plan file: %s\n", planPath)
 	}
 	if plan != nil {
 		return writePlanOutput(ctx, *plan)
