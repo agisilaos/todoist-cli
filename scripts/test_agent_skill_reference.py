@@ -10,6 +10,9 @@ import tempfile
 import unittest
 
 
+# Keep documentation verification from leaving an untracked cache in the checkout.
+sys.dont_write_bytecode = True
+
 SPEC = importlib.util.spec_from_file_location("agent_skill_reference", Path(__file__).with_name("agent-skill-reference.py"))
 REFERENCE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = REFERENCE

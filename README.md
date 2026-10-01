@@ -1388,6 +1388,10 @@ Action field notes:
 
 ## Release
 
+Run `make verify` (the `make check` alias) while developing. Release settings are
+kept in `scripts/release-config.sh`; copied helpers are pinned and checked locally.
+See [release recovery](docs/release-recovery.md) after an interrupted publication.
+
 Ask an agent to prepare the changelog from commit and PR evidence, review and commit it, then run:
 
 ```bash

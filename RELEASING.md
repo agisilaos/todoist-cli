@@ -1,5 +1,12 @@
 # Releasing
 
+## Go toolchain
+
+Release checks, dry runs and publication select Go 1.27.1 through
+`RELEASE_GO_TOOLCHAIN` in `scripts/release-config.sh`. Release/current CI uses
+that same version. Go downloads and verifies it if needed. Ordinary verification
+retains the caller's toolchain; the existing module minimum remains supported.
+
 Releases are prepared by an agent, reviewed by a human, and published from a clean macOS checkout of the default branch.
 
 ## Prepare the changelog
@@ -55,3 +62,15 @@ Security.framework available. `CGO_ENABLED=0` still compiles a portable CLI whos
 native adapter reports unavailable; saved login then requires explicit file storage.
 Before release, run the opt-in disposable-Keychain test documented in SECURITY.md
 and cross-compile the portable builds for macOS, Linux, and Windows.
+
+## Local verification and recovery
+
+`make verify` is an alias for the existing `make check` gate. It checks the pinned
+shared helper bundle and module metadata before formatting, vet, coverage, docs
+and auth-terminal checks. Linux/macOS ordinary CI and manual release-check CI
+remain supported. Release archives retain native Keychain support and LICENSE.
+
+Publication requires `main`; the selected existing Homebrew branch and formula
+are prepared before creating a tag. Dry run validates both architecture archives,
+checksums, changelog notes and Ruby syntax. See [release recovery](docs/release-recovery.md)
+for phase outcomes and retained originals after interruption.

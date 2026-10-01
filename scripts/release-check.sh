@@ -1,96 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-cd "$(dirname "$0")/.."
-
-die() {
-  echo "error: $*" >&2
-  exit 1
-}
-
-if [[ "$(uname -s)" != "Darwin" ]]; then
-  die "release-check.sh must be run on macOS (Darwin)"
-fi
-
-ci_mode=0
-version=""
-if [[ $# -eq 1 && "$1" == "--ci" ]]; then
-  ci_mode=1
-elif [[ $# -eq 1 ]]; then
-  version="$1"
-else
-  echo "usage: scripts/release-check.sh vX.Y.Z | --ci" >&2
-  exit 2
-fi
-
-if [[ "$ci_mode" -eq 0 && ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  die "version must match vX.Y.Z (got: $version)"
-fi
-
-for tool in go git python3 make; do
-  command -v "$tool" >/dev/null 2>&1 || die "$tool is required"
-done
-
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git work tree"
-if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
-  die "working tree is not clean (tracked, staged, or untracked changes present)"
-fi
-
-if [[ "$ci_mode" -eq 0 ]] && git rev-parse "$version" >/dev/null 2>&1; then
-  die "tag already exists: $version"
-fi
-
-[[ -f README.md ]] || die "README.md not found"
-[[ -f CHANGELOG.md ]] || die "CHANGELOG.md not found"
-
-if grep -qE '^## \[Unreleased\]' CHANGELOG.md; then
-  die "CHANGELOG.md must not contain ## [Unreleased]"
-fi
-
-first_release_heading="$(grep -m1 -E '^## \[v[0-9]+\.[0-9]+\.[0-9]+\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$' CHANGELOG.md || true)"
-if [[ -z "$first_release_heading" ]]; then
-  die "CHANGELOG.md must contain at least one release heading in format: ## [vX.Y.Z] - YYYY-MM-DD"
-fi
-if [[ "$ci_mode" -eq 1 ]]; then
-  version="${first_release_heading#*\[}"
-  version="${version%%\]*}"
-elif [[ "$first_release_heading" != "## [$version] - "* ]]; then
-  die "CHANGELOG.md top release heading must be ## [$version] - YYYY-MM-DD before release"
-fi
-
-changelog_args=(--version "$version" --validate)
-if [[ "$ci_mode" -eq 0 ]]; then changelog_args+=(--require-traceability); fi
-python3 ./scripts/changelog-section.py "${changelog_args[@]}"
-
-# Keep release-check CI portable on stock GitHub runners.
-# Do not require non-default tooling such as rg/jq/yq/fd in checked scripts.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+source ./scripts/release-config.sh
+export GOTOOLCHAIN="$RELEASE_GO_TOOLCHAIN"
+source ./scripts/cli-shared/release-core.sh
+cli_release_preflight "$@"
+# Keep candidate CI portable on stock runners, preserving the existing guard.
 if grep -R -nE '(^|[[:space:]])(r[g]|j[q]|y[q]|f[d])([[:space:]]|$)' scripts >/dev/null; then
-  die "scripts/ uses non-portable tooling (rg/jq/yq/fd). Use grep/sed/awk or install tools explicitly in workflow."
+  cli_release_die "scripts/ uses non-portable tooling (rg/jq/yq/fd). Use grep/sed/awk or install tools explicitly in workflow."
 fi
-
-echo "[release-check] running ordinary validation"
-make check
-
-commit="$(git rev-parse --short=12 HEAD)"
-build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-out_dir="dist/release-check"
-out_bin="$out_dir/todoist"
-
-mkdir -p "$out_dir"
-
-echo "[release-check] building version-stamped binary"
-go build \
-  -ldflags "-X github.com/agisilaos/todoist-cli/internal/cli.Version=$version -X github.com/agisilaos/todoist-cli/internal/cli.Commit=$commit -X github.com/agisilaos/todoist-cli/internal/cli.Date=$build_date" \
-  -o "$out_bin" \
-  ./cmd/todoist
-
-version_out="$($out_bin --version)"
-if [[ "$version_out" != todoist\ "$version"* ]]; then
-  die "version output mismatch: $version_out"
-fi
-
-echo "[release-check] ok"
-echo "  version:   $version"
-echo "  commit:    $commit"
-echo "  buildDate: $build_date"
-echo "  binary:    $out_bin"
+make verify
+cli_release_build_check "$version"
