@@ -15,7 +15,7 @@ for file in RELEASING.md scripts/changelog-context.sh scripts/changelog-section.
   [[ -f "$file" ]] || die "$file not found"
 done
 
-for target in changelog-context release-check release-check-ci release-dry-run release; do
+for target in verify changelog-context release-check release-check-ci release-dry-run release; do
   grep -qE "^${target}:" Makefile || die "Makefile missing target: $target"
 done
 

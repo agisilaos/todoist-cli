@@ -1,4 +1,4 @@
-.PHONY: build test check vet fmt fmt-check coverage-check check-help docs-check auth-terminal-check mod-check changelog-context release-check release-check-ci release release-dry-run
+.PHONY: build test check vet fmt fmt-check coverage-check check-help docs-check auth-terminal-check mod-check changelog-context release-check release-check-ci release release-dry-run verify cli-tooling-check
 
 build:
 	go build -o todoist ./cmd/todoist
@@ -32,7 +32,7 @@ docs-check:
 auth-terminal-check:
 	python3 scripts/test-auth-terminal.py
 
-mod-check:
+mod-check: cli-tooling-check
 	./scripts/mod-check.sh
 
 changelog-context:
@@ -53,3 +53,9 @@ release:
 release-dry-run:
 	@if [ -z "$(VERSION)" ]; then echo "VERSION is required (e.g. make release-dry-run VERSION=v0.1.0)"; exit 2; fi
 	./scripts/release.sh "$(VERSION)" --dry-run
+
+# Preserve make check as the ordinary cross-platform gate.
+verify: check
+
+cli-tooling-check:
+	./scripts/check-cli-tooling.sh

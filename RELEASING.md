@@ -1,5 +1,12 @@
 # Releasing
 
+## Go toolchain
+
+Release checks, dry runs and publication select Go 1.27.1 through
+`RELEASE_GO_TOOLCHAIN` in `scripts/release-config.sh`. Release/current CI uses
+that same version, and `go.mod` requires Go 1.27.1. Go downloads and verifies
+a required toolchain when automatic toolchain selection is enabled.
+
 Releases are prepared by an agent, reviewed by a human, and published from a clean macOS checkout of the default branch.
 
 ## Prepare the changelog
@@ -36,8 +43,8 @@ make release VERSION=vX.Y.Z
 The final command creates and pushes the tag, publishes the GitHub Release with the approved changelog section, and updates the configured Homebrew tap.
 
 The `release-check` GitHub workflow is manual-only and runs
-`make release-check-ci` on macOS with Go 1.26. Ordinary pull-request and push CI
-runs `make check` on Linux/Go 1.22 and macOS/Go 1.26 without release-specific
+`make release-check-ci` on macOS with Go 1.27.1. Ordinary pull-request and push CI
+runs `make check` on Linux and macOS with Go 1.27.1 without release-specific
 preparation requirements. Both `release-dry-run` and `release` retain their own
 release preflight; ordinary CI evidence does not bypass these release checks.
 
@@ -55,3 +62,15 @@ Security.framework available. `CGO_ENABLED=0` still compiles a portable CLI whos
 native adapter reports unavailable; saved login then requires explicit file storage.
 Before release, run the opt-in disposable-Keychain test documented in SECURITY.md
 and cross-compile the portable builds for macOS, Linux, and Windows.
+
+## Local verification and recovery
+
+`make verify` is an alias for the existing `make check` gate. It checks the pinned
+shared helper bundle and module metadata before formatting, vet, coverage, docs
+and auth-terminal checks. Linux/macOS ordinary CI and manual release-check CI
+remain supported. Release archives retain native Keychain support and LICENSE.
+
+Publication requires `main`; the selected existing Homebrew branch and formula
+are prepared before creating a tag. Dry run validates both architecture archives,
+checksums, changelog notes and Ruby syntax. See [release recovery](docs/release-recovery.md)
+for phase outcomes and retained originals after interruption.

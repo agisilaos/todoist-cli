@@ -24,7 +24,7 @@ class DocsContractTest(unittest.TestCase):
             "scripts/changelog-context.sh scripts/release-check.sh scripts/release.sh RELEASING.md\n"
         )
         (self.root / "RELEASING.md").write_text("# Releasing\n")
-        (self.root / "CHANGELOG.md").write_text("## [v1.0.0] - 2026-01-01\n")
+        (self.root / "CHANGELOG.md").write_text("## [v1.0.0] - 2026-01-01\n- Existing release.\n")
 
     def check(self):
         return subprocess.run(
@@ -47,7 +47,7 @@ class DocsContractTest(unittest.TestCase):
         (self.root / "CHANGELOG.md").write_text("## [Unreleased]\n")
         result = self.check()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("CHANGELOG.md contains forbidden", result.stderr)
+        self.assertIn("Unreleased", result.stderr)
 
     def test_missing_changelog(self):
         (self.root / "CHANGELOG.md").unlink()

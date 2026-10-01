@@ -5,7 +5,7 @@ Thanks for your interest in contributing.
 ## Quick Start
 
 1. Fork and clone the repo.
-2. On macOS or Linux, install Go 1.22+, Python 3, Make, and Bash. Native macOS
+2. On macOS or Linux, install Go 1.27.1+, Python 3, Make, and Bash. Native macOS
    builds also need Xcode Command Line Tools. PowerShell is not required for the
    ordinary local gate.
 3. During development, run targeted tests, for example:
@@ -38,8 +38,8 @@ for review; state which CI environments or specialized checks remain unverified.
 Do not describe a local pass as cross-platform validation. Merging still requires
 the repository's required CI checks.
 
-Ordinary CI runs the same `make check` on Linux with Go 1.22 and macOS with Go
-1.26. Linux also runs the PowerShell completion smoke test. No mandatory live
+Ordinary CI runs the same `make check` on Linux and macOS with Go
+1.27.1. Linux also runs the PowerShell completion smoke test. No mandatory live
 Todoist testing or per-task consumer review is part of this gate.
 
 ### Focused and specialized checks
