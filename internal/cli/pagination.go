@@ -14,13 +14,25 @@ func fetchPaginated[T any](ctx *Context, path string, query url.Values, all bool
 			Results    []T    `json:"results"`
 			NextCursor string `json:"next_cursor"`
 		}
+		var completed struct {
+			Items      []T    `json:"items"`
+			NextCursor string `json:"next_cursor"`
+		}
+		completedPath := path == "/tasks/completed/by_completion_date" || path == "/tasks/completed/by_due_date"
+		var response any = &page
+		if completedPath {
+			response = &completed
+		}
 		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, path, q, &page)
+		reqID, err := ctx.Client.Get(reqCtx, path, q, response)
 		cancel()
 		if err != nil {
 			return nil, "", err
 		}
 		setRequestID(ctx, reqID)
+		if completedPath {
+			page.Results, page.NextCursor = completed.Items, completed.NextCursor
+		}
 		items = append(items, page.Results...)
 		next = page.NextCursor
 		if !all || next == "" {

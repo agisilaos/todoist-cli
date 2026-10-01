@@ -2,7 +2,7 @@ package api
 
 import "encoding/json"
 
-// UnmarshalJSON retains response facts used by capture receipts while leaving
+// UnmarshalJSON retains returned task facts while leaving
 // the established JSON/NDJSON serialization unchanged.
 func (t *Task) UnmarshalJSON(data []byte) error {
 	type taskValue Task
@@ -35,6 +35,7 @@ func (t *Task) UnmarshalJSON(data []byte) error {
 		CompletedAt: len(fields.CompletedAt) > 0,
 		NoteCount:   valueReturned(fields.NoteCount),
 	}
+	t.response = decodeResponseFacts(data, taskFactTypes)
 	return nil
 }
 
@@ -63,5 +64,9 @@ func (d *Due) UnmarshalJSON(data []byte) error {
 	*d = Due(value)
 	d.Timezone = facts.Timezone
 	d.IsRecurring = facts.IsRecurring
+	d.response = decodeResponseFacts(data, dueFactTypes)
+	if language, ok := d.ResponseFact("lang").Text(); ok {
+		d.Lang = &language
+	}
 	return nil
 }

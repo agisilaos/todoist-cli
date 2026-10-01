@@ -49,6 +49,31 @@ Resource machine payloads do not add the human view's enrichment or prove that
 missing fields are false or empty. Numeric task priority remains the API scale
 (4 highest); `p1` through `p4` inputs use Todoist's display scale (p1 highest).
 
+## Inspect returned task facts
+
+For decisions involving deadline, duration, assignee (`responsible_uid`), ordering,
+or due recurrence/timezone/language, select `--task-output-version 2` with JSON or
+NDJSON. Legacy version 1 remains the default and can insert defaults for facts
+that were not returned. Version 2 retains supported returned values and presence:
+absent means unknown and is omitted; explicit null, false,
+zero, and empty values remain distinct. Consult `task_item_v2` for a view or NDJSON
+record and `task_list_v2` for JSON lists. `--full` remains human-only.
+
+```sh
+todoist task view id:123456 --no-input --json --task-output-version 2
+todoist task list --all-projects --all --no-input --ndjson --task-output-version 2
+todoist schema --name task_item_v2 --json
+todoist schema --name task_list_v2 --json
+```
+
+Malformed new optional facts are omitted with nonfatal diagnostics on stderr;
+valid siblings remain. A collection response may omit facts that an exact-ID
+view returns, but a view can still leave them unknown. Do not retry a successful
+mutation to fill missing metadata. `reference_item` is labeled title-derived
+classification, separate from returned completion state or an advisory
+`is_uncompletable` fact. The selector rejects non-task resources, acknowledgements,
+and dry runs before side effects.
+
 ## Select scope, pages, and identity
 
 `task list` defaults to one page of active Inbox tasks. `--all-projects` changes

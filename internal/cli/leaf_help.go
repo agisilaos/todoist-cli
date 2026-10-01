@@ -294,17 +294,23 @@ var leafHelpPages = map[string]commandHelp{
 		examples: `  todoist task view id:123456
   todoist task view id:123456 --full
   todoist task view id:123456 --no-input --json
-  todoist task view id:123456 --no-input --ndjson`,
+  todoist task view id:123456 --no-input --ndjson
+  todoist task view id:123456 --no-input --json --task-output-version 2`,
 		notes: `  Use id:<id> for an exact task or a quoted text reference.
   Multiple matches offer a numbered choice with task context in a terminal; Enter cancels selection.
   With --no-input or piped stdin, use task list --all-projects --all --no-input --json and retry id:<id>.
   Human detail keeps full text, names, P1 highest, absolute dates, recurrence, state, labels, and ID.
+  Deadline, duration, assignee ID, due language, and title-derived reference-item status are shown.
   Text wraps without truncation; returned offsets/timezones are not converted.
-  --full adds project/section/parent IDs, timestamps, and returned comment count.
+  --full adds destination IDs, timestamps, order, actor IDs, flags, and returned counters.
+  The deprecated note_count value is not a reliable comment count.
   None/No due date means known absence; Not returned means unknown information.
   Name lookups add collection requests; failure retains IDs and says lookup failed.
   Machine output has no enrichment. --json emits a task object; --ndjson emits the same object on one line.
-  --full does not change either payload; plain/redirected retain legacy labeled text.`,
+  --full does not change either payload; plain/redirected retain legacy labeled text.
+  --task-output-version 2 preserves supported returned fields, including absent/null/false/zero.
+  Use schema --name task_item_v2 for JSON view and NDJSON records; task_list_v2 for JSON arrays.
+  Version selection requires --json or --ndjson and rejects previews and acknowledgement commands.`,
 		globals: `  --no-input            Disable prompts`,
 	},
 	"task complete": {

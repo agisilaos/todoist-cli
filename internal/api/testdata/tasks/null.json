@@ -1,0 +1,7 @@
+{
+  "id":"task-null","content":null,"description":null,"labels":null,
+  "checked":null,"note_count":null,"priority":null,
+  "due":null,"deadline":null,"duration":null,"responsible_uid":null,
+  "assigned_by_uid":null,"added_by_uid":null,"completed_by_uid":null,
+  "child_order":null,"order_key":null,"day_order":null,"is_uncompletable":null
+}

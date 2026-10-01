@@ -24,9 +24,10 @@ type Task struct {
 	UpdatedAt   string   `json:"updated_at"`
 	NoteCount   int      `json:"note_count"`
 	// DueReturned distinguishes an omitted due field from an explicit null.
-	// Response-only facts never extend the existing machine output contract.
+	// Returned facts are excluded from legacy Task serialization.
 	DueReturned bool               `json:"-"`
 	Returned    TaskReturnedFields `json:"-"`
+	response    *responseFacts
 }
 
 // TaskReturnedFields records only presence distinctions needed by human detail.
@@ -47,6 +48,8 @@ type Due struct {
 	String      string  `json:"string,omitempty"`
 	Timezone    *string `json:"-"`
 	IsRecurring *bool   `json:"-"`
+	Lang        *string `json:"-"`
+	response    *responseFacts
 }
 
 type Project struct {

@@ -69,7 +69,7 @@ func TestTaskDetailDefaultAndFull(t *testing.T) {
 			if !strings.HasPrefix(out.String(), defaultOutput+"\n") {
 				t.Errorf("full changed default layout: %s", out)
 			}
-			for _, want := range []string{"Project ID: project-A\n", "Section ID: section-B\n", "Parent ID: None\n", "Added: 2026-09-20T09:15:00Z\n", "Updated: 2026-09-28T13:45:00Z\n", "Completed at: None\n", "Comments: 2\n"} {
+			for _, want := range []string{"Project ID: project-A\n", "Section ID: section-B\n", "Parent ID: None\n", "Added: 2026-09-20T09:15:00Z\n", "Updated: 2026-09-28T13:45:00Z\n", "Completed at: None\n", "Comments: 2 (deprecated API value; not a reliable comment count)\n"} {
 				if !strings.Contains(out.String(), want) {
 					t.Errorf("missing full field %q: %s", want, out)
 				}
@@ -96,6 +96,8 @@ func TestTaskDetailMissingFactsAndDates(t *testing.T) {
 		{"active with completion time", `{"checked":false,"completed_at":"2026-09-29T17:00:00+02:00"}`, []string{"State: Active", "Completed at: 2026-09-29T17:00:00+02:00"}, "State: Completed"},
 		{"unknown with completion time", `{"completed_at":"2026-09-29T17:00:00Z"}`, []string{"State: Not returned", "Completed at: 2026-09-29T17:00:00Z"}, "State: Completed"},
 		{"date differs", `{"due":{"date":"2026-09-29","datetime":"2026-09-30T00:30:00+02:00","timezone":"Europe/Berlin","is_recurring":false,"string":"next Tuesday"}}`, []string{"Due date: 2026-09-29", "Due time: 2026-09-30T00:30:00+02:00", "Timezone: Europe/Berlin", "Recurrence: None", "Due expression: next Tuesday"}, "Today"},
+		{"floating and fixed timestamps", `{"due":{"date":"2026-10-01T09:00:00","datetime":"2026-10-01T09:00:00Z"}}`, []string{"Due date: 2026-10-01T09:00:00\n", "Due time: 2026-10-01T09:00:00Z\n", "Timezone: Not returned (time shown as returned)"}, "Due: "},
+		{"same calendar date", `{"due":{"date":"2026-10-01","datetime":"2026-10-01T09:00:00Z"}}`, []string{"Due: 2026-10-01T09:00:00Z"}, "Due date:"},
 		{"floating time", `{"due":{"datetime":"2026-09-29T16:30:00"}}`, []string{"Due: 2026-09-29T16:30:00", "Timezone: Not returned (time shown as returned)"}, "Europe/Berlin"},
 		{"date only", `{"due":{"date":"2026-09-29","is_recurring":false}}`, []string{"Due: 2026-09-29", "Recurrence: None"}, "Timezone:"},
 		{"expression only", `{"due":{"string":"tomorrow"}}`, []string{"Due: Not returned", "Due expression: tomorrow", "Recurrence: Not returned"}, "Due: tomorrow"},

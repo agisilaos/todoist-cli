@@ -1,0 +1,9 @@
+{
+  "id":"task-values","content":"","description":"","project_id":"",
+  "section_id":"","parent_id":"","labels":[],"priority":0,"checked":false,
+  "due":{"date":"","datetime":"","string":"","lang":"","timezone":null,"is_recurring":false},
+  "deadline":{},"duration":{"amount":0,"unit":"minute"},
+  "responsible_uid":"","child_order":0,"day_order":0,"order_key":"",
+  "is_uncompletable":false,"is_collapsed":false,"is_deleted":false,
+  "note_count":0,"completed_count":0,"postponed_count":0
+}

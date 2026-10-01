@@ -100,6 +100,30 @@ _Avoid_: Applied action, sandboxed execution
 An input identifying an existing Todoist task by ID, Todoist app URL, or task text. A text reference may include a due hint.
 _Avoid_: Task query, filter
 
+**Due date**:
+The date or time scheduled for a task, which may follow a recurring rule. It is distinct from the task's deadline.
+_Avoid_: Deadline, completion date
+
+**Deadline**:
+The final calendar date by which a task is intended to be finished, independent of its scheduled due date or recurrence.
+_Avoid_: Due date, due time
+
+**Duration**:
+The amount of time allocated to a task, expressed in minutes or days.
+_Avoid_: Elapsed time, due time
+
+**Assignee**:
+The user responsible for a task. This role is separate from who created or assigned it; the same person may hold those roles.
+_Avoid_: Task owner, task creator
+
+**Sibling order**:
+A task's position among tasks sharing the same project, section, and parent. It is distinct from ordering in a day-based view.
+_Avoid_: Global task order, day order
+
+**Reference item**:
+A Todoist task with its own completion control hidden through Todoist's uncompletable title syntax. It can still carry task information and become completed through completion of its parent.
+_Avoid_: Section, always-incomplete task
+
 **Task ambiguity**:
 A text task reference that matches multiple distinct tasks. A candidate's title or position alone does not establish which task the caller intends.
 _Avoid_: Best match, duplicate title

@@ -17,24 +17,32 @@ type viewTarget struct {
 }
 
 func viewCommand(ctx *Context, args []string) error {
-	fs := newFlagSet("view")
-	var help bool
-	bindHelpFlag(fs, &help)
-	if err := parseFlagSetInterspersed(fs, args); err != nil {
+	raw, help, err := parseViewArgs(args)
+	if err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if help {
 		printViewHelp(ctx.Stdout)
 		return nil
 	}
-	if len(fs.Args()) == 0 {
+	if raw == "" {
 		return &CodeError{Code: exitUsage, Err: errors.New("view requires a Todoist URL")}
 	}
-	target, err := resolveViewTarget(fs.Arg(0), ctx)
+	target, err := resolveViewTarget(raw, ctx)
 	if err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
 	return dispatchViewTarget(ctx, target)
+}
+
+func parseViewArgs(args []string) (string, bool, error) {
+	fs := newFlagSet("view")
+	var help bool
+	bindHelpFlag(fs, &help)
+	if err := parseFlagSetInterspersed(fs, args); err != nil {
+		return "", false, err
+	}
+	return fs.Arg(0), help, nil
 }
 
 func dispatchViewTarget(ctx *Context, target viewTarget) error {
@@ -185,17 +193,10 @@ func resolveLabelNameByID(ctx *Context, id string) (string, error) {
 	if err := ensureClient(ctx); err != nil {
 		return "", err
 	}
-	reqCtx, cancel := requestContext(ctx)
-	defer cancel()
-	var labels []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	reqID, err := ctx.Client.Get(reqCtx, "/labels", nil, &labels)
+	labels, err := listAllLabels(ctx)
 	if err != nil {
 		return "", err
 	}
-	setRequestID(ctx, reqID)
 	for _, label := range labels {
 		if label.ID == id {
 			return label.Name, nil
