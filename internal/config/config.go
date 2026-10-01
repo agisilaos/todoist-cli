@@ -73,57 +73,6 @@ func LoadConfig(path string) (Config, bool, error) {
 	return cfg, true, nil
 }
 
-func LoadCredentials(path string) (Credentials, bool, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return Credentials{}, false, nil
-		}
-		return Credentials{}, false, err
-	}
-	var creds Credentials
-	if err := json.Unmarshal(data, &creds); err != nil {
-		return Credentials{}, true, fmt.Errorf("parse credentials: %w", err)
-	}
-	if creds.Profiles == nil {
-		creds.Profiles = map[string]Credential{}
-	}
-	return creds, true, nil
-}
-
-func SaveCredentials(path string, creds Credentials) error {
-	if creds.Profiles == nil {
-		creds.Profiles = map[string]Credential{}
-	}
-	if err := EnsureDir(filepath.Dir(path)); err != nil {
-		return err
-	}
-	data, err := json.MarshalIndent(creds, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode credentials: %w", err)
-	}
-	file, err := os.CreateTemp(filepath.Dir(path), ".credentials-*")
-	if err != nil {
-		return err
-	}
-	temporary := file.Name()
-	defer os.Remove(temporary)
-	if err = file.Chmod(0600); err == nil {
-		_, err = file.Write(data)
-	}
-	if err == nil {
-		err = file.Sync()
-	}
-	closeErr := file.Close()
-	if err != nil {
-		return err
-	}
-	if closeErr != nil {
-		return closeErr
-	}
-	return os.Rename(temporary, path)
-}
-
 func EnsureDir(path string) error {
 	if path == "" || path == "." {
 		return nil
