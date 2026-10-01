@@ -94,7 +94,7 @@ func writeReviewReport(ctx *Context, plan Plan, results []applyResult, phase, pa
 		report.Counts[row.Outcome]++
 	}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-		return writeStructuredValue(ctx, report, output.Meta{})
+		return writeStructuredValue(ctx, report)
 	}
 	heading := phase
 	if phase == "applied" {

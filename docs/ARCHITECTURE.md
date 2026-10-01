@@ -43,8 +43,8 @@ Todoist API v1
 - `internal/app/filters`: add/update/delete validation, payload construction, and filter reference resolution rules (exact/direct/fuzzy/ambiguous).
 - `internal/app/comments`: comment list/add/update validation and payload construction.
 - `internal/app/labels`: label list query planning and add/update payload validation.
-- `internal/app/sections`: section list query planning, add/update payload validation, and delete confirmation planning.
-- `internal/app/agent`: status payload composition and agent action-to-API request planning for `agent apply/run`.
+- `internal/app/sections`: section list query planning and add/update payload validation.
+- `internal/app/agent`: plan preparation and agent action-to-API request planning for `agent apply/run`.
 - `internal/agent`: plan/action types, action validation, and summary derivation.
 - `internal/app/activities`: activity query validation and date/type filters.
 - `internal/app/assignees`: assignee lookup and reference resolution.
@@ -81,8 +81,13 @@ serve detail enrichment after selection; failed or partial loads cannot. Detail
 still checks section ownership, and the cache does not change reference matching
 or persist between commands.
 
-Agent apply and replay persistence remain in `internal/cli`; the app layer plans
-requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
+Output writers serialize raw values; the CLI owns the machine error envelope and
+its request metadata. Machine-output pagination notices remain on stderr.
+
+Section deletion owns its confirmation and dry-run checks in `internal/cli`.
+
+Agent status rendering, apply, and replay persistence remain in `internal/cli`;
+the app layer prepares plans and plans requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
 for the success boundary and persistence limitations.
 
 Review selection/snapshot ordering lives in `internal/app/review`; the CLI owns

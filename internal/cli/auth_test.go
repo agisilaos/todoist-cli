@@ -13,6 +13,7 @@ import (
 
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -54,14 +55,14 @@ func TestAuthLoginOAuthStoresToken(t *testing.T) {
 	}
 
 	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
-	creds, exists, err := config.LoadCredentials(credsPath)
+	cred, err := credentials.New(credsPath, nil, nil).Load(context.Background(), ctx.Profile)
 	if err != nil {
 		t.Fatalf("load credentials: %v", err)
 	}
-	if !exists {
+	if _, err := os.Stat(credsPath); err != nil {
 		t.Fatalf("expected credentials file to exist")
 	}
-	got := creds.Profiles[ctx.Profile].Token
+	got := cred.Token
 	if got != "oauth-token-123" {
 		t.Fatal("unexpected stored token")
 	}
@@ -79,14 +80,14 @@ func TestAuthLoginOAuthDeviceStoresToken(t *testing.T) {
 	}
 
 	credsPath := config.CredentialsPathFromConfig(ctx.ConfigPath)
-	creds, exists, err := config.LoadCredentials(credsPath)
+	cred, err := credentials.New(credsPath, nil, nil).Load(context.Background(), ctx.Profile)
 	if err != nil {
 		t.Fatalf("load credentials: %v", err)
 	}
-	if !exists {
+	if _, err := os.Stat(credsPath); err != nil {
 		t.Fatalf("expected credentials file to exist")
 	}
-	got := creds.Profiles[ctx.Profile].Token
+	got := cred.Token
 	if got != "oauth-device-token-123" {
 		t.Fatal("unexpected stored token")
 	}

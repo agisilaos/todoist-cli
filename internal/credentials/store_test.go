@@ -17,10 +17,18 @@ import (
 )
 
 func TestFileProfileRoundTripAndInspection(t *testing.T) {
-	s := credentials.New(filepath.Join(t.TempDir(), "credentials.json"), nil, nil)
+	path := filepath.Join(t.TempDir(), "credentials.json")
+	s := credentials.New(path, nil, nil)
 	ctx := context.Background()
 	if err := s.Save(ctx, "work", config.Credential{Token: "fixture-secret"}, "file"); err != nil {
 		t.Fatal(err)
+	}
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fileInfo.Mode().Perm() != 0600 {
+		t.Fatalf("credential permissions: %v", fileInfo.Mode().Perm())
 	}
 	info, err := s.Inspect(ctx, "work")
 	if err != nil || !info.Configured || info.Backend != "file" {
@@ -99,8 +107,15 @@ func TestMigrationVerifiesNativeTokenAndPreservesMetadata(t *testing.T) {
 	if err != nil || got.Token != original.Token || !equalJSON(got.Authorization, original.Authorization) {
 		t.Fatal("migration lost credential or evidence")
 	}
-	disk, _, err := config.LoadCredentials(path)
-	if err != nil || disk.Profiles["work"].Token != "" {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var disk config.Credentials
+	if err := json.Unmarshal(data, &disk); err != nil {
+		t.Fatal(err)
+	}
+	if disk.Profiles["work"].Token != "" {
 		t.Fatal("migration retained plaintext")
 	}
 }
@@ -330,8 +345,12 @@ func TestStorePreservesInactiveProfilesAndRejectsCorruptActiveStorage(t *testing
 	if err := s.Save(ctx, "work", config.Credential{Token: "replacement"}, "file"); err != nil {
 		t.Fatal(err)
 	}
-	all, _, err := config.LoadCredentials(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
+		t.Fatal(err)
+	}
+	var all config.Credentials
+	if err := json.Unmarshal(data, &all); err != nil {
 		t.Fatal(err)
 	}
 	if all.Profiles["other"].Token != "other" {
@@ -340,7 +359,6 @@ func TestStorePreservesInactiveProfilesAndRejectsCorruptActiveStorage(t *testing
 	if _, err := s.Load(ctx, "other"); err == nil {
 		t.Fatal("unsupported selected storage was used")
 	}
-	data, _ := os.ReadFile(path)
 	var decoded map[string]any
 	if json.Unmarshal(data, &decoded) != nil || decoded["future"] != true {
 		t.Fatal("unknown fields lost")

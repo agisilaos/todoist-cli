@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -159,19 +160,14 @@ func sectionDelete(ctx *Context, args []string) error {
 		printSectionHelp(ctx.Stderr)
 		return err
 	}
-	id, requiresConfirm, err := appsections.BuildDeletePlan(appsections.DeleteInput{
-		ID:     id,
-		Force:  ctx.Global.Force,
-		DryRun: ctx.Global.DryRun,
-	})
-	if err != nil {
+	if id == "" {
 		printSectionHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: err}
+		return &CodeError{Code: exitUsage, Err: errors.New("--id is required")}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
-	if requiresConfirm {
+	if !ctx.Global.Force && !ctx.Global.DryRun {
 		ok, err := confirm(ctx, fmt.Sprintf("Delete section %s?", id))
 		if err != nil {
 			return err
@@ -203,10 +199,10 @@ func writeSectionList(ctx *Context, sections []api.Section, cursor string) error
 		return writeIDs(ctx, sections, func(item api.Section) string { return item.ID }, cursor)
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, sections, output.Meta{RequestID: ctx.RequestID, Count: len(sections), Cursor: cursor})
+		return output.WriteJSON(ctx.Stdout, sections)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, sections)
+		return output.WriteNDJSON(ctx.Stdout, sections)
 	}
 	rows := make([][]string, 0, len(sections))
 	for _, section := range sections {

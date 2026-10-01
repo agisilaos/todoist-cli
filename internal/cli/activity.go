@@ -70,12 +70,11 @@ func activityCommand(ctx *Context, args []string) error {
 		By:        by,
 		Limit:     limit,
 		Cursor:    cursor,
-		All:       all,
 	})
 	if err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
 	}
-	events, next, err := fetchPaginated[api.ActivityEvent](ctx, "/activities", appactivities.BuildQuery(in), in.All)
+	events, next, err := fetchPaginated[api.ActivityEvent](ctx, "/activities", appactivities.BuildQuery(in), all)
 	if err != nil {
 		return err
 	}
@@ -95,10 +94,10 @@ func writeActivityList(ctx *Context, events []api.ActivityEvent, cursor string) 
 		events = []api.ActivityEvent{}
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, events, output.Meta{RequestID: ctx.RequestID, Count: len(events), Cursor: cursor})
+		return output.WriteJSON(ctx.Stdout, events)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, events)
+		return output.WriteNDJSON(ctx.Stdout, events)
 	}
 	if len(events) == 0 {
 		fmt.Fprintln(ctx.Stdout, "No activity found.")

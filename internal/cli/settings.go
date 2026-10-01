@@ -116,10 +116,10 @@ func settingsThemes(ctx *Context, args []string) error {
 	}
 	themes := appsettings.Themes()
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, themes, output.Meta{})
+		return output.WriteJSON(ctx.Stdout, themes)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, themes)
+		return output.WriteNDJSON(ctx.Stdout, themes)
 	}
 	rows := make([][]string, 0, len(themes))
 	for _, theme := range themes {
@@ -155,10 +155,10 @@ func writeSettings(ctx *Context, settings api.UserSettings, startPageName string
 			"completed_sound_desktop": settings.CompletedSoundDesktop,
 			"completed_sound_mobile":  settings.CompletedSoundMobile,
 		}
-		return output.WriteJSON(ctx.Stdout, view, output.Meta{RequestID: ctx.RequestID})
+		return output.WriteJSON(ctx.Stdout, view)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, []api.UserSettings{settings})
+		return output.WriteNDJSON(ctx.Stdout, []api.UserSettings{settings})
 	}
 	rows := [][]string{
 		{"Timezone", settings.Timezone},

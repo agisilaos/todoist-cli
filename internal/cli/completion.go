@@ -82,7 +82,7 @@ func completionInstall(ctx *Context, args []string) error {
 			"shell":      shell,
 			"path":       path,
 			"activation": completionActivationHint(shell, path),
-		}, output.Meta{})
+		})
 	}
 	fmt.Fprintf(ctx.Stdout, "Installed %s completion to %s\n", shell, path)
 	fmt.Fprintln(ctx.Stdout, completionActivationHint(shell, path))
@@ -118,7 +118,7 @@ func completionUninstall(ctx *Context, args []string) error {
 		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 			return writeStructuredValue(ctx, map[string]any{
 				"removed": []string{},
-			}, output.Meta{})
+			})
 		}
 		fmt.Fprintln(ctx.Stdout, "No completion scripts found to remove.")
 		return nil
@@ -149,7 +149,7 @@ func completionUninstall(ctx *Context, args []string) error {
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		return writeStructuredValue(ctx, map[string]any{
 			"removed": removed,
-		}, output.Meta{})
+		})
 	}
 	if len(removed) == 0 {
 		fmt.Fprintln(ctx.Stdout, "No completion scripts found to remove.")

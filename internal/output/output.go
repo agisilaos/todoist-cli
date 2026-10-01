@@ -21,17 +21,6 @@ const (
 	ModeIDsOnly Mode = "ids-only"
 )
 
-type Meta struct {
-	RequestID string `json:"request_id,omitempty"`
-	Count     int    `json:"count,omitempty"`
-	Cursor    string `json:"next_cursor,omitempty"`
-}
-
-type Envelope struct {
-	Data any  `json:"data"`
-	Meta Meta `json:"meta"`
-}
-
 func DetectMode(jsonFlag, plainFlag, ndjsonFlag, idsOnlyFlag bool, stdoutIsTTY bool) (Mode, error) {
 	if idsOnlyFlag {
 		if jsonFlag || plainFlag || ndjsonFlag {
@@ -61,14 +50,7 @@ func IsTTY(f *os.File) bool {
 	return term.IsTerminal(int(f.Fd()))
 }
 
-func WriteJSON(out io.Writer, data any, meta Meta) error {
-	enc := json.NewEncoder(out)
-	enc.SetIndent("", "  ")
-	_ = meta
-	return enc.Encode(data)
-}
-
-func WriteJSONArray(out io.Writer, data any) error {
+func WriteJSON(out io.Writer, data any) error {
 	enc := json.NewEncoder(out)
 	enc.SetIndent("", "  ")
 	return enc.Encode(data)
@@ -83,17 +65,7 @@ func WritePlain(out io.Writer, rows [][]string) error {
 	return nil
 }
 
-func WriteNDJSON(out io.Writer, items []any) error {
-	enc := json.NewEncoder(out)
-	for _, item := range items {
-		if err := enc.Encode(item); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func WriteNDJSONSlice[T any](out io.Writer, items []T) error {
+func WriteNDJSON[T any](out io.Writer, items []T) error {
 	enc := json.NewEncoder(out)
 	for _, item := range items {
 		if err := enc.Encode(item); err != nil {

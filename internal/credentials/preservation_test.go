@@ -1,11 +1,15 @@
-package config
+package credentials_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 )
 
 func TestCredentialReplacementPreservesOtherProfileMetadataAndUnknownFields(t *testing.T) {
@@ -14,32 +18,39 @@ func TestCredentialReplacementPreservesOtherProfileMetadataAndUnknownFields(t *t
 	if err := os.WriteFile(path, initial, 0600); err != nil {
 		t.Fatal(err)
 	}
-	creds, _, err := LoadCredentials(path)
+	s := credentials.New(path, nil, nil)
+	ctx := context.Background()
+	if err := s.Save(ctx, "first", config.Credential{Token: "replacement"}, "file"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	creds.Profiles["first"] = Credential{Token: "replacement"}
-	if err := SaveCredentials(path, creds); err != nil {
+	var saved map[string]any
+	if err := json.Unmarshal(data, &saved); err != nil {
 		t.Fatal(err)
 	}
-	data, _ := os.ReadFile(path)
-	var saved map[string]any
-	json.Unmarshal(data, &saved)
 	profiles := saved["profiles"].(map[string]any)
 	second := profiles["second"].(map[string]any)
 	if saved["future_root"] != true || second["future_field"] == nil || second["authorization"].(map[string]any)["version"] != float64(99) {
 		t.Fatalf("lost unrelated fields: %s", data)
 	}
 	// An encoding failure must not truncate the last readable credential file.
-	creds.Profiles["first"] = Credential{Token: "replacement", Authorization: json.RawMessage(`{`)}
-	if SaveCredentials(path, creds) == nil {
+	if s.Save(ctx, "first", config.Credential{Token: "replacement", Authorization: json.RawMessage(`{`)}, "file") == nil {
 		t.Fatal("expected encoding error")
 	}
-	after, _ := os.ReadFile(path)
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(data, after) {
 		t.Fatal("failed save modified credentials")
 	}
-	info, _ := os.Stat(path)
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if info.Mode().Perm() != 0600 {
 		t.Fatalf("mode: %v", info.Mode())
 	}

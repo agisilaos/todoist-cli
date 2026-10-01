@@ -120,11 +120,11 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 }
 
 // writeStructuredValue emits a single result, preserving the JSON payload in NDJSON.
-func writeStructuredValue(ctx *Context, value any, meta output.Meta) error {
+func writeStructuredValue(ctx *Context, value any) error {
 	if ctx.Mode == output.ModeNDJSON {
 		return output.WriteNDJSON(ctx.Stdout, []any{value})
 	}
-	return output.WriteJSON(ctx.Stdout, value, meta)
+	return output.WriteJSON(ctx.Stdout, value)
 }
 
 func writeDryRun(ctx *Context, action string, payload any) error {
@@ -134,7 +134,7 @@ func writeDryRun(ctx *Context, action string, payload any) error {
 			"payload":       payload,
 			"dry_run":       true,
 			"authorization": currentAuthorization(ctx),
-		}, output.Meta{})
+		})
 	}
 	fmt.Fprintf(ctx.Stdout, "dry run: %s; %s\n", action, currentAuthorization(ctx).Summary())
 	return nil
@@ -145,7 +145,7 @@ func writeSimpleResult(ctx *Context, status, id string) error {
 		return writeStructuredValue(ctx, map[string]any{
 			"id":     id,
 			"status": status,
-		}, output.Meta{RequestID: ctx.RequestID})
+		})
 	}
 	fmt.Fprintf(ctx.Stdout, "%s %s\n", status, id)
 	return nil
@@ -160,19 +160,15 @@ func setRequestID(ctx *Context, requestID string) {
 	}
 }
 
-func ctxRequestIDValue(ctx *Context) string {
-	return ctx.RequestID
-}
-
 func writeError(ctx *Context, err error) {
 	if err == nil {
 		return
 	}
-	meta := output.Meta{RequestID: ctxRequestIDValue(ctx)}
-	if meta.RequestID == "" {
+	requestID := ctx.RequestID
+	if requestID == "" {
 		var apiErr *api.APIError
 		if errors.As(err, &apiErr) && apiErr.RequestID != "" {
-			meta.RequestID = apiErr.RequestID
+			requestID = apiErr.RequestID
 		}
 	}
 	var skillErr *skillinstall.Error
@@ -187,6 +183,10 @@ func writeError(ctx *Context, err error) {
 				"input":   ambiguousErr.Input,
 				"matches": ambiguousErr.Matches,
 			}
+		}
+		meta := map[string]string{}
+		if requestID != "" {
+			meta["request_id"] = requestID
 		}
 		enc := json.NewEncoder(ctx.Stderr)
 		if !ctx.Global.QuietJSON && ctx.Mode != output.ModeNDJSON {
@@ -262,8 +262,8 @@ func writeError(ctx *Context, err error) {
 		_ = enc.Encode(payload)
 		return
 	}
-	if meta.RequestID != "" {
-		fmt.Fprintf(ctx.Stderr, "error: %s (request_id=%s)\n", safeErrorText(ctx, err), meta.RequestID)
+	if requestID != "" {
+		fmt.Fprintf(ctx.Stderr, "error: %s (request_id=%s)\n", safeErrorText(ctx, err), requestID)
 	} else {
 		fmt.Fprintf(ctx.Stderr, "error: %s\n", safeErrorText(ctx, err))
 	}
@@ -294,13 +294,6 @@ func writeError(ctx *Context, err error) {
 	if errors.As(err, &denied) && denied.Code == "READ_ONLY" {
 		fmt.Fprintln(ctx.Stderr, "Select a write-capable profile, or log in with --oauth without --read-only. --force cannot override authorization.")
 	}
-}
-
-func requireNonEmpty(value, field string) error {
-	if strings.TrimSpace(value) == "" {
-		return &CodeError{Code: exitUsage, Err: errors.New(field + " is required")}
-	}
-	return nil
 }
 
 func terminalWidth() int {

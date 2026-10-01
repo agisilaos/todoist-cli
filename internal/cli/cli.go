@@ -518,10 +518,6 @@ func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(operationContext(ctx), time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
 }
 
-func parseIDOrName(input string) string {
-	return stripIDPrefix(strings.TrimSpace(input))
-}
-
 func applyEnvString(key string, target *string) {
 	if target == nil {
 		return

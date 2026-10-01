@@ -201,7 +201,7 @@ func schemaCommand(ctx *Context, args []string) error {
 		list = filtered
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
-	return output.WriteJSON(ctx.Stdout, list, output.Meta{})
+	return output.WriteJSON(ctx.Stdout, list)
 }
 
 func printSchemaHelp(out interface{ Write([]byte) (int, error) }) {

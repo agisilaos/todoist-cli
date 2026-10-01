@@ -132,10 +132,10 @@ func statsVacationCommand(ctx *Context, args []string) error {
 
 func writeStatsSummary(ctx *Context, summary appstats.Summary) error {
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, summary, output.Meta{RequestID: ctx.RequestID})
+		return output.WriteJSON(ctx.Stdout, summary)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, []appstats.Summary{summary})
+		return output.WriteNDJSON(ctx.Stdout, []appstats.Summary{summary})
 	}
 	if ctx.Mode == output.ModePlain {
 		rows := [][]string{

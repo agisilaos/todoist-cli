@@ -185,20 +185,6 @@ func TestApplyActionTaskAddReturnsResolverError(t *testing.T) {
 	}
 }
 
-func TestValidateActionFieldsCommentAddAllowsProjectAlias(t *testing.T) {
-	err := validateActionFields(Action{Type: "comment_add", Content: "hello", Project: "Home"})
-	if err != nil {
-		t.Fatalf("validateActionFields: %v", err)
-	}
-}
-
-func TestValidateActionFieldsTaskMoveAllowsProjectID(t *testing.T) {
-	err := validateActionFields(Action{Type: "task_move", TaskID: "t1", ProjectID: "p1"})
-	if err != nil {
-		t.Fatalf("validateActionFields: %v", err)
-	}
-}
-
 func assertBodySubset(got map[string]any, want map[string]any) bool {
 	if len(want) == 0 {
 		return len(got) == 0 || got == nil

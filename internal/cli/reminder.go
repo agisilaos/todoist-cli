@@ -244,10 +244,10 @@ func writeReminderList(ctx *Context, reminders []api.Reminder) error {
 		reminders = []api.Reminder{}
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, reminders, output.Meta{RequestID: ctx.RequestID, Count: len(reminders)})
+		return output.WriteJSON(ctx.Stdout, reminders)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, reminders)
+		return output.WriteNDJSON(ctx.Stdout, reminders)
 	}
 	if len(reminders) == 0 {
 		if ctx.Mode == output.ModeHuman {

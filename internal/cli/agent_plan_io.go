@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/output"
 
 	"io"
@@ -80,7 +79,7 @@ func writePlanPreview(ctx *Context, plan Plan, dryRun bool) error {
 			"action_count":  len(plan.Actions),
 			"summary":       plan.Summary,
 		}
-		return writeStructuredValue(ctx, payload, output.Meta{})
+		return writeStructuredValue(ctx, payload)
 	}
 	if plan.Review != nil {
 		previewCtx := *ctx
@@ -133,14 +132,6 @@ func lastPlanPath(ctx *Context) string {
 	return filepath.Join(filepath.Dir(ctx.ConfigPath), "last_plan.json")
 }
 
-func newConfirmToken() string {
-	id := api.NewRequestID()
-	if len(id) >= 4 {
-		return id[:4]
-	}
-	return "confirm"
-}
-
 func toAnySlice[T any](items []T) []any {
 	out := make([]any, 0, len(items))
 	for _, item := range items {
@@ -173,7 +164,7 @@ func writePlanApplyResult(ctx *Context, plan Plan, results []applyResult, applyE
 			}
 			out.Results = append(out.Results, entry)
 		}
-		return writeStructuredValue(ctx, out, output.Meta{RequestID: ctxRequestIDValue(ctx)})
+		return writeStructuredValue(ctx, out)
 	}
 	okCount, failedCount, skippedReplay := summarizeApplyResults(results)
 	if skippedReplay == len(results) {

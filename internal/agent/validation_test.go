@@ -22,3 +22,17 @@ func TestSummarizeActions(t *testing.T) {
 		t.Fatalf("unexpected summary: %#v", s)
 	}
 }
+
+func TestValidateActionFieldsCommentAddAllowsProjectAlias(t *testing.T) {
+	err := ValidateActionFields(Action{Type: "comment_add", Content: "hello", Project: "Home"})
+	if err != nil {
+		t.Fatalf("ValidateActionFields: %v", err)
+	}
+}
+
+func TestValidateActionFieldsTaskMoveAllowsProjectID(t *testing.T) {
+	err := ValidateActionFields(Action{Type: "task_move", TaskID: "t1", ProjectID: "p1"})
+	if err != nil {
+		t.Fatalf("ValidateActionFields: %v", err)
+	}
+}

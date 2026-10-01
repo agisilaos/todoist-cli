@@ -13,9 +13,8 @@ type Collaborator struct {
 }
 
 type ParsedRef struct {
-	ID          string
-	IsMe        bool
-	NeedsLookup bool
+	ID   string
+	IsMe bool
 }
 
 func ParseRef(ref string) ParsedRef {
@@ -30,7 +29,7 @@ func ParseRef(ref string) ParsedRef {
 	if direct {
 		return ParsedRef{ID: normalized}
 	}
-	return ParsedRef{NeedsLookup: true}
+	return ParsedRef{}
 }
 
 func MatchCollaboratorID(ref string, collaborators []Collaborator) (id string, candidates []apprefs.Candidate, found bool) {

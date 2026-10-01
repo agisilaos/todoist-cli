@@ -209,10 +209,10 @@ func writeLabelList(ctx *Context, labels []api.Label, cursor string) error {
 		return writeIDs(ctx, labels, func(item api.Label) string { return item.ID }, cursor)
 	}
 	if ctx.Mode == output.ModeJSON {
-		return output.WriteJSON(ctx.Stdout, labels, output.Meta{RequestID: ctx.RequestID, Count: len(labels), Cursor: cursor})
+		return output.WriteJSON(ctx.Stdout, labels)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, labels)
+		return output.WriteNDJSON(ctx.Stdout, labels)
 	}
 	rows := make([][]string, 0, len(labels))
 	for _, label := range labels {

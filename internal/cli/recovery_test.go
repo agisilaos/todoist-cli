@@ -94,8 +94,8 @@ func TestRecoveryManualLoginGuidanceWorks(t *testing.T) {
 			if err := authLogin(ctx, []string{"--token-stdin", "--credential-store=file"}); err != nil {
 				t.Fatal(err)
 			}
-			saved, _, err := config.LoadCredentials(config.CredentialsPathFromConfig(ctx.ConfigPath))
-			if err != nil || saved.Profiles[ctx.Profile].Token != "synthetic-accepted" {
+			saved, err := credentials.New(config.CredentialsPathFromConfig(ctx.ConfigPath), nil, nil).Load(context.Background(), ctx.Profile)
+			if err != nil || saved.Token != "synthetic-accepted" {
 				t.Fatalf("credential not saved: %v", err)
 			}
 		})

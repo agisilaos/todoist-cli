@@ -3,7 +3,6 @@ package tasks
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
@@ -191,20 +190,4 @@ func normalizeTaskID(value string) (string, error) {
 		return trimmed, nil
 	}
 	return strings.TrimSpace(normalized), nil
-}
-
-func (r ResolveCompletionResult) Validate() error {
-	switch r.Mode {
-	case "single":
-		if strings.TrimSpace(r.ID) == "" {
-			return fmt.Errorf("single mode requires id")
-		}
-	case "bulk":
-		if strings.TrimSpace(r.Filter) == "" {
-			return fmt.Errorf("bulk mode requires filter")
-		}
-	default:
-		return fmt.Errorf("unknown mode: %s", r.Mode)
-	}
-	return nil
 }
