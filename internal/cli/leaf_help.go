@@ -3,6 +3,15 @@ package cli
 // Detailed help is separate from discovery metadata; flags are checked against
 // parser registrations by TestLeafHelpFlagsMatchRegistrations.
 
+const taskSortFlags = `  --sort <key>                     due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>           Direction for an explicit sort
+`
+const taskSortNotes = `  Sorts the fetched selection; --all spans every fetched page where supported.
+  Defaults: due/deadline/content/order asc; priority/added/updated/completed desc.
+  Missing values go last in both directions; equal values use opaque ID ascending.
+  --sort none retains fetched order and rejects --sort-order; omission keeps default ordering.
+`
+
 var leafHelpPages = map[string]commandHelp{
 	"skill install": {
 		usage: `<codex|claude-code> --scope <local|global> --path <absolute-directory>`,
@@ -196,8 +205,8 @@ var leafHelpPages = map[string]commandHelp{
   --until <date>                    End date (RFC3339 or YYYY-MM-DD)
   --wide                            Detailed table (API priorities)
   --preset <today|overdue|next7>    Shortcut filter: today, overdue, next7
-  --sort <due|priority>             Sort by: due, priority
-  --truncate-width <cols>           Override human output width`,
+  --truncate-width <cols>           Override human output width
+` + taskSortFlags,
 		examples: `  todoist task list
   todoist task list --all-projects --all --ids-only
   todoist task list --completed --since yesterday --json`,
@@ -207,16 +216,17 @@ var leafHelpPages = map[string]commandHelp{
   --wide retains the detailed table (4 is highest); task view id:<id> shows full text.
   --quiet hides summaries, but retains tasks and cursor notices.
   Failed or missing Inbox lookup stops without fetching tasks from other projects.
-  Use --project or --filter for an explicit selection; filters/presets retain API order.
+  Use --project or --filter for an explicit selection; default filters/presets retain API order.
   Completed listing accepts date hints such as yesterday and "2 weeks ago"; --since without --until ends today.
-  Use --all to fetch all pages where supported, or follow the returned cursor.`,
+  Use --all to fetch all pages where supported, or follow the returned cursor.
+` + taskSortNotes,
 		globals: `  --no-input            Disable prompts
   --ids-only            Print one raw ID per result`,
 	},
 	"task add": {
 		usage: `--content <text> [flags]`,
 		flags: `  --content <text>                  Task content
-  --description <text>              Task description
+  --description <text|->            Exact stdin text with -, including trailing newline
   --project <ref>                   Project
   --section <ref>                   Section
   --parent <id>                     Parent task
@@ -231,9 +241,15 @@ var leafHelpPages = map[string]commandHelp{
   --deadline <YYYY-MM-DD>           Deadline date
   --assignee <ref>                  Assignee reference (id, me, name, email)
   --quick                           Quick add using inbox defaults
+  --reference[=true|false]           Add/remove one leading "* " title prefix
+  --order <n>                       Sibling order (signed int32, including zero)
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)`,
 		examples: `  todoist task add --content "Review launch notes" --project Home --due tomorrow`,
-		notes: `  Use --content - to read stdin. --quick delegates to Inbox defaults; use top-level add for --strict.
+		notes: `  Use --content - for trimmed stdin, or --description - for exact stdin; never both.
+  Reference control refuses repeated prefixes and blank remaining titles.
+  Unavailable optional task data emits task_write_ack; inspect before retrying creation.
+  Use --content - to read stdin. --quick delegates to Inbox defaults; use top-level add for --strict.
+  Duration requires --duration and --duration-unit together.
   Priority accepts 1-4 (4 is highest) or p1-p4 (p1 is highest). Labels are repeatable.
   Human capture prints returned task details and a view command, except with --quiet.
   Receipt priority matches p1-p4; machine output and numeric input retain API priorities.
@@ -244,9 +260,14 @@ var leafHelpPages = map[string]commandHelp{
 	"task update": {
 		usage: `<ref> [flags]
 --id <id> [flags]`,
-		flags: `  --id <id>                         Task ID
+		flags: `  --clear-due                       Clear due and recurrence
+  --clear-deadline                  Clear deadline
+  --clear-labels                    Clear all labels
+  --clear-assignee                  Clear assignment
+  --clear-description               Clear description
+  --id <id>                         Task ID
   --content <text>                  Task content
-  --description <text>              Task description
+  --description <text|->            Exact stdin text with -, including trailing newline
   --label <name>                    Label (repeatable)
   --priority <1-4>                  Priority (accepts p1..p4)
   --due <text>                      Due string
@@ -258,10 +279,20 @@ var leafHelpPages = map[string]commandHelp{
   --deadline <YYYY-MM-DD>           Deadline date
   --assignee <ref>                  Assignee reference (id, me, name, email)
   --project <ref>                   Project (used for assignee name/email resolution)
+  --reference[=true|false]           Add/remove one leading "* " title prefix
+  --order <n>                       Sibling order (signed int32, including zero)
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)`,
 		examples: `  todoist task update id:123456 --due tomorrow`,
 		notes: `  Use id:<id> for an exact task or a quoted text reference; list tasks first if a reference is ambiguous.
-  Use task move to change location; --project here scopes assignee name/email resolution.`,
+  Duration requires --duration and --duration-unit together.
+  Omitted fields remain unchanged; empty description, reference=false, and order=0 are edits.
+  Use --description - for exact stdin; empty stdin clears it. Content stdin is trimmed.
+  Setters conflict with their clear flags; due setters and natural tokens cannot overlap.
+  Use task move to change location; --project here scopes assignee name/email resolution.
+  --clear-due with other fields runs two writes: Sync clear, then REST edit.
+  A second-step failure emits a partial report and nonzero exit; inspect before resubmitting.
+  Acceptance with unavailable optional task data emits task_write_ack, not a task resource.
+  Use task reschedule to preserve recurrence; ordinary due updates retain their existing behavior.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},
@@ -273,11 +304,19 @@ var leafHelpPages = map[string]commandHelp{
   --section <ref>                   Section
   --parent <id>                     Parent
   --filter <query>                  Filter query for bulk move
+  --clear-parent                    Detach to current section, or project if sectionless
+  --clear-section                   Remove section, remaining in current project
   --yes                             Required for bulk move`,
 		examples: `  todoist task move id:123456 --project Home
   todoist task move id:123456 --project Home --section Backlog --dry-run
   todoist task move --filter "@work & overdue" --project Home --yes --dry-run`,
-		notes: `  Supply a destination. Use id:<id> for an exact task; use task list to resolve ambiguous references.
+		notes: `  Supply a destination or hierarchy clear flags. Parent excludes project/section setters.
+  Project accompanying section scopes resolution; section is the sole destination.
+  Clearing an inherited section from a child requires explicit --clear-parent.
+  Clearing both makes a root task in its current project. Already-satisfied clears dispatch no write.
+  Filtered batches fully preflight every page and reject duplicate/ancestor overlaps.
+  Definite rejections continue; uncertainty stops. Inspect per-target accounting before retrying.
+  Use id:<id> for an exact task; use task list to resolve ambiguous references.
   Terminal feedback acknowledges the move and shows returned destination details when available.
   Missing details use labeled requested values; unavailable names retain IDs. No extra lookups.
   Single-task dry runs show task identity and requested destinations; no task is changed.
@@ -290,28 +329,53 @@ var leafHelpPages = map[string]commandHelp{
 		usage: `<ref> [--full]
 --id <id> [--full]`,
 		flags: `  --id <id>                         Task ID
-  --full                            Add exact destination IDs and inspection metadata`,
+  --include-children                Fetch every page of direct active children
+  --full                            Add exact destination IDs and inspection metadata
+` + taskSortFlags,
 		examples: `  todoist task view id:123456
   todoist task view id:123456 --full
   todoist task view id:123456 --no-input --json
   todoist task view id:123456 --no-input --ndjson
   todoist task view id:123456 --no-input --json --task-output-version 2`,
-		notes: `  Use id:<id> for an exact task or a quoted text reference.
+		notes: `  --include-children emits task_expanded_view (v1/v2), with task, children, children_complete.
+  Expansion failures emit no task collection; completeness means all pages, not a snapshot.
+  Sorting applies only to expanded children and requires --include-children.
+  Use id:<id> for an exact task or a quoted text reference.
   Multiple matches offer a numbered choice with task context in a terminal; Enter cancels selection.
   With --no-input or piped stdin, use task list --all-projects --all --no-input --json and retry id:<id>.
   Human detail keeps full text, names, P1 highest, absolute dates, recurrence, state, labels, and ID.
   Deadline, duration, assignee ID, due language, and title-derived reference-item status are shown.
   Text wraps without truncation; returned offsets/timezones are not converted.
+  --include-children                Fetch every page of direct active children
   --full adds destination IDs, timestamps, order, actor IDs, flags, and returned counters.
   The deprecated note_count value is not a reliable comment count.
   None/No due date means known absence; Not returned means unknown information.
   Name lookups add collection requests; failure retains IDs and says lookup failed.
   Machine output has no enrichment. --json emits a task object; --ndjson emits the same object on one line.
+  --include-children                Fetch every page of direct active children
   --full does not change either payload; plain/redirected retain legacy labeled text.
   --task-output-version 2 preserves supported returned fields, including absent/null/false/zero.
   Use schema --name task_item_v2 for JSON view and NDJSON records; task_list_v2 for JSON arrays.
-  Version selection requires --json or --ndjson and rejects previews and acknowledgement commands.`,
+  Version selection requires --json or --ndjson and rejects previews and acknowledgement commands.
+` + taskSortNotes,
 		globals: `  --no-input            Disable prompts`,
+	},
+	"task reschedule": {
+		usage: `<ref> (--due-date <date> | --due-datetime <RFC3339> | --due-local-datetime <local>)`,
+		flags: `  --id <id>                         Exact task ID instead of a positional reference
+  --due-date <YYYY-MM-DD>            Replace date retaining existing clock and time character
+  --due-datetime <RFC3339>           Exact instant for existing fixed-zone due time
+  --due-local-datetime <local>       YYYY-MM-DDTHH:MM:SS for existing floating due time`,
+		examples: `  todoist task reschedule id:123456 --due-date 2026-10-15
+  todoist task reschedule --id 123456 --due-datetime 2026-10-15T14:00:00Z`,
+		notes: `  Preserves explicit recurrence and existing date-only, floating, or fixed-zone character.
+  Requires returned primary date, recurrence, and timezone evidence; refuses unknown/contradictory facts.
+  A recurring task also requires its returned expression and language. No type conversions.
+  Date replacement in a DST gap/fold refuses; an explicit instant resolves a fixed-zone fold.
+  Uses native Sync item_update and requires its exact command acknowledgement.
+  JSON success is a returned task array, or task_write_ack when optional task data is unavailable.`,
+		globals: `  -n, --dry-run          Preview without mutations
+  --no-input            Disable prompts`,
 	},
 	"task complete": {
 		usage: `<ref>
@@ -319,12 +383,15 @@ var leafHelpPages = map[string]commandHelp{
 --filter <query> --yes`,
 		flags: `  --id <id>                         Task ID
   --filter <query>                  Filter query for bulk complete
+  --forever                         Native permanent completion, including subtasks
   --yes                             Required for bulk complete`,
 		examples: `  todoist task complete id:123456
   todoist task complete id:123456 --dry-run
   todoist task complete --filter "@work & overdue" --yes --dry-run`,
 		notes: `  Use task list to find a task, then id:<id> for an exact reference; quoted task text also works.
   Terminal feedback says Completion accepted and includes known pre-action task context and full ID.
+  --forever permanently completes recurrence and subtasks using a native operation.
+  Filtered batches preflight all pages; uncertainty stops with explicit target accounting.
   Recurring completion advances an occurrence; it does not permanently finish the task. No next date is returned.
   --id avoids a task lookup and may show only the ID. Human single-task dry runs show intent without changes.
   Quiet, machine, and redirected output retain their existing acknowledgements and previews.
@@ -462,9 +529,11 @@ var leafHelpPages = map[string]commandHelp{
   --ids-only            Print one raw ID per result`,
 	},
 	"filter show": {
-		usage:    `<id|name>`,
+		usage:    `<id|name> [--sort <key>]`,
+		flags:    taskSortFlags,
 		examples: `  todoist filter show "Work today"`,
-		notes:    `  Uses a saved filter's query to list tasks. Find names and IDs with filter list.`,
+		notes: `  Uses a saved filter's query to list tasks. Find names and IDs with filter list.
+` + taskSortNotes,
 		globals: `  --no-input            Disable prompts
   --ids-only            Print one raw ID per result`,
 	},

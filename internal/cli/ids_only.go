@@ -16,7 +16,7 @@ func idsOnlyEligible(args []string, help bool) bool {
 	case "today", "upcoming", "completed", "activity":
 		return true
 	case "inbox":
-		return len(args) == 1 || args[1] == "help"
+		return len(args) == 1 || args[1] == "help" || strings.HasPrefix(args[1], "-")
 	case "task", "project", "section", "label", "comment", "filter", "workspace", "reminder", "notification":
 		// A bare resource command prints help.
 		if len(args) == 1 {

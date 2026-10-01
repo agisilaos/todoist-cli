@@ -3,9 +3,14 @@ Usage:
   todoist task update --id <id> [flags]
 
 Flags:
+  --clear-due                       Clear due and recurrence
+  --clear-deadline                  Clear deadline
+  --clear-labels                    Clear all labels
+  --clear-assignee                  Clear assignment
+  --clear-description               Clear description
   --id <id>                         Task ID
   --content <text>                  Task content
-  --description <text>              Task description
+  --description <text|->            Exact stdin text with -, including trailing newline
   --label <name>                    Label (repeatable)
   --priority <1-4>                  Priority (accepts p1..p4)
   --due <text>                      Due string
@@ -17,6 +22,8 @@ Flags:
   --deadline <YYYY-MM-DD>           Deadline date
   --assignee <ref>                  Assignee reference (id, me, name, email)
   --project <ref>                   Project (used for assignee name/email resolution)
+  --reference[=true|false]           Add/remove one leading "* " title prefix
+  --order <n>                       Sibling order (signed int32, including zero)
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)
 
 Global flags:
@@ -27,7 +34,15 @@ Global flags:
 
 Notes:
   Use id:<id> for an exact task or a quoted text reference; list tasks first if a reference is ambiguous.
+  Duration requires --duration and --duration-unit together.
+  Omitted fields remain unchanged; empty description, reference=false, and order=0 are edits.
+  Use --description - for exact stdin; empty stdin clears it. Content stdin is trimmed.
+  Setters conflict with their clear flags; due setters and natural tokens cannot overlap.
   Use task move to change location; --project here scopes assignee name/email resolution.
+  --clear-due with other fields runs two writes: Sync clear, then REST edit.
+  A second-step failure emits a partial report and nonzero exit; inspect before resubmitting.
+  Acceptance with unavailable optional task data emits task_write_ack, not a task resource.
+  Use task reschedule to preserve recurrence; ordinary due updates retain their existing behavior.
 
 Examples:
   todoist task update id:123456 --due tomorrow

@@ -3,211 +3,10 @@ package cli
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strings"
-
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
-	"github.com/agisilaos/todoist-cli/internal/authorization"
-	"github.com/agisilaos/todoist-cli/internal/output"
+	"strings"
 )
-
-func taskMove(ctx *Context, args []string) error {
-	fs := newFlagSet("task move")
-	var id string
-	var project string
-	var section string
-	var parent string
-	var filter string
-	var yes bool
-	var help bool
-	fs.StringVar(&id, "id", "", "Task ID")
-	fs.StringVar(&project, "project", "", "Project")
-	fs.StringVar(&section, "section", "", "Section")
-	fs.StringVar(&parent, "parent", "", "Parent")
-	fs.StringVar(&filter, "filter", "", "Filter query for bulk move")
-	fs.BoolVar(&yes, "yes", false, "Required for bulk move")
-	bindHelpFlag(fs, &help)
-	if err := parseFlagSetInterspersed(fs, args); err != nil {
-		return &CodeError{Code: exitUsage, Err: err}
-	}
-	if help {
-		printTaskHelp(ctx.Stdout)
-		return nil
-	}
-	if err := ensureClient(ctx); err != nil {
-		return err
-	}
-	ref := ""
-	if len(fs.Args()) > 0 {
-		ref = strings.Join(fs.Args(), " ")
-	}
-	resolver := &taskActionResolver{ctx: ctx}
-	svc := apptasks.Service{
-		Resolver: resolver,
-		Lister:   cliTaskFilterLister{ctx: ctx},
-	}
-	resolved, err := svc.ResolveMoveTargets(context.Background(), apptasks.ResolveMoveInput{
-		ID:      id,
-		Ref:     ref,
-		Filter:  filter,
-		Yes:     yes,
-		Force:   ctx.Global.Force,
-		Project: project,
-		Section: section,
-		Parent:  parent,
-	})
-	if err != nil {
-		return asUsageIfGeneric(err)
-	}
-	if resolved.Mode == "bulk" {
-		body, err := buildTaskMovePayload(ctx, "", project, "", section, parent)
-		if err != nil {
-			return err
-		}
-		if ctx.Global.DryRun {
-			return writeDryRun(ctx, "task move bulk", map[string]any{"filter": resolved.Filter, "count": len(resolved.IDs), "ids": resolved.IDs, "payload": body})
-		}
-		moved := 0
-		failed := 0
-		for _, taskID := range resolved.IDs {
-			reqCtx, cancel := requestContext(ctx)
-			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/move", nil, body, nil, true)
-			cancel()
-			if err != nil {
-				var denied *authorization.Error
-				if errors.As(err, &denied) {
-					return err
-				}
-				failed++
-				continue
-			}
-			setRequestID(ctx, reqID)
-			moved++
-		}
-		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-			return writeStructuredValue(ctx, map[string]any{
-				"filter": resolved.Filter,
-				"moved":  moved,
-				"failed": failed,
-				"count":  len(resolved.IDs),
-			})
-		}
-		fmt.Fprintf(ctx.Stdout, "bulk move complete: moved=%d failed=%d total=%d\n", moved, failed, len(resolved.IDs))
-		return nil
-	}
-	id = resolved.ID
-	body, err := buildTaskMovePayload(ctx, "", project, "", section, parent)
-	if err != nil {
-		return err
-	}
-	if ctx.Global.DryRun {
-		return writeTaskActionPreview(ctx, "move", id, resolver.task, body)
-	}
-	reqCtx, cancel := requestContext(ctx)
-	var response []byte
-	var reqID string
-	if taskActionHuman(ctx) {
-		response, reqID, err = ctx.Client.PostWithOptionalResponse(reqCtx, "/tasks/"+id+"/move", body)
-	} else {
-		reqID, err = ctx.Client.Post(reqCtx, "/tasks/"+id+"/move", nil, body, nil, true)
-	}
-	cancel()
-	if err != nil {
-		return err
-	}
-	setRequestID(ctx, reqID)
-	return writeTaskMoveResult(ctx, id, resolver.task, body, response)
-}
-
-func taskComplete(ctx *Context, args []string) error {
-	fs := newFlagSet("task complete")
-	var id string
-	var filter string
-	var yes bool
-	var help bool
-	fs.StringVar(&id, "id", "", "Task ID")
-	fs.StringVar(&filter, "filter", "", "Filter query for bulk complete")
-	fs.BoolVar(&yes, "yes", false, "Required for bulk complete")
-	bindHelpFlag(fs, &help)
-	if err := parseFlagSetInterspersed(fs, args); err != nil {
-		return &CodeError{Code: exitUsage, Err: err}
-	}
-	if help {
-		printTaskHelp(ctx.Stdout)
-		return nil
-	}
-	if err := ensureClient(ctx); err != nil {
-		return err
-	}
-	ref := ""
-	if len(fs.Args()) > 0 {
-		ref = strings.Join(fs.Args(), " ")
-	}
-	resolver := &taskActionResolver{ctx: ctx}
-	svc := apptasks.Service{
-		Resolver: resolver,
-		Lister:   cliTaskFilterLister{ctx: ctx},
-	}
-	resolved, err := svc.ResolveCompletionTargets(context.Background(), apptasks.ResolveCompletionInput{
-		ID:     id,
-		Ref:    ref,
-		Filter: filter,
-		Yes:    yes,
-		Force:  ctx.Global.Force,
-	})
-	if err != nil {
-		return asUsageIfGeneric(err)
-	}
-	if resolved.Mode == "bulk" {
-		if ctx.Global.DryRun {
-			return writeDryRun(ctx, "task complete bulk", map[string]any{"filter": resolved.Filter, "count": len(resolved.IDs), "ids": resolved.IDs})
-		}
-		completed := 0
-		failed := 0
-		for _, taskID := range resolved.IDs {
-			reqCtx, cancel := requestContext(ctx)
-			reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+taskID+"/close", nil, nil, nil, true)
-			cancel()
-			if err != nil {
-				var denied *authorization.Error
-				if errors.As(err, &denied) {
-					return err
-				}
-				failed++
-				continue
-			}
-			setRequestID(ctx, reqID)
-			completed++
-		}
-		if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
-			return writeStructuredValue(ctx, map[string]any{
-				"filter":    resolved.Filter,
-				"completed": completed,
-				"failed":    failed,
-				"count":     len(resolved.IDs),
-			})
-		}
-		fmt.Fprintf(ctx.Stdout, "bulk complete done: completed=%d failed=%d total=%d\n", completed, failed, len(resolved.IDs))
-		return nil
-	}
-	id = resolved.ID
-	if id == "" {
-		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("task complete requires --id or a reference")}
-	}
-	if ctx.Global.DryRun {
-		return writeTaskActionPreview(ctx, "complete", id, resolver.task, map[string]any{"id": id})
-	}
-	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+id+"/close", nil, nil, nil, true)
-	cancel()
-	if err != nil {
-		return err
-	}
-	setRequestID(ctx, reqID)
-	return writeTaskCompletionResult(ctx, id, resolver.task)
-}
 
 // Retain context from the existing resolution without another lookup or any
 // change to target selection. Explicit --id still bypasses resolution.
@@ -265,7 +64,7 @@ func taskReopen(ctx *Context, args []string) error {
 		return writeDryRun(ctx, "task reopen", map[string]any{"id": id})
 	}
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/tasks/"+id+"/reopen", nil, nil, nil, true)
+	reqID, err := ctx.Client.Post(reqCtx, taskPath(id)+"/reopen", nil, nil, nil, true)
 	cancel()
 	if err != nil {
 		return err
@@ -314,7 +113,7 @@ func taskDelete(ctx *Context, args []string) error {
 		return writeDryRun(ctx, "task delete", map[string]any{"id": id})
 	}
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Delete(reqCtx, "/tasks/"+id, nil)
+	reqID, err := ctx.Client.Delete(reqCtx, taskPath(id), nil)
 	cancel()
 	if err != nil {
 		return err

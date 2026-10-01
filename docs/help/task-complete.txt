@@ -6,6 +6,7 @@ Usage:
 Flags:
   --id <id>                         Task ID
   --filter <query>                  Filter query for bulk complete
+  --forever                         Native permanent completion, including subtasks
   --yes                             Required for bulk complete
 
 Global flags:
@@ -17,6 +18,8 @@ Global flags:
 Notes:
   Use task list to find a task, then id:<id> for an exact reference; quoted task text also works.
   Terminal feedback says Completion accepted and includes known pre-action task context and full ID.
+  --forever permanently completes recurrence and subtasks using a native operation.
+  Filtered batches preflight all pages; uncertainty stops with explicit target accounting.
   Recurring completion advances an occurrence; it does not permanently finish the task. No next date is returned.
   --id avoids a task lookup and may show only the ID. Human single-task dry runs show intent without changes.
   Quiet, machine, and redirected output retain their existing acknowledgements and previews.

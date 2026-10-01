@@ -129,3 +129,20 @@ absence as false/zero/unassigned or automatically retry a successful mutation
 because its resource response lacks information. Use `--all` or the stderr cursor
 notice for incomplete collections. Missing tasks retain exit 4; missing credentials
 retain exit 3, with empty stdout on errors.
+
+## Editing and expanded output
+
+[Task editing](task-editing-design.md) reuses returned task facts. Rescheduling
+refuses unknown recurrence/time character; hierarchy clearing walks exact ancestry.
+The frozen task_item_v2 projection is unchanged. `--include-children` wraps v1/v2
+resources in a separately schematized parent/children/children_complete envelope,
+with every direct active child page fetched before output. No flag means no child
+requests. Failed or contradictory expansion has empty stdout.
+
+Accepted add/update/reschedule writes may lack optional resource data. In that
+case `task_write_ack` carries acceptance and result_available:false; it contains
+no invented task facts. JSON/NDJSON result unions are task_write_result[_v2] and
+task_write_record[_v2]. Two-step edits may produce task_partial_edit with a nonzero
+exit; task_unchanged and task_batch are also separate contracts. Inspect before
+resubmitting an accepted or uncertain write. Existing --full and IDs-only rules
+remain unchanged.

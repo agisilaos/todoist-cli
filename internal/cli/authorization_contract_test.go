@@ -232,7 +232,7 @@ func TestAuthorizationBulkCompletionDoesNotSwallowDenial(t *testing.T) {
 		if r.Method != "GET" {
 			mutations.Add(1)
 		}
-		w.Write([]byte(`{"results":[{"id":"task1","content":"one"},{"id":"task2","content":"two"}]}`))
+		w.Write([]byte(`{"results":[{"id":"task1","content":"one","parent_id":null},{"id":"task2","content":"two","parent_id":null}],"next_cursor":null}`))
 	}))
 	defer server.Close()
 	code, out, errOut := executeAuthorization(t, path, "--base-url", server.URL, "task", "complete", "--filter", "today", "--yes", "--json")

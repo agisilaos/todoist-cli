@@ -15,8 +15,12 @@ func taskView(ctx *Context, args []string) error {
 	fs := newFlagSet("task view")
 	var id string
 	var full bool
+	var children bool
+	var sorting taskSortOptions
+	sorting.bind(fs)
 	var help bool
 	fs.StringVar(&id, "id", "", "Task ID")
+	fs.BoolVar(&children, "include-children", false, "Fetch every direct active child page")
 	fs.BoolVar(&full, "full", false, "Show full task fields")
 	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -26,7 +30,23 @@ func taskView(ctx *Context, args []string) error {
 		printTaskHelp(ctx.Stdout)
 		return nil
 	}
+	if err := sorting.validate(); err != nil {
+		return err
+	}
+	if !children && (sorting.key != "" || sorting.direction != "") {
+		return &CodeError{Code: exitUsage, Err: errors.New("task view sorting requires --include-children")}
+	}
+	if id != "" && len(fs.Args()) > 0 {
+		return &CodeError{Code: exitUsage, Err: errors.New("conflicting task selectors")}
+	}
 	ref := id
+	if id != "" {
+		normalized, err := normalizeTaskInputID(id)
+		if err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
+		ref = "id:" + normalized
+	}
 	if ref == "" && len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
@@ -41,6 +61,9 @@ func taskView(ctx *Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	if children {
+		return writeExpandedTaskView(ctx, task, full, sorting)
+	}
 	return writeTaskView(ctx, task, full)
 }
 
@@ -50,9 +73,12 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 		return api.Task{}, &CodeError{Code: exitUsage, Err: err}
 	}
 	if directID {
+		if strings.TrimSpace(ref) == "" {
+			return api.Task{}, &CodeError{Code: exitUsage, Err: errors.New("task ID cannot be empty")}
+		}
 		var task api.Task
 		reqCtx, cancel := requestContext(ctx)
-		reqID, err := ctx.Client.Get(reqCtx, "/tasks/"+ref, nil, &task)
+		reqID, err := ctx.Client.Get(reqCtx, taskPath(ref), nil, &task)
 		cancel()
 		if err != nil {
 			if isLegacyV1IDError(err) {
@@ -61,6 +87,9 @@ func resolveTaskRef(ctx *Context, ref string) (api.Task, error) {
 			return api.Task{}, err
 		}
 		setRequestID(ctx, reqID)
+		if task.ID != ref {
+			return api.Task{}, errors.New("exact task response identity mismatch")
+		}
 		return task, nil
 	}
 	tasks, err := listAllActiveTasks(ctx)

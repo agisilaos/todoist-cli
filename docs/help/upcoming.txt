@@ -1,5 +1,5 @@
 Usage:
-  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide] [--ids-only]
+  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|deadline|priority|added|updated|completed|content|order|none] [--sort-order asc|desc] [--wide] [--ids-only]
 
 Notes:
   - Shows N days including today (default 7: today and the next 6 days, UTC).

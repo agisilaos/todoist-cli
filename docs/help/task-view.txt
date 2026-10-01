@@ -6,7 +6,11 @@ Aliases: show
 
 Flags:
   --id <id>                         Task ID
+  --include-children                Fetch every page of direct active children
   --full                            Add exact destination IDs and inspection metadata
+  --sort <key>                     due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>           Direction for an explicit sort
+
 
 Global flags:
   -h, --help             Show help without running the command
@@ -14,21 +18,31 @@ Global flags:
   See 'todoist --help' for all global flags and output modes.
 
 Notes:
+  --include-children emits task_expanded_view (v1/v2), with task, children, children_complete.
+  Expansion failures emit no task collection; completeness means all pages, not a snapshot.
+  Sorting applies only to expanded children and requires --include-children.
   Use id:<id> for an exact task or a quoted text reference.
   Multiple matches offer a numbered choice with task context in a terminal; Enter cancels selection.
   With --no-input or piped stdin, use task list --all-projects --all --no-input --json and retry id:<id>.
   Human detail keeps full text, names, P1 highest, absolute dates, recurrence, state, labels, and ID.
   Deadline, duration, assignee ID, due language, and title-derived reference-item status are shown.
   Text wraps without truncation; returned offsets/timezones are not converted.
+  --include-children                Fetch every page of direct active children
   --full adds destination IDs, timestamps, order, actor IDs, flags, and returned counters.
   The deprecated note_count value is not a reliable comment count.
   None/No due date means known absence; Not returned means unknown information.
   Name lookups add collection requests; failure retains IDs and says lookup failed.
   Machine output has no enrichment. --json emits a task object; --ndjson emits the same object on one line.
+  --include-children                Fetch every page of direct active children
   --full does not change either payload; plain/redirected retain legacy labeled text.
   --task-output-version 2 preserves supported returned fields, including absent/null/false/zero.
   Use schema --name task_item_v2 for JSON view and NDJSON records; task_list_v2 for JSON arrays.
   Version selection requires --json or --ndjson and rejects previews and acknowledgement commands.
+  Sorts the fetched selection; --all spans every fetched page where supported.
+  Defaults: due/deadline/content/order asc; priority/added/updated/completed desc.
+  Missing values go last in both directions; equal values use opaque ID ascending.
+  --sort none retains fetched order and rejects --sort-order; omission keeps default ordering.
+
 
 Examples:
   todoist task view id:123456

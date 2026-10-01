@@ -3,16 +3,32 @@ package cli
 import (
 	"errors"
 	"strings"
-
-	"github.com/agisilaos/todoist-cli/internal/api"
 )
 
 func inboxCommand(ctx *Context, args []string) error {
-	if len(args) == 0 {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") && args[0] != "--help" && args[0] != "-h" {
+		fs := newFlagSet("inbox")
+		var sorting taskSortOptions
+		sorting.bind(fs)
+		var help bool
+		bindHelpFlag(fs, &help)
+		if err := parseFlagSetInterspersed(fs, args); err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
+		}
+		if help {
+			printInboxHelp(ctx.Stdout)
+			return nil
+		}
+		if len(fs.Args()) > 0 {
+			return &CodeError{Code: exitUsage, Err: errors.New("inbox listing accepts no positional arguments")}
+		}
+		if err := sorting.validate(); err != nil {
+			return err
+		}
 		if err := ensureClient(ctx); err != nil {
 			return err
 		}
-		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, "")
+		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, "", sorting)
 	}
 	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		printInboxHelp(ctx.Stdout)
@@ -144,13 +160,12 @@ func inboxAdd(ctx *Context, args []string) error {
 	if ctx.Global.DryRun {
 		return writeCapturePreview(ctx, "inbox add", body)
 	}
-	var task api.Task
 	reqCtx, cancel := requestContext(ctx)
-	reqID, err := ctx.Client.Post(reqCtx, "/tasks", nil, body, &task, true)
+	raw, reqID, err := ctx.Client.PostWithOptionalResponse(reqCtx, "/tasks", body)
 	cancel()
 	if err != nil {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeCaptureReceipt(ctx, task)
+	return writeReturnedTask(ctx, raw, "", "task_add", true)
 }

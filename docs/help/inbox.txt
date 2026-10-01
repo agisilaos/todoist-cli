@@ -1,5 +1,5 @@
 Usage:
-  todoist inbox [--ids-only]
+  todoist inbox [--ids-only] [--sort <key>] [--sort-order asc|desc]
   todoist inbox add --content <text> [flags]
 
 Flags:

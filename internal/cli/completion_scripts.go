@@ -31,13 +31,17 @@ _todoist() {
       COMPREPLY=( $(compgen -W "--filter --out ${global_flags}" -- "$cur") )
       return 0
       ;;
+    today)
+      COMPREPLY=( $(compgen -W "--sort --sort-order ${global_flags}" -- "$cur") )
+      return 0
+      ;;
     upcoming)
-      local upcoming_flags="--days --project --label --wide --sort --truncate-width"
+      local upcoming_flags="--days --project --label --wide --sort --sort-order --truncate-width"
       COMPREPLY=( $(compgen -W "${upcoming_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
     completed)
-      local completed_flags="--completed-by --since --until --project --section --filter --cursor --limit --all --wide"
+      local completed_flags="--completed-by --since --until --project --section --filter --cursor --limit --all --wide --sort --sort-order"
       COMPREPLY=( $(compgen -W "${completed_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -48,10 +52,10 @@ _todoist() {
       ;;
     inbox)
       if [[ ${COMP_CWORD} -eq 2 ]]; then
-        COMPREPLY=( $(compgen -W "{{commands:inbox}}" -- "$cur") )
+        COMPREPLY=( $(compgen -W "{{commands:inbox}} --sort --sort-order ${global_flags}" -- "$cur") )
         return 0
       fi
-      local inbox_flags="--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee"
+      local inbox_flags="--sort --sort-order --content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee"
       COMPREPLY=( $(compgen -W "${inbox_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -86,7 +90,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --preset --sort --truncate-width --yes"
+      local task_flags="--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --clear-due --clear-deadline --clear-labels --clear-assignee --clear-description --clear-parent --clear-section --reference --order --include-children --forever --due-local-datetime --preset --sort --sort-order --truncate-width --yes"
       COMPREPLY=( $(compgen -W "${task_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -96,7 +100,7 @@ _todoist() {
         COMPREPLY=( $(compgen -W "${subs}" -- "$cur") )
         return 0
       fi
-      local filter_flags="--id --name --query --color --favorite --unfavorite --yes"
+      local filter_flags="--sort --sort-order --id --name --query --color --favorite --unfavorite --yes"
       COMPREPLY=( $(compgen -W "${filter_flags} ${global_flags}" -- "$cur") )
       return 0
       ;;
@@ -263,19 +267,19 @@ _arguments -C \
 
 case $words[1] in
   inbox)
-    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:inbox}})' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '--sort:sort:(due deadline priority added updated completed content order none)' '--sort-order:direction:(asc desc)' '2:subcommand:({{commands:inbox}})' '*:flags:(--content --description --section --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee)'
     ;;
   review)
     _arguments '--filter[Todoist filter]:query:' '--out[Save review plan]:file:_files'
     ;;
   today)
-    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]'
+    _arguments '--sort:sort:(due deadline priority added updated completed content order none)' '--sort-order:direction:(asc desc)' '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]'
     ;;
   upcoming)
-    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--days --project --label --wide --sort --truncate-width)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--days --project --label --wide --sort --sort-order --truncate-width)'
     ;;
   completed)
-    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--completed-by --since --until --project --section --filter --cursor --limit --all --wide)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '*:flags:(--completed-by --since --until --project --section --filter --cursor --limit --all --wide --sort --sort-order)'
     ;;
   add)
     _arguments '--task-output-version[Task resource output version]:version:(1 2)' '*:flags:(--content --description --project --section --parent --label --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --strict)'
@@ -287,10 +291,10 @@ case $words[1] in
     _arguments '2:subcommand:({{commands:auth}})' '*:flags:(--credential-store --token-stdin --print-env --oauth --oauth-device --read-only --no-browser --client-id --oauth-authorize-url --oauth-token-url --oauth-device-url --oauth-listen --oauth-redirect-uri)'
     ;;
   task)
-    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '2:subcommand:({{commands:task}})' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '2:subcommand:({{commands:task}})' '*:flags:(--filter --project --section --parent --label --id --cursor --limit --all --all-projects --completed --completed-by --since --until --wide --content --description --priority --due --due-date --due-datetime --due-lang --duration --duration-unit --deadline --assignee --quick --natural --sort --sort-order --clear-due --clear-deadline --clear-labels --clear-assignee --clear-description --clear-parent --clear-section --reference --order --include-children --forever --due-local-datetime --full --yes -n --dry-run -f --force --accessible --json --plain --ndjson --ids-only --no-color --no-input --quiet -q --quiet-json --verbose -v --timeout --config --profile --fuzzy --no-fuzzy --progress-jsonl --base-url)'
     ;;
   filter)
-    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:filter}})' '*:flags:(--id --name --query --color --favorite --unfavorite --yes)'
+    _arguments '--task-output-version[Task resource output version]:version:(1 2)' '--ids-only[One raw ID per line (supported lists only)]' '2:subcommand:({{commands:filter}})' '*:flags:(--sort --sort-order --id --name --query --color --favorite --unfavorite --yes)'
     ;;
   view)
     _arguments '--task-output-version[Task resource output version]:version:(1 2)' '*:url:'
@@ -408,7 +412,7 @@ complete -c todoist -n '__fish_seen_subcommand_from profile; and __fish_use_subc
 
 # task
 complete -c todoist -n '__fish_seen_subcommand_from task; and __fish_use_subcommand' -a '{{commands:task}}'
-complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes
+complete -c todoist -n '__fish_seen_subcommand_from task' -l filter -l project -l section -l parent -l label -l id -l cursor -l limit -l all -l all-projects -l completed -l completed-by -l since -l until -l wide -l content -l description -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l full -l yes -l sort -l sort-order -l clear-due -l clear-deadline -l clear-labels -l clear-assignee -l clear-description -l clear-parent -l clear-section -l reference -l order -l include-children -l forever -l due-local-datetime
 
 # project
 complete -c todoist -n '__fish_seen_subcommand_from project; and __fish_use_subcommand' -a '{{commands:project}}'
@@ -419,7 +423,7 @@ complete -c todoist -n '__fish_seen_subcommand_from workspace; and __fish_use_su
 
 # filter
 complete -c todoist -n '__fish_seen_subcommand_from filter; and __fish_use_subcommand' -a '{{commands:filter}}'
-complete -c todoist -n '__fish_seen_subcommand_from filter' -l id -l name -l query -l color -l favorite -l unfavorite -l yes
+complete -c todoist -n '__fish_seen_subcommand_from filter' -l sort -l sort-order -l id -l name -l query -l color -l favorite -l unfavorite -l yes
 
 # section
 complete -c todoist -n '__fish_seen_subcommand_from section; and __fish_use_subcommand' -a '{{commands:section}}'
@@ -456,20 +460,20 @@ complete -c todoist -n '__fish_seen_subcommand_from settings; and contains updat
 
 # inbox
 complete -c todoist -n '__fish_seen_subcommand_from inbox; and __fish_use_subcommand' -a '{{commands:inbox}}'
-complete -c todoist -n '__fish_seen_subcommand_from inbox' -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
+complete -c todoist -n '__fish_seen_subcommand_from inbox' -l sort -l sort-order -l content -l description -l section -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee
 
 # review
 complete -c todoist -n '__fish_seen_subcommand_from review' -l filter -r
 complete -c todoist -n '__fish_seen_subcommand_from review' -l out -r -F
 
 # today
-complete -c todoist -n '__fish_seen_subcommand_from today'
+complete -c todoist -n '__fish_seen_subcommand_from today' -l sort -l sort-order
 
 # completed
-complete -c todoist -n '__fish_seen_subcommand_from completed' -l completed-by -l since -l until -l project -l section -l filter -l cursor -l limit -l all -l wide
+complete -c todoist -n '__fish_seen_subcommand_from completed' -l completed-by -l since -l until -l project -l section -l filter -l cursor -l limit -l all -l wide -l sort -l sort-order
 
 # upcoming
-complete -c todoist -n '__fish_seen_subcommand_from upcoming' -l days -l project -l label -l wide -l sort -l truncate-width
+complete -c todoist -n '__fish_seen_subcommand_from upcoming' -l days -l project -l label -l wide -l sort -l sort-order -l truncate-width
 
 # add alias
 complete -c todoist -n '__fish_seen_subcommand_from add' -l content -l description -l project -l section -l parent -l label -l priority -l due -l due-date -l due-datetime -l due-lang -l duration -l duration-unit -l deadline -l assignee -l strict

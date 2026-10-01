@@ -60,6 +60,8 @@ func filterList(ctx *Context, args []string) error {
 
 func filterShow(ctx *Context, args []string) error {
 	fs := newFlagSet("filter show")
+	var sorting taskSortOptions
+	sorting.bind(fs)
 	var help bool
 	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -68,6 +70,9 @@ func filterShow(ctx *Context, args []string) error {
 	if help {
 		printFilterHelp(ctx.Stdout)
 		return nil
+	}
+	if err := sorting.validate(); err != nil {
+		return err
 	}
 	ref := strings.TrimSpace(strings.Join(fs.Args(), " "))
 	if ref == "" {
@@ -82,6 +87,9 @@ func filterShow(ctx *Context, args []string) error {
 	}
 	tasks, _, err := listTasksByFilter(ctx, filter.Query, "", 50, true)
 	if err != nil {
+		return err
+	}
+	if err := sorting.apply(tasks); err != nil {
 		return err
 	}
 	return writeTaskList(ctx, tasks, "", false)

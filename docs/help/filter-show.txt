@@ -1,8 +1,10 @@
 Usage:
-  todoist filter show <id|name>
+  todoist filter show <id|name> [--sort <key>]
 
 Flags:
-  No command-specific flags.
+  --sort <key>                     due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>           Direction for an explicit sort
+
 
 Global flags:
   -h, --help             Show help without running the command
@@ -12,6 +14,11 @@ Global flags:
 
 Notes:
   Uses a saved filter's query to list tasks. Find names and IDs with filter list.
+  Sorts the fetched selection; --all spans every fetched page where supported.
+  Defaults: due/deadline/content/order asc; priority/added/updated/completed desc.
+  Missing values go last in both directions; equal values use opaque ID ascending.
+  --sort none retains fetched order and rejects --sort-order; omission keeps default ordering.
+
 
 Examples:
   todoist filter show "Work today"

@@ -196,6 +196,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 	if includeRequestID {
 		requestID = NewRequestID()
 	}
+	taskWrite := taskWritePath(method, path)
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		var buf io.Reader
 		if payload != nil {
@@ -215,10 +216,11 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 			req.Header.Set("X-Request-Id", requestID)
 		}
 
+		taskWrite = taskWrite || c.taskWriteRequest(req)
 		resp, err := c.dispatch(req, path)
 		if err != nil {
 			var authorizationErr *authorization.Error
-			if !errors.As(err, &authorizationErr) && shouldRetryTransport(method, includeRequestID, err) && attempt < maxRetries {
+			if !taskWrite && !errors.As(err, &authorizationErr) && shouldRetryTransport(method, includeRequestID, err) && attempt < maxRetries {
 				if err := waitForRetry(ctx, retryDelay(attempt, "")); err != nil {
 					return requestID, err
 				}
@@ -227,6 +229,11 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 			return requestID, err
 		}
 
+		if taskWrite && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+			msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
+			_ = resp.Body.Close()
+			return requestID, taskWriteFailure(&APIError{Status: resp.StatusCode, RequestID: requestID, Message: strings.TrimSpace(string(msg))}, resp.StatusCode, requestID)
+		}
 		if resp.StatusCode >= 400 {
 			msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
 			_ = resp.Body.Close()
@@ -254,12 +261,18 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		data, err := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		if err != nil {
+			if taskWrite {
+				return requestID, &TaskWriteError{Outcome: "accepted", RequestID: requestID, Err: err}
+			}
 			return requestID, err
 		}
 		if len(bytes.TrimSpace(data)) == 0 {
 			return requestID, nil
 		}
 		if err := json.Unmarshal(data, out); err != nil {
+			if taskWrite {
+				return requestID, &TaskWriteError{Outcome: "accepted", RequestID: requestID, Err: fmt.Errorf("decode optional response: %w", err)}
+			}
 			return requestID, fmt.Errorf("decode response: %w", err)
 		}
 		return requestID, nil

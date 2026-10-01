@@ -1,0 +1,26 @@
+Usage:
+  todoist task reschedule <ref> (--due-date <date> | --due-datetime <RFC3339> | --due-local-datetime <local>)
+
+Flags:
+  --id <id>                         Exact task ID instead of a positional reference
+  --due-date <YYYY-MM-DD>            Replace date retaining existing clock and time character
+  --due-datetime <RFC3339>           Exact instant for existing fixed-zone due time
+  --due-local-datetime <local>       YYYY-MM-DDTHH:MM:SS for existing floating due time
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without mutations
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Preserves explicit recurrence and existing date-only, floating, or fixed-zone character.
+  Requires returned primary date, recurrence, and timezone evidence; refuses unknown/contradictory facts.
+  A recurring task also requires its returned expression and language. No type conversions.
+  Date replacement in a DST gap/fold refuses; an explicit instant resolves a fixed-zone fold.
+  Uses native Sync item_update and requires its exact command acknowledgement.
+  JSON success is a returned task array, or task_write_ack when optional task data is unavailable.
+
+Examples:
+  todoist task reschedule id:123456 --due-date 2026-10-15
+  todoist task reschedule --id 123456 --due-datetime 2026-10-15T14:00:00Z

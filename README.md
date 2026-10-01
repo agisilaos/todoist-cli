@@ -478,7 +478,65 @@ Examples:
 - `todoist task view id:123456 --full`
 - `todoist task complete "Pay rent"`
 
-#### Task detail
+##### Editing tasks and preserving recurrence
+
+```bash
+todoist task update id:123456 --clear-labels --clear-assignee --clear-deadline
+printf 'Exact notes\n' | todoist task update --id 123456 --description -
+todoist task move id:123456 --clear-parent --clear-section
+todoist task reschedule id:123456 --due-date 2026-10-15
+todoist task update --id 123456 --reference=true --order 0
+todoist task view id:123456 --include-children --sort order --json --task-output-version 2
+todoist task complete id:123456 --forever
+```
+
+Omitted fields remain unchanged. Empty description, `--reference=false`, and
+`--order 0` are explicit edits. Use `--clear-due`, `--clear-deadline`,
+`--clear-labels`, `--clear-assignee`, or `--clear-description` for removal.
+Description stdin preserves UTF-8 text exactly; content stdin is trimmed. Only
+one may read stdin. Setters and their clear flags conflict before API reads.
+
+Ordinary due editing stays in `task update`; ordinary completion advances a
+recurring occurrence. `task reschedule` preserves recurrence and the existing
+calendar date, floating wall time, or fixed-zone character. A date target keeps
+an existing clock; `--due-local-datetime` changes floating wall time;
+`--due-datetime` selects an exact instant for a fixed-zone task. Unknown or
+contradictory returned evidence and ambiguous DST date replacements refuse the
+edit. `task complete --forever` permanently completes recurrence and subtasks.
+
+Clearing a parent keeps the current inherited section, or the current project
+when sectionless. Clearing a section keeps the current project; children in an
+inherited section also require `--clear-parent`. Both clears make a project root.
+A project with a section scopes section resolution; the section is the move
+destination. Parent destinations exclude project/section setters.
+
+`--reference[=true|false]` adds/removes one leading `* ` and refuses repeated
+prefixes or a blank remaining title. `--order` accepts signed int32 values,
+including zero. `--include-children` fetches every direct active child page and
+emits a distinct `task_expanded_view`/`task_expanded_view_v2` envelope. Failed
+expansion emits no parent or incomplete collection. Completeness means every
+page was fetched, without a snapshot guarantee.
+
+Task collections accept `--sort due|deadline|priority|added|updated|completed|content|order|none`
+and `--sort-order asc|desc`. Omission keeps existing ordering. Due/deadline use
+calendar comparisons; timestamps use instants; order uses numeric sibling order.
+Default directions are ascending for due/deadline/content/order, descending for
+priority/timestamps. Missing values stay last in either direction; ID breaks
+ties ascending. Sorting covers the fetched selection; `--all` spans fetched
+pages where supported. `none` retains fetched order and disallows direction.
+
+Task writes dispatch once without automatic retries or redirects. Accepted
+writes with unavailable optional task data emit `task_write_ack` with
+`result_available:false`; inspect exact state before resubmitting. Combining
+`--clear-due` with other fields uses Sync clear followed by REST update. A failed
+second step emits `task_partial_edit` and a nonzero exit; no rollback or retry.
+Filtered completion/move batches preflight all pages, require existing
+confirmation, reject duplicate/ancestor overlaps, continue definite rejections,
+and stop at uncertainty. `task_batch` reports every target and dispatch count.
+See [task editing contracts](docs/task-editing-design.md), focused help, and
+`todoist schema` for output variants and recovery.
+
+## Task detail
 
 Copy a full ID from an overview and inspect that exact task:
 

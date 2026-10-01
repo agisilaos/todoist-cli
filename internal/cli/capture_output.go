@@ -85,12 +85,7 @@ func writeCaptureReceipt(ctx *Context, task api.Task) error {
 	fmt.Fprintf(&b, "Labels: %s\n", labels)
 	field("ID", returnedText(task.ID))
 	if task.ID != "" && strings.IndexFunc(task.ID, captureControl) < 0 {
-		ref := "id:" + task.ID
-		if strings.IndexFunc(ref, func(r rune) bool {
-			return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune(":_-", r))
-		}) >= 0 {
-			ref = "'" + strings.ReplaceAll(ref, "'", "'\"'\"'") + "'"
-		}
+		ref := taskShellReference(task.ID)
 		fmt.Fprintf(&b, "View: todoist task view %s\n", ref)
 	}
 	b.WriteString("Edit: todoist task update --help; change destination: todoist task move --help\n")
@@ -183,4 +178,14 @@ func writeCapturePreview(ctx *Context, action string, payload map[string]any) er
 	fmt.Fprintf(&b, "Authorization: %s\n", currentAuthorization(ctx).Summary())
 	_, err := fmt.Fprint(ctx.Stdout, b.String())
 	return err
+}
+
+func taskShellReference(id string) string {
+	ref := "id:" + id
+	if strings.IndexFunc(ref, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune(":_-", r))
+	}) >= 0 {
+		ref = "'" + strings.ReplaceAll(ref, "'", "'\"'\"'") + "'"
+	}
+	return ref
 }

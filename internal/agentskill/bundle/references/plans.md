@@ -83,8 +83,11 @@ context. JSON per-action results mark replay skips with `error: "skipped_replay"
 inspect the complete results and exit status before describing the outcome.
 `applied_at` and progress success appear only after the relevant success boundary.
 
-For ordinary agent plans, a request may reach Todoist before its replay record is
-written. Replay-record failure reports `remote_succeeded: true` in progress events
+Ordinary agent task writes persist pending evidence before dispatch. All pending
+keys for the current plan are checked before any action. Acceptance atomically
+replaces pending evidence with the applied record; definite rejection clears it.
+Uncertain outcomes stop even with --on-error continue and block replay until
+manually reconciled. Task writes dispatch once and do not follow redirects. Replay-record failure reports `remote_succeeded: true` in progress events
 at stage `replay_record`; interruption can also leave an accepted mutation
 unrecorded. Blind retries can duplicate these writes. Preserve the plan, journal,
 and diagnostics, inspect the exact remote IDs through read commands, then reconcile
@@ -94,8 +97,8 @@ not gain agent replay protection merely because an agent called them.
 Review plans have additional pending-write evidence and checkpoints: uncertain
 outcomes block blind retries. Preserve that evidence and manually verify remote
 state before beginning a fresh review. `review` is a terminal workflow; it rejects
-piped input and `--no-input` before API access. Ordinary plans do not acquire this
-review protection.
+piped input and `--no-input` before API access. Ordinary plans retain the pending task-write safeguard, while review plans also
+require their existing task checkpoints. No new editing action kinds are added.
 
 The replay journal is unbounded and assumes one applying process; do not run
 concurrent applications against the same configuration. Replacement depends on

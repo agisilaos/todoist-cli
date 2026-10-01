@@ -24,6 +24,9 @@ func (c *Client) dispatch(req *http.Request, path string) (*http.Response, error
 	if errors.As(err, &denied) {
 		return nil, denied
 	}
+	if err != nil && c.taskWriteRequest(req) {
+		return resp, taskWriteFailure(err, 0, req.Header.Get("X-Request-Id"))
+	}
 	return resp, err
 }
 
@@ -38,6 +41,9 @@ func (c *Client) authorizeRequest(req *http.Request, path string) error {
 }
 
 func (c *Client) checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) > 0 && c.taskWriteRequest(via[0]) {
+		return http.ErrUseLastResponse
+	}
 	// Keep net/http's default limit while checking every redirected request.
 	if len(via) >= 10 {
 		return errors.New("stopped after 10 redirects")

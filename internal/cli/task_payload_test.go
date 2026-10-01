@@ -17,8 +17,8 @@ func TestBuildTaskMovePayloadUsesExplicitIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildTaskMovePayload: %v", err)
 	}
-	if body["project_id"] != "p123" {
-		t.Fatalf("expected explicit project_id, got %#v", body)
+	if _, exists := body["project_id"]; exists {
+		t.Fatalf("project must only scope section resolution, got %#v", body)
 	}
 	if body["section_id"] != "s123" {
 		t.Fatalf("expected explicit section_id, got %#v", body)

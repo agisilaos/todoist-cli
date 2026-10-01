@@ -4,6 +4,8 @@
 
 - [CLI specification](SPEC.md): supported behavior and machine output contracts
 - [Architecture overview](ARCHITECTURE.md): package responsibilities and boundaries
+- [Complete task editing](task-editing-design.md): presence, hierarchy, recurrence/time, collections, and recovery
+- [Task data fidelity](task-data-fidelity.md): frozen task resource projections and returned evidence
 - [Domain vocabulary](../CONTEXT.md): shared terminology
 - [Architecture decisions](adr/): accepted tradeoffs
 - [Product roadmap](ROADMAP.md): implemented capabilities and future-work tracker

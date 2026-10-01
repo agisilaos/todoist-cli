@@ -18,6 +18,7 @@ type replayStore interface {
 }
 
 type replayJournal struct {
+	Pending map[string]string           `json:"pending_task_writes,omitempty"`
 	Reviews map[string]reviewCheckpoint `json:"reviews,omitempty"`
 	Applied map[string]string           `json:"applied"`
 }
@@ -84,6 +85,7 @@ func (s *fileReplayStore) RecordApplied(key string, at time.Time) error {
 	}
 	return s.updateJournal(func(candidate *replayJournal) {
 		candidate.Applied[key] = at.UTC().Format(time.RFC3339)
+		delete(candidate.Pending, key)
 	})
 }
 
@@ -92,10 +94,14 @@ func (s *fileReplayStore) RecordApplied(key string, at time.Time) error {
 func (s *fileReplayStore) updateJournal(change func(*replayJournal)) error {
 	candidate := replayJournal{
 		Applied: make(map[string]string, len(s.journal.Applied)+1),
+		Pending: make(map[string]string, len(s.journal.Pending)),
 		Reviews: make(map[string]reviewCheckpoint, len(s.journal.Reviews)),
 	}
 	for key, value := range s.journal.Applied {
 		candidate.Applied[key] = value
+	}
+	for key, value := range s.journal.Pending {
+		candidate.Pending[key] = value
 	}
 	for key, value := range s.journal.Reviews {
 		candidate.Reviews[key] = value

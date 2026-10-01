@@ -99,7 +99,7 @@ func TestClientOptionalResponsePreservesRetriesAndRejections(t *testing.T) {
 		wantErr  bool
 	}{
 		{"rejected", []int{403}, true},
-		{"existing retry", []int{503, 200}, false},
+		{"uncertain write", []int{503, 200}, true},
 		{"exhausted", []int{503, 503, 503}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -117,12 +117,12 @@ func TestClientOptionalResponsePreservesRetriesAndRejections(t *testing.T) {
 				return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(`{"id":"task"}`)), Header: http.Header{}}, nil
 			})
 			data, id, err := client.PostWithOptionalResponse(context.Background(), "/tasks/task/move", map[string]any{"project_id": "project"})
-			if (err != nil) != tc.wantErr || calls != len(tc.statuses) || id != requestID || id == "" {
+			if (err != nil) != tc.wantErr || calls != 1 || id != requestID || id == "" {
 				t.Fatalf("request contract: err=%v calls=%d id=%q", err, calls, id)
 			}
 			if tc.wantErr {
 				var apiErr *APIError
-				if !errors.As(err, &apiErr) || apiErr.Status != tc.statuses[len(tc.statuses)-1] || len(data) != 0 {
+				if !errors.As(err, &apiErr) || apiErr.Status != tc.statuses[0] || len(data) != 0 {
 					t.Fatalf("rejection lost identity: %v, %s", err, data)
 				}
 			}

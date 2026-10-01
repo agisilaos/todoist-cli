@@ -106,3 +106,4 @@ completion-zsh.txt	completion zsh --help
 completion-fish.txt	completion fish --help
 completion-powershell.txt	completion powershell --help
 inbox-add.txt	inbox add --help
+task-reschedule.txt	task reschedule --help

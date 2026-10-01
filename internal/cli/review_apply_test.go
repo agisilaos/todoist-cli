@@ -113,7 +113,7 @@ func TestReviewPersistenceFailureBoundaries(t *testing.T) {
 			if test.failWrite == 1 {
 				wantOutcome = "unattempted"
 			}
-			if outcome.Outcome != wantOutcome || outcome.RemoteOutcomeUncertain != test.pending {
+			if outcome.Outcome != wantOutcome || outcome.RemoteOutcomeUncertain != (test.pending && api.TaskWriteOutcome(err) != "accepted") {
 				t.Fatalf("report=%+v", report)
 			}
 			if test.pending {
@@ -247,7 +247,7 @@ func TestReviewMissingMutationSnapshotRetainsPending(t *testing.T) {
 				t.Fatalf("journal=%+v", store.journal)
 			}
 			report := readReviewReport(t, ctx)
-			if report.Tasks[0].Outcome != "failed" || !report.Tasks[0].Actions[0].RemoteOutcomeUncertain || report.Tasks[0].Actions[1].Outcome != "unattempted" {
+			if report.Tasks[0].Outcome != "failed" || report.Tasks[0].Actions[0].RemoteOutcomeUncertain || report.Tasks[0].Actions[1].Outcome != "unattempted" {
 				t.Fatalf("report=%+v", report)
 			}
 			if _, err := applyReviewPlan(ctx, plan); err == nil || !strings.Contains(err.Error(), "uncertain") || len(fixture.writes) != 1 {

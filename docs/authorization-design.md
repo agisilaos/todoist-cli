@@ -127,3 +127,14 @@ Update README, specification, architecture documentation, schemas, examples, com
 - [Doist CLI setup reference](https://github.com/Doist/todoist-cli#setup)
 - [Todoist authorization-server metadata](https://api.todoist.com/.well-known/oauth-authorization-server)
 - `adr/0003-preserve-write-capability-for-unknown-credentials.md`
+
+## Task editing inventory
+
+Native task due clearing/rescheduling (item_update), hierarchy clearing
+(item_move), and permanent completion (item_complete) use the same guarded Sync
+mutation boundary. REST task fields/reference/order updates and existing agent
+task actions use guarded writes. Expanded views and sorting are reads. Known
+already-satisfied reference/hierarchy no-ops may succeed with read-only
+credentials because they dispatch zero writes. Dry runs retain read access and
+report authorization without mutating. Sequential edits check authorization
+before their first write; batches fully preflight and check before dispatch.

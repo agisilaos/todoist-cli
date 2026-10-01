@@ -5,7 +5,8 @@ Usage:
   todoist task update <ref> [flags]
   todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
   todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [--parent <id>] --yes
-  todoist task complete <ref>
+  todoist task reschedule <ref> (--due-date DATE | --due-datetime RFC3339 | --due-local-datetime LOCAL)
+  todoist task complete <ref> [--forever]
   todoist task complete --filter <query> --yes
   todoist task reopen <ref>
   todoist task delete <ref> --yes
@@ -13,7 +14,7 @@ Usage:
 Task flags:
   --content <text>           Task content ("-" reads stdin)
   --quick                    Quick add using inbox defaults
-  --description <text>       Task description
+  --description <text|->     Exact description stdin with -
   --project <id|name>        Project reference
   --section <id|name>        Section reference
   --parent <id>              Parent task ID
@@ -28,6 +29,20 @@ Task flags:
   --deadline <YYYY-MM-DD>    Deadline date
   --assignee <ref>           Assignee reference (id, me, name, email)
   --natural                  Parse quick-add style tokens in content (#project @label p1..p4 due:...)
+  --clear-due                Update: remove due date and recurrence
+  --clear-deadline            Update: remove deadline
+  --clear-labels              Update: remove all labels
+  --clear-assignee            Update: remove assignment
+  --clear-description         Update: remove description
+  --clear-parent              Move: detach to current section/project
+  --clear-section             Move: clear section in current project
+  --reference[=true|false]     Add/update: single "* " title prefix
+  --order <n>                 Add/update: signed int32 sibling order
+  --include-children          View: every page of direct active children
+  --sort <key>                Collections: due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>      Explicit sort direction
+  --forever                  Complete: permanently finish recurrence and subtasks
+  --due-local-datetime <local> Reschedule: floating YYYY-MM-DDTHH:MM:SS
   --yes                      Required for task deletion and bulk move/complete
 
 Notes:
@@ -60,6 +75,14 @@ Notes:
   Receipt priority matches p1..p4; numeric --priority uses API values (1 normal, 4 urgent).
   Add --dry-run shows proposed fields; Todoist must still interpret natural-language due expressions.
   Task updates/completions/deletes accept IDs or text references.
+  Omission leaves fields unchanged; description="", reference=false, and order=0 are explicit edits.
+  Description stdin is exact UTF-8 text; content stdin is trimmed. Only one field may read stdin.
+  Due clearing uses Sync; combined edits run clear then REST with explicit partial reporting.
+  Rescheduling preserves recurrence/time character, refusing insufficient or contradictory evidence.
+  Expanded views have a separate task/children/children_complete envelope, buffered until all pages succeed.
+  Accepted writes may emit task_write_ack when optional task data is unavailable. Inspect before retrying.
+  Task writes dispatch once without redirects/retries; uncertainty requires read-only reconciliation.
+  See focused task subcommand help and docs/task-editing-design.md for precise contracts.
   Use --content - to read task content from stdin.
   Use id:<id> to explicitly reference a task ID.
   Task/project/label/filter references can also use Todoist app URLs.

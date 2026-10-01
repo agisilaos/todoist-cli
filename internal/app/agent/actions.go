@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	coreagent "github.com/agisilaos/todoist-cli/internal/agent"
 	appsections "github.com/agisilaos/todoist-cli/internal/app/sections"
@@ -80,7 +81,7 @@ func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest
 		if action.Content != "" {
 			body["content"] = action.Content
 		}
-		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + action.TaskID, Body: body}, nil
+		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + url.PathEscape(action.TaskID), Body: body}, nil
 	case "task_move":
 		if action.TaskID == "" {
 			return ActionRequest{}, errors.New("task_move requires task_id")
@@ -92,22 +93,22 @@ func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest
 		if err != nil {
 			return ActionRequest{}, err
 		}
-		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + action.TaskID + "/move", Body: body}, nil
+		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + url.PathEscape(action.TaskID) + "/move", Body: body}, nil
 	case "task_complete":
 		if action.TaskID == "" {
 			return ActionRequest{}, errors.New("task_complete requires task_id")
 		}
-		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + action.TaskID + "/close"}, nil
+		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + url.PathEscape(action.TaskID) + "/close"}, nil
 	case "task_reopen":
 		if action.TaskID == "" {
 			return ActionRequest{}, errors.New("task_reopen requires task_id")
 		}
-		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + action.TaskID + "/reopen"}, nil
+		return ActionRequest{Method: http.MethodPost, Path: "/tasks/" + url.PathEscape(action.TaskID) + "/reopen"}, nil
 	case "task_delete":
 		if action.TaskID == "" {
 			return ActionRequest{}, errors.New("task_delete requires task_id")
 		}
-		return ActionRequest{Method: http.MethodDelete, Path: "/tasks/" + action.TaskID}, nil
+		return ActionRequest{Method: http.MethodDelete, Path: "/tasks/" + url.PathEscape(action.TaskID)}, nil
 	case "project_add":
 		if action.Name == "" {
 			return ActionRequest{}, errors.New("project_add requires name")

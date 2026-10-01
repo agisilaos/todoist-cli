@@ -143,6 +143,8 @@ func taskCommand(ctx *Context, args []string) error {
 		return taskAdd(ctx, args[1:])
 	case "update":
 		return taskUpdate(ctx, args[1:])
+	case "reschedule":
+		return taskReschedule(ctx, args[1:])
 	case "move":
 		return taskMove(ctx, args[1:])
 	case "view":
@@ -237,11 +239,11 @@ func quickAddCommand(ctx *Context, args []string) error {
 		return writeCapturePreview(ctx, "task add", map[string]any{"text": text, "sync_quick_add": true})
 	}
 	reqCtx, cancel := requestContext(ctx)
-	task, reqID, err := ctx.Client.QuickAdd(reqCtx, text)
+	raw, reqID, err := ctx.Client.PostWithOptionalResponse(reqCtx, "/tasks/quick", map[string]any{"text": text})
 	cancel()
 	if err != nil {
 		return err
 	}
 	setRequestID(ctx, reqID)
-	return writeCaptureReceipt(ctx, task)
+	return writeReturnedTask(ctx, raw, "", "task_add", true)
 }

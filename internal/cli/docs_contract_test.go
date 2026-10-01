@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"flag"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -76,6 +77,41 @@ func documentedCommandFlags(t *testing.T) (map[string]map[string]bool, map[strin
 				commands[command] = flags
 			}
 		}
+	}
+	// Shared parsers expose their registrations through the same binding methods.
+	register := func(command string, fs *flag.FlagSet) {
+		flags := map[string]bool{"help": true, "h": true}
+		fs.VisitAll(func(f *flag.Flag) { flags[f.Name] = true })
+		commands[command] = flags
+	}
+	for _, update := range []bool{false, true} {
+		var o taskEditOptions
+		fs := newFlagSet("inventory")
+		o.bind(fs, update)
+		command := "task add"
+		if update {
+			command = "task update"
+		}
+		register(command, fs)
+	}
+	for _, move := range []bool{false, true} {
+		var o taskActionOptions
+		fs := newFlagSet("inventory")
+		o.bind(fs, move)
+		command := "task complete"
+		if move {
+			command = "task move"
+		}
+		register(command, fs)
+	}
+	for _, command := range []string{"task list", "task view", "today", "upcoming", "inbox", "filter show"} {
+		var o taskSortOptions
+		fs := newFlagSet("inventory")
+		o.bind(fs)
+		if commands[command] == nil {
+			commands[command] = map[string]bool{}
+		}
+		fs.VisitAll(func(f *flag.Flag) { commands[command][f.Name] = true })
 	}
 	// These entry points have no local flags or share a dynamic parser.
 	for _, command := range []string{"profile list", "profile current", "profile use", "profile remove", "auth status", "auth logout", "auth repair", "agent status", "agent examples", "completion bash", "completion zsh", "completion fish", "completion powershell"} {
