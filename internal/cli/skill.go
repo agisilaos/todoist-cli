@@ -218,7 +218,7 @@ func skillList(ctx *Context, args []string) error {
 	case output.ModeJSON:
 		return skillInventoryOutputError(output.WriteJSON(ctx.Stdout, items))
 	case output.ModeNDJSON:
-		return skillInventoryOutputError(output.WriteNDJSONSlice(ctx.Stdout, items))
+		return skillInventoryOutputError(output.WriteNDJSON(ctx.Stdout, items))
 	default:
 		for _, item := range items {
 			if _, err := fmt.Fprintf(ctx.Stdout, "%s\t%s\t%s\t%s\n", item.Target, item.Scope, item.Status, strconv.Quote(item.Path)); err != nil {

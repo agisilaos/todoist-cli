@@ -97,7 +97,7 @@ func writeActivityList(ctx *Context, events []api.ActivityEvent, cursor string) 
 		return output.WriteJSON(ctx.Stdout, events)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, events)
+		return output.WriteNDJSON(ctx.Stdout, events)
 	}
 	if len(events) == 0 {
 		fmt.Fprintln(ctx.Stdout, "No activity found.")

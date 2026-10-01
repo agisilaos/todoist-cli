@@ -63,9 +63,9 @@ func TestWriteJSONArrayValue(t *testing.T) {
 	}
 }
 
-func TestWriteNDJSONSlice(t *testing.T) {
+func TestWriteNDJSONTypedSlice(t *testing.T) {
 	var buf bytes.Buffer
-	if err := WriteNDJSONSlice(&buf, []string{"a", "b"}); err != nil {
+	if err := WriteNDJSON(&buf, []string{"a", "b"}); err != nil {
 		t.Fatalf("write ndjson slice: %v", err)
 	}
 	lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))

@@ -90,7 +90,7 @@ func projectView(ctx *Context, args []string) error {
 		return output.WriteJSON(ctx.Stdout, project)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, []api.Project{project})
+		return output.WriteNDJSON(ctx.Stdout, []api.Project{project})
 	}
 	rows := [][]string{
 		{"ID", project.ID},
@@ -578,7 +578,7 @@ func writeProjectList(ctx *Context, projects []api.Project, cursor string) error
 		return output.WriteJSON(ctx.Stdout, projects)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, projects)
+		return output.WriteNDJSON(ctx.Stdout, projects)
 	}
 	rows := make([][]string, 0, len(projects))
 	for _, project := range projects {
@@ -609,11 +609,7 @@ func writeProjectCollaborators(ctx *Context, collaborators []api.Collaborator, c
 		return output.WriteJSON(ctx.Stdout, collaborators)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		items := make([]any, 0, len(collaborators))
-		for _, c := range collaborators {
-			items = append(items, c)
-		}
-		return output.WriteNDJSON(ctx.Stdout, items)
+		return output.WriteNDJSON(ctx.Stdout, collaborators)
 	}
 	rows := make([][]string, 0, len(collaborators))
 	for _, c := range collaborators {

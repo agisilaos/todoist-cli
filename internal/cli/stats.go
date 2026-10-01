@@ -135,7 +135,7 @@ func writeStatsSummary(ctx *Context, summary appstats.Summary) error {
 		return output.WriteJSON(ctx.Stdout, summary)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, []appstats.Summary{summary})
+		return output.WriteNDJSON(ctx.Stdout, []appstats.Summary{summary})
 	}
 	if ctx.Mode == output.ModePlain {
 		rows := [][]string{

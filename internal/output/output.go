@@ -65,17 +65,7 @@ func WritePlain(out io.Writer, rows [][]string) error {
 	return nil
 }
 
-func WriteNDJSON(out io.Writer, items []any) error {
-	enc := json.NewEncoder(out)
-	for _, item := range items {
-		if err := enc.Encode(item); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func WriteNDJSONSlice[T any](out io.Writer, items []T) error {
+func WriteNDJSON[T any](out io.Writer, items []T) error {
 	enc := json.NewEncoder(out)
 	for _, item := range items {
 		if err := enc.Encode(item); err != nil {

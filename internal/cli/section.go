@@ -202,7 +202,7 @@ func writeSectionList(ctx *Context, sections []api.Section, cursor string) error
 		return output.WriteJSON(ctx.Stdout, sections)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, sections)
+		return output.WriteNDJSON(ctx.Stdout, sections)
 	}
 	rows := make([][]string, 0, len(sections))
 	for _, section := range sections {

@@ -343,7 +343,7 @@ func writeNotificationList(ctx *Context, out appnotifications.ListResult) error 
 		return output.WriteJSON(ctx.Stdout, items)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, items)
+		return output.WriteNDJSON(ctx.Stdout, items)
 	}
 	if len(items) == 0 {
 		if ctx.Mode == output.ModeHuman {

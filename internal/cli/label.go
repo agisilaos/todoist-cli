@@ -212,7 +212,7 @@ func writeLabelList(ctx *Context, labels []api.Label, cursor string) error {
 		return output.WriteJSON(ctx.Stdout, labels)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, labels)
+		return output.WriteNDJSON(ctx.Stdout, labels)
 	}
 	rows := make([][]string, 0, len(labels))
 	for _, label := range labels {

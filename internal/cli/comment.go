@@ -221,7 +221,7 @@ func writeCommentList(ctx *Context, comments []api.Comment, cursor string) error
 		return output.WriteJSON(ctx.Stdout, comments)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, comments)
+		return output.WriteNDJSON(ctx.Stdout, comments)
 	}
 	rows := make([][]string, 0, len(comments))
 	for _, comment := range comments {

@@ -55,11 +55,7 @@ func writeWorkspaceList(ctx *Context, workspaces []api.Workspace) error {
 		return output.WriteJSON(ctx.Stdout, workspaces)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		items := make([]any, 0, len(workspaces))
-		for _, w := range workspaces {
-			items = append(items, w)
-		}
-		return output.WriteNDJSON(ctx.Stdout, items)
+		return output.WriteNDJSON(ctx.Stdout, workspaces)
 	}
 	rows := make([][]string, 0, len(workspaces))
 	for _, w := range workspaces {

@@ -119,7 +119,7 @@ func settingsThemes(ctx *Context, args []string) error {
 		return output.WriteJSON(ctx.Stdout, themes)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, themes)
+		return output.WriteNDJSON(ctx.Stdout, themes)
 	}
 	rows := make([][]string, 0, len(themes))
 	for _, theme := range themes {
@@ -158,7 +158,7 @@ func writeSettings(ctx *Context, settings api.UserSettings, startPageName string
 		return output.WriteJSON(ctx.Stdout, view)
 	}
 	if ctx.Mode == output.ModeNDJSON {
-		return output.WriteNDJSONSlice(ctx.Stdout, []api.UserSettings{settings})
+		return output.WriteNDJSON(ctx.Stdout, []api.UserSettings{settings})
 	}
 	rows := [][]string{
 		{"Timezone", settings.Timezone},
