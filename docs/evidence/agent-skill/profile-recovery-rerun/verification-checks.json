@@ -1,0 +1,330 @@
+[
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "status": "installed",
+      "expected": "installed"
+    }
+  },
+  {
+    "check": "five managed files actually installed",
+    "passed": true,
+    "details": {
+      "files": [
+        "SKILL.md",
+        "references/authorization.md",
+        "references/commands.md",
+        "references/machine-calls.md",
+        "references/plans.md"
+      ]
+    }
+  },
+  {
+    "check": "owned installed file hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "SKILL.md",
+      "sha256": "d18dbbecf91a7cf86bfa42d58ea3a12385d54fa67bd365bfccc2c87229a9a7a8"
+    }
+  },
+  {
+    "check": "owned installed file hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/authorization.md",
+      "sha256": "20f75a8e80d8e2693a3b6053cf50cab717e2f563b54df3d673a9cba8935acfe0"
+    }
+  },
+  {
+    "check": "owned installed file hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/commands.md",
+      "sha256": "d03ff4a24653c35d9087bd52b86c116ff880a91c1f8965ac6bc8b5be9893197c"
+    }
+  },
+  {
+    "check": "owned installed file hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/machine-calls.md",
+      "sha256": "763527878a2344e63391817506edf2e679a02334c258675855648646094d17fc"
+    }
+  },
+  {
+    "check": "owned installed file hash matches manifest",
+    "passed": true,
+    "details": {
+      "path": "references/plans.md",
+      "sha256": "37e0b7fd9811f034d820087386e583c02a113a0880fdf99cd52630f873f02ae2"
+    }
+  },
+  {
+    "check": "installed relative reference resolves",
+    "passed": true,
+    "details": {
+      "source": "SKILL.md",
+      "link": "references/commands.md"
+    }
+  },
+  {
+    "check": "installed relative reference resolves",
+    "passed": true,
+    "details": {
+      "source": "SKILL.md",
+      "link": "references/machine-calls.md"
+    }
+  },
+  {
+    "check": "installed relative reference resolves",
+    "passed": true,
+    "details": {
+      "source": "SKILL.md",
+      "link": "references/authorization.md"
+    }
+  },
+  {
+    "check": "installed relative reference resolves",
+    "passed": true,
+    "details": {
+      "source": "SKILL.md",
+      "link": "references/plans.md"
+    }
+  },
+  {
+    "check": "installed relative reference resolves",
+    "passed": true,
+    "details": {
+      "source": "references/machine-calls.md",
+      "link": "commands.md"
+    }
+  },
+  {
+    "check": "delivered recovery names removed explicit profile",
+    "passed": true,
+    "details": {
+      "file": "references/authorization.md"
+    }
+  },
+  {
+    "check": "delivered recovery preserves supplied config and directs to repair command",
+    "passed": true,
+    "details": {
+      "file": "references/authorization.md"
+    }
+  },
+  {
+    "check": "delivered recovery explains current-selection ambiguity",
+    "passed": true,
+    "details": {
+      "file": "references/authorization.md"
+    }
+  },
+  {
+    "check": "delivered install usage and flags agree with public live help",
+    "passed": true,
+    "details": {
+      "reference": "references/commands.md",
+      "help": "commands/03-install-help.stdout"
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "NDJSON one complete record",
+    "passed": true,
+    "details": {
+      "records": 1
+    }
+  },
+  {
+    "check": "inventory reports actual clean installation",
+    "passed": true,
+    "details": {
+      "target": "codex",
+      "scope": "local",
+      "path": "/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+      "installed": true,
+      "package_digest": "7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4",
+      "version": "dev",
+      "modified": [],
+      "missing": [],
+      "status": "installed",
+      "available_digest": "7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4"
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "NDJSON one complete record",
+    "passed": true,
+    "details": {
+      "records": 1
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "status": "unchanged",
+      "expected": "unchanged"
+    }
+  },
+  {
+    "check": "repeated install leaves complete file state intact",
+    "passed": true,
+    "details": {
+      "files": 9
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "status": "unchanged",
+      "expected": "unchanged"
+    }
+  },
+  {
+    "check": "same binary update leaves complete file state intact",
+    "passed": true,
+    "details": {
+      "files": 9
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "NDJSON one complete record",
+    "passed": true,
+    "details": {
+      "records": 1
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "status": "uninstalled",
+      "expected": "uninstalled"
+    }
+  },
+  {
+    "check": "uninstall reports preserved unrelated content",
+    "passed": true,
+    "details": [
+      "custom-note.txt"
+    ]
+  },
+  {
+    "check": "uninstall removes only owned files and ownership record",
+    "passed": true,
+    "details": {
+      "owned_files_removed": 5
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "documented lifecycle status",
+    "passed": true,
+    "details": {
+      "status": "unchanged",
+      "expected": "unchanged"
+    }
+  },
+  {
+    "check": "repeated uninstall leaves retained files intact",
+    "passed": true,
+    "details": {
+      "files": 3
+    }
+  },
+  {
+    "check": "all unrelated skill shared guidance and shell profile bytes and mtimes preserved",
+    "passed": true,
+    "details": {
+      "files": 3
+    }
+  },
+  {
+    "check": "success stream separation",
+    "passed": true,
+    "details": {
+      "exit": 0,
+      "stderr_bytes": 0
+    }
+  },
+  {
+    "check": "final inventory matches removed managed installation",
+    "passed": true,
+    "details": [
+      {
+        "target": "codex",
+        "scope": "local",
+        "path": "/private/tmp/todoist-consumer-profile-recovery.ZgloN6/My Project/.agents/skills/todoist-cli",
+        "installed": false,
+        "modified": [],
+        "missing": [],
+        "status": "absent",
+        "available_digest": "7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4"
+      }
+    ]
+  },
+  {
+    "check": "binary stable during workflow",
+    "passed": true,
+    "details": {
+      "sha256": "df0752053db053083146bcf712b60d38ebfa542ddfa8e7406ead0480149c0597"
+    }
+  }
+]

@@ -16,6 +16,14 @@ _Avoid_: Bot, automation user
 The documented structured output and error behavior that machine clients can rely on across compatible releases.
 _Avoid_: JSON mode, agent output
 
+**Todoist agent skill**:
+The maintained guidance that helps a machine client use this CLI's supported commands, authorization evidence, and planning and recovery guarantees.
+_Avoid_: Planner, agent instructions
+
+**Skill installation**:
+A copy of the Todoist agent skill placed for one selected agent target and scope, with a record identifying its managed files.
+_Avoid_: Agent configuration, planner setup
+
 **Inbox**:
 The Todoist project used to collect tasks before organizing them into other projects. Inbox membership is independent of a task's due date.
 _Avoid_: All tasks, today view

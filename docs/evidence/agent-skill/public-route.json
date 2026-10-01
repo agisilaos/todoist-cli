@@ -1,0 +1,656 @@
+[
+  {
+    "label": "version",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "--version"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "todoist dev (local) unreleased\n",
+    "stderr": ""
+  },
+  {
+    "label": "root-help",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "--help"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "todoist - A terminal companion for Todoist\n\nUsage:\n  todoist [global flags] <command> [args]\n\nEveryday:\n  add           Capture tasks with natural language parsing\n  today         Tasks due today and overdue across projects\n  review        Guided daily task review\n  upcoming      Tasks due today and the next 6 days (default)\n  inbox         List Inbox tasks or add to Inbox\n\nOrganization:\n  task          Manage tasks (list defaults to Inbox)\n  project       Manage projects\n  workspace     Manage workspaces\n  section       Manage sections\n  label         Manage labels\n  filter        Manage filters\n  comment       Manage comments\n  reminder      Manage task reminders\n  notification  Manage notifications\n  completed     Completed task history\n  activity      View activity logs\n  stats         View productivity stats\n  view          Open Todoist web URLs in CLI\n\nAutomation:\n  agent         Plan and apply agentic actions\n  planner       Show or set planner command\n  schema        Show output schemas and wire-format contracts\n\nSetup and reference:\n  auth          Authenticate and manage tokens\n  settings      Manage user settings\n  completion    Shell completion\n  doctor        Run environment and configuration checks\n  help          Show help for a command\n  skill         Install and maintain coding-agent skills\n\nGlobal flags:\n  -h, --help            Show help\n  --version             Show version\n  -q, --quiet           Suppress non-essential output\n  --quiet-json          Compact single-line JSON errors\n  -v, --verbose         Enable verbose output\n  --accessible          Add text markers for screen-reader-friendly task output\n  --json                JSON output\n  --plain               Plain text output (tab-separated)\n  --ndjson              NDJSON output\n  --ids-only            One raw ID per line (supported lists only)\n  --no-color            Disable color\n  --no-input            Disable prompts\n  --timeout <seconds>   Request timeout (default 10)\n  --config <path>       Config file path\n  --profile <name>      Profile name (default \"default\")\n  -n, --dry-run         Preview changes without applying\n  -f, --force           Skip confirmation prompts\n  --fuzzy               Enable fuzzy name resolution\n  --no-fuzzy            Disable fuzzy name resolution\n  --progress-jsonl      Emit progress events as JSONL to stderr or file\n  --base-url <url>      Override API base URL\n\nExamples:\n  todoist auth login\n  todoist add \"Review PR 42 today\"\n  todoist inbox\n  todoist today\n  todoist upcoming\n  todoist task list --all-projects --all\n  todoist help task\n\nList scope:\n  task list defaults to Inbox; --all-projects selects across projects.\n  --all fetches every page. inbox, today, and upcoming fetch every page.\n\nMachine clients:\n  Use task add for explicit fields; add uses natural language parsing.\n  Use --no-input with explicit inputs and --json, --ndjson, --plain,\n  or --ids-only for stable output. --quiet-json makes JSON errors compact.\n  Example: todoist task list --all-projects --all --no-input --json\n  Output contracts: todoist schema --name task_list\n  ID output and supported commands: todoist schema --name ids_only\n",
+    "stderr": ""
+  },
+  {
+    "label": "inventory-discovery",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"target\": \"codex\",\n    \"scope\": \"local\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  },\n  {\n    \"target\": \"codex\",\n    \"scope\": \"global\",\n    \"path\": \"/Users/agis/.agents/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  },\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"local\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  },\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"global\",\n    \"path\": \"/Users/agis/.claude/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"absent\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "label": "install-help",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "--help"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "Usage:\n  todoist skill install <codex|claude-code> --scope <local|global> --path <absolute-directory>\n\nFlags:\n  --scope <local|global>             Required placement: project or user\n  --path <absolute-directory>       Required full skill directory\n\nGlobal flags:\n  -h, --help             Show help without running the command\n  --json, --ndjson       Structured lifecycle output\n  --no-input            Noninteractive operation\n  See 'todoist --help' for all global flags and output modes.\n\nNotes:\n  Installs only the running binary's bundle; repeated identical installation is unchanged.\n  An existing unmanaged file is a conflict; install never adopts or overwrites it.\n  Path must be absolute and end in the selected target's skills/todoist-cli layout.\n  Local paths belong to a project; global paths belong to the selected user's home.\n  Named placement does not guarantee exclusive visibility: agents may scan other agents' directories.\n  Codex: start in the project, check its skill selector, and invoke $todoist-cli.\n  Claude Code: start an interactive project session, check /skills, and invoke /todoist-cli.\n  Start a fresh agent session if discovery has not refreshed. Custom homes and cloud agents need separate verification.\n  No credentials or prompts. --force and --dry-run are unsupported; inspect with skill list.\n\nExamples:\n  todoist skill list --json\n  todoist skill install codex --scope local --path /work/project/.agents/skills/todoist-cli --no-input --json\n  todoist skill install claude-code --scope global --path /home/user/.claude/skills/todoist-cli --json\n",
+    "stderr": ""
+  },
+  {
+    "label": "update-help",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "--help"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "Usage:\n  todoist skill update <codex|claude-code> --scope <local|global> --path <absolute-directory> [--backup]\n\nFlags:\n  --scope <local|global>             Required placement\n  --path <absolute-directory>       Required managed skill directory\n  --backup                         Preserve modified originals before replacement\n\nGlobal flags:\n  -h, --help             Show help without running the command\n  --json, --ndjson       Structured result; JSON errors on stderr\n  --no-input            Noninteractive operation\n  See 'todoist --help' for all global flags and output modes.\n\nNotes:\n  Updates one owned installation from this binary. No network fetch or background update.\n  Modified or missing owned files block update by default; unrelated files are preserved.\n  --backup explicitly preserves modified originals outside the skills loading directory before replacement.\n  Keep customization in separate, unrelated files when possible; older binaries can install older bundles explicitly.\n  If failure reports recovery_required, preserve reported paths and reconcile them before retrying.\n  --force does not bypass ownership or customization protection.\n\nExamples:\n  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --json\n  todoist skill update codex --scope local --path /work/project/.agents/skills/todoist-cli --backup --json\n",
+    "stderr": ""
+  },
+  {
+    "label": "uninstall-help",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "--help"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "Usage:\n  todoist skill uninstall <codex|claude-code> --scope <local|global> --path <absolute-directory> [--keep-modified]\n\nFlags:\n  --scope <local|global>             Required placement\n  --path <absolute-directory>       Required managed skill directory\n  --keep-modified                  Retain edits while removing ownership\n\nGlobal flags:\n  -h, --help             Show help without running the command\n  --json, --ndjson       Structured result; JSON errors on stderr\n  --no-input            Noninteractive operation\n  See 'todoist --help' for all global flags and output modes.\n\nNotes:\n  Removes unchanged owned files and management metadata; repeated absent uninstall is unchanged.\n  Modified or missing files block removal by default. --keep-modified explicitly retains edits and ends management.\n  Unrelated files and saved backups are preserved. Retained SKILL.md may remain discoverable by the agent.\n  An unowned directory is never recursively deleted. Agent instructions and shell profiles are untouched.\n\nExamples:\n  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --json\n  todoist skill uninstall codex --scope local --path /work/project/.agents/skills/todoist-cli --keep-modified --json\n",
+    "stderr": ""
+  },
+  {
+    "label": "install-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"install\",\n  \"status\": \"installed\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "list-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"target\": \"codex\",\n    \"scope\": \"local\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n    \"installed\": true,\n    \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n    \"version\": \"dev\",\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"installed\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "label": "repeat-install-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\"operation\":\"install\",\"status\":\"unchanged\",\"target\":\"codex\",\"scope\":\"local\",\"path\":\"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\"package_digest\":\"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\"version\":\"dev\",\"files\":[],\"retained\":[]}\n",
+    "stderr": ""
+  },
+  {
+    "label": "update-unchanged-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"update\",\n  \"status\": \"unchanged\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [],\n  \"retained\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "list-ndjson-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\"target\":\"codex\",\"scope\":\"local\",\"path\":\"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\"installed\":true,\"package_digest\":\"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\"version\":\"dev\",\"modified\":[],\"missing\":[],\"status\":\"installed\",\"available_digest\":\"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"}\n",
+    "stderr": ""
+  },
+  {
+    "label": "install-claude",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "claude-code",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"install\",\n  \"status\": \"installed\",\n  \"target\": \"claude-code\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "list-claude",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "claude-code",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"local\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli\",\n    \"installed\": true,\n    \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n    \"version\": \"dev\",\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"installed\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "label": "modified-update-blocked",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 5,
+    "stdout": "",
+    "stderr": "{\"code\":\"SKILL_MODIFIED\",\"details\":{\"committed\":false,\"files\":[\"SKILL.md\"],\"path\":\"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\"recovery_required\":false},\"error\":\"Owned skill files were changed or removed. Restore them, or use update --backup to preserve changed originals before replacement.\",\"meta\":{}}\n"
+  },
+  {
+    "label": "modified-uninstall-blocked",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 5,
+    "stdout": "",
+    "stderr": "{\n  \"code\": \"SKILL_MODIFIED\",\n  \"details\": {\n    \"committed\": false,\n    \"files\": [\n      \"SKILL.md\"\n    ],\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n    \"recovery_required\": false\n  },\n  \"error\": \"Owned skill files were changed or removed. Restore them, or use uninstall --keep-modified to remove management while retaining changed files.\",\n  \"meta\": {}\n}\n"
+  },
+  {
+    "label": "backup-update",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--backup",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"update\",\n  \"status\": \"updated\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": [],\n  \"backup_path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/todoist-cli-backup-2954472337\"\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "update-after-backup",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"update\",\n  \"status\": \"unchanged\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [],\n  \"retained\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "uninstall-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"uninstalled\",\n  \"target\": \"codex\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": [\n    \"custom-notes.txt\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "repeat-uninstall-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\"operation\":\"uninstall\",\"status\":\"unchanged\",\"target\":\"codex\",\"scope\":\"local\",\"path\":\"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\"files\":[],\"retained\":[\"custom-notes.txt\"]}\n",
+    "stderr": ""
+  },
+  {
+    "label": "keep-modified-uninstall-claude",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "claude-code",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli",
+      "--keep-modified",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"uninstalled\",\n  \"target\": \"claude-code\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": [\n    \"SKILL.md\",\n    \"private-custom-note.txt\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "repeat-uninstall-retained-claude",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "claude-code",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"unchanged\",\n  \"target\": \"claude-code\",\n  \"scope\": \"local\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli\",\n  \"files\": [],\n  \"retained\": [\n    \"SKILL.md\",\n    \"private-custom-note.txt\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "label": "reinstall-retained-claude-conflict",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "claude-code",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 5,
+    "stdout": "",
+    "stderr": "{\n  \"code\": \"SKILL_CONFLICT\",\n  \"details\": {\n    \"committed\": false,\n    \"files\": [\n      \"SKILL.md\"\n    ],\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli/SKILL.md\",\n    \"recovery_required\": false\n  },\n  \"error\": \"An unowned file conflicts with this package. Move it or choose another destination; backup does not replace unowned content.\",\n  \"meta\": {}\n}\n"
+  },
+  {
+    "label": "invalid-relative-path",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      ".agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "{\n  \"code\": \"SKILL_PATH_INVALID\",\n  \"details\": {\n    \"committed\": false,\n    \"files\": [],\n    \"path\": \".agents/skills/todoist-cli\",\n    \"recovery_required\": false\n  },\n  \"error\": \"Use a full absolute skill destination path.\",\n  \"meta\": {}\n}\n"
+  },
+  {
+    "label": "missing-explicit-scope",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "codex",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "{\n  \"code\": \"SKILL_USAGE\",\n  \"details\": {\n    \"committed\": false,\n    \"files\": [],\n    \"path\": \"\",\n    \"recovery_required\": false\n  },\n  \"error\": \"select one target and supply --scope local|global and --path with its full absolute skill directory; run 'todoist skill list' for conventional locations\",\n  \"meta\": {}\n}\n"
+  },
+  {
+    "label": "global-install-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "codex",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"install\",\n  \"status\": \"installed\",\n  \"target\": \"codex\",\n  \"scope\": \"global\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-list-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "codex",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"target\": \"codex\",\n    \"scope\": \"global\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli\",\n    \"installed\": true,\n    \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n    \"version\": \"dev\",\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"installed\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  }\n]\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-install-claude-code",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "install",
+      "claude-code",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"install\",\n  \"status\": \"installed\",\n  \"target\": \"claude-code\",\n  \"scope\": \"global\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-list-claude-code",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "claude-code",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"global\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli\",\n    \"installed\": true,\n    \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n    \"version\": \"dev\",\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"installed\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\"\n  }\n]\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "list-retained-claude",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "list",
+      "claude-code",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"target\": \"claude-code\",\n    \"scope\": \"local\",\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.claude/skills/todoist-cli\",\n    \"installed\": false,\n    \"modified\": [],\n    \"missing\": [],\n    \"status\": \"conflict\",\n    \"available_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n    \"code\": \"SKILL_CONFLICT\",\n    \"error\": \"An unowned skill already exists here. Choose another destination or move it before installing.\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "label": "update-absent-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "local",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 4,
+    "stdout": "",
+    "stderr": "{\n  \"code\": \"SKILL_NOT_INSTALLED\",\n  \"details\": {\n    \"committed\": false,\n    \"files\": [],\n    \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces/.agents/skills/todoist-cli\",\n    \"recovery_required\": false\n  },\n  \"error\": \"No managed skill is installed here. Run skill install for this target and path first.\",\n  \"meta\": {}\n}\n"
+  },
+  {
+    "label": "global-update-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "codex",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\"operation\":\"update\",\"status\":\"unchanged\",\"target\":\"codex\",\"scope\":\"global\",\"path\":\"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli\",\"package_digest\":\"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\"version\":\"dev\",\"files\":[],\"retained\":[]}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-uninstall-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"uninstalled\",\n  \"target\": \"codex\",\n  \"scope\": \"global\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-repeat-uninstall-codex",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "codex",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"unchanged\",\n  \"target\": \"codex\",\n  \"scope\": \"global\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli\",\n  \"files\": [],\n  \"retained\": []\n}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-update-claude-code",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "update",
+      "claude-code",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--ndjson"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\"operation\":\"update\",\"status\":\"unchanged\",\"target\":\"claude-code\",\"scope\":\"global\",\"path\":\"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli\",\"package_digest\":\"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\"version\":\"dev\",\"files\":[],\"retained\":[]}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-uninstall-claude-code",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "claude-code",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"uninstalled\",\n  \"target\": \"claude-code\",\n  \"scope\": \"global\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli\",\n  \"package_digest\": \"dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a\",\n  \"version\": \"dev\",\n  \"files\": [\n    \"SKILL.md\",\n    \"references/authorization.md\",\n    \"references/commands.md\",\n    \"references/machine-calls.md\",\n    \"references/plans.md\"\n  ],\n  \"retained\": []\n}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  },
+  {
+    "label": "global-repeat-uninstall-claude-code",
+    "argv": [
+      "/tmp/todoist-installable-agent-skill-review",
+      "skill",
+      "uninstall",
+      "claude-code",
+      "--scope",
+      "global",
+      "--path",
+      "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli",
+      "--no-input",
+      "--json"
+    ],
+    "cwd": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Workspace with spaces",
+    "exit_code": 0,
+    "stdout": "{\n  \"operation\": \"uninstall\",\n  \"status\": \"unchanged\",\n  \"target\": \"claude-code\",\n  \"scope\": \"global\",\n  \"path\": \"/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli\",\n  \"files\": [],\n  \"retained\": []\n}\n",
+    "stderr": "",
+    "isolated_process_home": "/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces"
+  }
+]

@@ -29,4 +29,8 @@ echo "[docs-check] checking CLI help snapshots"
 echo "[docs-check] checking documented flags and help coverage against source"
 go test ./internal/cli -run '^TestDocumentation' -count=1
 
+echo "[docs-check] checking installed agent references and examples"
+python3 ./scripts/test_agent_skill_reference.py
+python3 ./scripts/agent-skill-reference.py --check
+
 echo "[docs-check] ok"

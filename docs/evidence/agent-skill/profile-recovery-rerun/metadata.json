@@ -1,0 +1,33 @@
+{
+  "task": "Rerun public Codex local install/list/update/uninstall after removed-profile recovery guidance fix; verify delivered reference, repeated behavior, unrelated preservation and JSON/NDJSON output",
+  "executable": "/tmp/todoist-skill-profile-recovery",
+  "binary_sha256": "df0752053db053083146bcf712b60d38ebfa542ddfa8e7406ead0480149c0597",
+  "revision": "9202899c0536e28ddb76ed721dd0496747d9c5f1 + uncommitted profile-recovery instruction/evidence edits, supplied by parent and HEAD verified",
+  "docs_sha256": {
+    "README.md": "e5df5efc52759f367d03a9c62cd0bd0a4b1ca9b6e01fe3b0d71659cdd353f13a",
+    "docs/agent-skill.md": "b3da14dfdd7aae687ce54a54a1daa5021d1188e2ce432fcad441c527cba43822"
+  },
+  "prior_knowledge": "Reuses the earlier 27-call public consumer review at /tmp/todoist-consumer-current-main.FM9841. Parent supplied original Spec finding and expected explicit profile/config/repair_command fix. Not an independent fresh-discovery review. No implementation or tests inspected. Original evidence remains unchanged.",
+  "environment": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/tmp/todoist-consumer-profile-recovery.ZgloN6/Scratch Home",
+    "TMPDIR": "/tmp/todoist-consumer-profile-recovery.ZgloN6/tmp",
+    "LANG": "en_US.UTF-8",
+    "LC_ALL": "en_US.UTF-8",
+    "NO_COLOR": "1"
+  },
+  "interactive": false,
+  "credential_boundary": "No credentials inherited; explicit allowlist environment, isolated empty home and project, stdin /dev/null. No login, remote calls or profile fault injection.",
+  "limits": [
+    "No native skill loading repeat",
+    "No live credential or Todoist use",
+    "No profile cleanup fault injection",
+    "No broad profile/OAuth audit",
+    "No implementation/source inspection",
+    "Same-binary repeat/update only"
+  ],
+  "evidence_storage": "New temporary directory outside repository per previously read MEMORY.md",
+  "binary_sha256_at_completion": "df0752053db053083146bcf712b60d38ebfa542ddfa8e7406ead0480149c0597",
+  "executed_cli_commands": 10,
+  "delivered_package_digest": "7afee9bacffa81e9dbc666ea7f30e9a39ab2d7dd702365dbc0f731ebaebeb0f4"
+}

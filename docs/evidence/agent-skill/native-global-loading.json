@@ -1,0 +1,121 @@
+[
+  {
+    "runtime": "codex",
+    "version": "codex-cli 0.139.0",
+    "skill_path": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.agents/skills/todoist-cli/SKILL.md",
+    "isolated_global_home": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces",
+    "working_project": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Separate global-loading project",
+    "skill_sha256": "d18dbbecf91a7cf86bfa42d58ea3a12385d54fa67bd365bfccc2c87229a9a7a8",
+    "command_argv": [
+      "codex",
+      "exec",
+      "--ignore-user-config",
+      "--ignore-rules",
+      "--ephemeral",
+      "--json",
+      "--sandbox",
+      "read-only",
+      "-c",
+      "model_provider=\"todoist_probe\"",
+      "-c",
+      "model_providers.todoist_probe={name=\"Todoist loopback loading probe\",base_url=\"http://127.0.0.1:60007\",env_key=\"TODOIST_LOADING_PROBE_API_KEY\",wire_api=\"responses\",request_max_retries=0,stream_max_retries=0}",
+      "$todoist-cli"
+    ],
+    "exit_code": 1,
+    "intentional_http_400_stop": true,
+    "requests": [
+      {
+        "path": "/responses",
+        "parseable_json": true,
+        "request_bytes": 38376,
+        "main_body_present": {
+          "codex": true,
+          "claude": true
+        },
+        "skill_name_present": true,
+        "target_directory_present": {
+          "codex": true,
+          "claude": false
+        }
+      }
+    ],
+    "native_main_body_loading_proven": true,
+    "discovered_in_init_skills": null,
+    "claude_tools": null,
+    "limitations": [
+      "No real model inference or behavioral compliance tested.",
+      "Referenced files are not automatically consumed by this probe.",
+      "Codex personal .agents skill metadata may also be present; outgoing requests go only to loopback and are not saved."
+    ]
+  },
+  {
+    "runtime": "claude",
+    "version": "2.1.280 (Claude Code)",
+    "skill_path": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces/.claude/skills/todoist-cli/SKILL.md",
+    "isolated_global_home": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Global user home with spaces",
+    "working_project": "/private/var/folders/3g/w0d8dz1d26v_577vm4z0j8jr0000gn/T/todoist skill consumer fq1s0fvo/Separate global-loading project",
+    "skill_sha256": "d18dbbecf91a7cf86bfa42d58ea3a12385d54fa67bd365bfccc2c87229a9a7a8",
+    "command_argv": [
+      "claude",
+      "-p",
+      "/todoist-cli",
+      "--tools",
+      "",
+      "--permission-mode",
+      "dontAsk",
+      "--permission-prompts",
+      "none",
+      "--setting-sources",
+      "user",
+      "--strict-mcp-config",
+      "--mcp-config",
+      "{\"mcpServers\":{}}",
+      "--no-session-persistence",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--max-turns",
+      "1"
+    ],
+    "exit_code": 1,
+    "intentional_http_400_stop": true,
+    "requests": [
+      {
+        "path": "/v1/messages?beta=true",
+        "parseable_json": true,
+        "request_bytes": 10003,
+        "main_body_present": {
+          "codex": true,
+          "claude": true
+        },
+        "skill_name_present": true,
+        "target_directory_present": {
+          "codex": false,
+          "claude": true
+        }
+      },
+      {
+        "path": "/v1/messages?beta=true",
+        "parseable_json": true,
+        "request_bytes": 10003,
+        "main_body_present": {
+          "codex": true,
+          "claude": true
+        },
+        "skill_name_present": true,
+        "target_directory_present": {
+          "codex": false,
+          "claude": true
+        }
+      }
+    ],
+    "native_main_body_loading_proven": true,
+    "discovered_in_init_skills": true,
+    "claude_tools": [],
+    "limitations": [
+      "No real model inference or behavioral compliance tested.",
+      "Referenced files are not automatically consumed by this probe.",
+      "Codex personal .agents skill metadata may also be present; outgoing requests go only to loopback and are not saved."
+    ]
+  }
+]

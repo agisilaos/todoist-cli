@@ -43,6 +43,13 @@ try {
         & $binary completion powershell | Out-String | Invoke-Expression
 
         Assert-ContainsCompletion 'todoist pro' 'project'
+        Assert-ContainsCompletion 'todoist sk' 'skill'
+        Assert-ContainsCompletion 'todoist skill up' 'update'
+        Assert-ContainsCompletion 'todoist skill install co' 'codex'
+        Assert-ContainsCompletion 'todoist skill update codex --ba' '--backup'
+        Assert-ContainsCompletion 'todoist skill uninstall claude-code --ke' '--keep-modified'
+        Assert-ContainsCompletion 'todoist skill install --scope ' 'local'
+        Assert-ContainsCompletion 'todoist skill update --scope=gl' '--scope=global'
         Assert-ContainsCompletion 'todoist rev' 'review'
         Assert-ContainsCompletion 'todoist help rev' 'review'
         Assert-ContainsCompletion 'todoist notification l' 'ls'

@@ -15,6 +15,8 @@ type schemaDef struct {
 }
 
 var schemas = []schemaDef{
+	{Name: "skill_result", Description: "Install, update, and uninstall result for a bundled agent skill", Schema: skillResultSchema()},
+	{Name: "skill_list", Description: "Agent skill installation inventory; inspect each item's status", Schema: skillListSchema()},
 	{Name: "review_report", Description: "Final report for review and application of review plans", Schema: reviewReportSchema()},
 	{Name: "authorization", Description: "Safe authorization report for the active credential", Schema: authorizationReportSchema()},
 	{Name: "auth_status", Description: "Offline credential presence and authorization from auth status", Schema: authStatusSchema()},
@@ -93,7 +95,7 @@ var schemas = []schemaDef{
 			"type": "object",
 			"properties": map[string]any{
 				"error":   map[string]string{"type": "string"},
-				"code":    map[string]any{"type": "string", "description": "Stable authorization, profile, storage, or OAuth error code; see the specification"},
+				"code":    map[string]any{"type": "string", "description": "Stable authorization, profile, storage, OAuth, or SKILL_* lifecycle error code; see the specification"},
 				"details": map[string]any{"type": "object", "properties": map[string]any{"profile": map[string]any{"type": "string"}, "source": map[string]any{"type": "string"}, "authorization": authorizationReportSchema(), "operation": map[string]any{"type": "string"}, "committed": map[string]any{"type": "boolean"}, "retry_command": map[string]any{"type": "string"}, "repair_command": map[string]any{"type": "string"}}},
 				"meta": map[string]any{
 					"type": "object",

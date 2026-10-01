@@ -1,0 +1,25 @@
+{
+  "backup": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/todoist-cli-backup-834974324",
+  "files": [
+    ".todoist-skill.json",
+    "SKILL.md"
+  ],
+  "result": {
+    "operation": "update",
+    "status": "updated",
+    "target": "codex",
+    "scope": "local",
+    "path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/skills/todoist-cli",
+    "package_digest": "dad5b29dff7cac6d0317d68dcaea5208914ad926f17e9ca94fcb9d3405ce8d7a",
+    "version": "dev",
+    "files": [
+      "SKILL.md",
+      "references/authorization.md",
+      "references/commands.md",
+      "references/machine-calls.md",
+      "references/plans.md"
+    ],
+    "retained": [],
+    "backup_path": "/private/tmp/todoist consumer review u_h_88ww/My Project/.agents/todoist-cli-backup-834974324"
+  }
+}

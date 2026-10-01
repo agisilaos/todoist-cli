@@ -8,6 +8,7 @@
 - [Architecture decisions](adr/): accepted tradeoffs
 - [Product roadmap](ROADMAP.md): implemented capabilities and future-work tracker
 - [CLI help snapshots](help/): generated from the current binary
+- [Agent skill lifecycle](agent-skill.md): supported targets, ownership, updates, machine output, and recovery
 - [Errors and recovery](error-recovery.md): failure classifications, safe next steps, and compatibility boundaries
 - [Daily review](review-design.md): interaction, review-plan compatibility, and recovery
 - [Credential profiles and OAuth onboarding](profile-oauth-design.md): selection, removal recovery, and external OAuth prerequisites
@@ -32,6 +33,8 @@ When changing a command or flag:
    and [SPEC.md](SPEC.md). Update architecture/domain docs when responsibilities or
    terminology change.
 3. Run `scripts/update-help.sh` and review the generated diff in `docs/help/`.
+   Run `python3 scripts/agent-skill-reference.py --write` to update bundled command
+   references from live help; review curated workflows separately when behavior changes.
 4. Run `make docs-check` while iterating, then follow the
    [handoff workflow](../CONTRIBUTING.md#ready-for-handoff) for the finished revision.
 
@@ -43,6 +46,9 @@ The gate checks:
   are not validated).
 - Exact help snapshots, including every dispatched top-level command and child leaf. Add a new
   command to `scripts/help-snapshots.txt`; snapshots are never refreshed by CI.
+- Exact bundled agent command references generated from live help, plus strict
+  command/long-flag checks for skill examples. Unknown commands fail this check;
+  examples are inspected without executing their mutations. CI checks never rewrite the bundle.
 - Global flag inventory in README and root help against the global parser.
 - Shell quoting in README command lines.
 - Long flag names in command snippets in README, SPEC, and help snapshots against
