@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            go: "1.22.x"
+            go: "1.27.1"
           - os: macos-latest
             go: "1.27.1"
     runs-on: ${{ matrix.os }}
