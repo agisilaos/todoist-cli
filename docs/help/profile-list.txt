@@ -1,0 +1,20 @@
+Usage:
+  todoist profile list
+
+Flags:
+  No command-specific flags.
+
+Global flags:
+  -h, --help             Show help without running the command
+  --config <path>       Choose the configuration directory
+  --json, --ndjson       Structured report output
+  See 'todoist --help' for all global flags and output modes.
+
+Notes:
+  Enumerates credential profiles offline, including disabled profiles with pending cleanup.
+  Reads metadata without retrieving native secrets or checking token validity. Account identity is unknown.
+  Invalid rows include safe error codes; the command reports all rows, then exits 3.
+  TODOIST_TOKEN overrides every stored credential without inheriting its authorization evidence.
+
+Examples:
+  todoist profile list --json

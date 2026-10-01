@@ -64,15 +64,18 @@ type Context struct {
 	Stderr           io.Writer
 	Stdin            io.Reader
 
-	Global     GlobalOptions
-	Mode       output.Mode
-	Config     config.Config
-	Profile    string
-	ConfigPath string
-	ConfigErr  error
-	HelpPath   string
-	Fuzzy      bool
-	Accessible bool
+	Global                GlobalOptions
+	Mode                  output.Mode
+	Config                config.Config
+	Profile               string
+	SelectionSource       string
+	UserDefaultProfile    string
+	ProjectDefaultProfile string
+	ConfigPath            string
+	ConfigErr             error
+	HelpPath              string
+	Fuzzy                 bool
+	Accessible            bool
 
 	Credentials    credentials.Store
 	CredentialInfo credentials.Info
@@ -357,7 +360,9 @@ func loadConfig(ctx *Context) error {
 	}
 	ctx.Config = cfg
 
-	ctx.Profile = resolveProfile(ctx.Global.Profile, cfg.DefaultProfile)
+	ctx.UserDefaultProfile = userCfg.DefaultProfile
+	ctx.ProjectDefaultProfile = projectCfg.DefaultProfile
+	ctx.Profile, ctx.SelectionSource = resolveProfileSelection(ctx.Global.Profile, projectCfg.DefaultProfile, userCfg.DefaultProfile)
 
 	// Fuzzy resolution flag/env
 	fuzzy := ctx.Global.Fuzzy
@@ -467,12 +472,15 @@ func toExitCode(err error) int {
 	return exitError
 }
 
-func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
-	parent := ctx.OperationContext
-	if parent == nil {
-		parent = context.Background()
+func operationContext(ctx *Context) context.Context {
+	if ctx.OperationContext != nil {
+		return ctx.OperationContext
 	}
-	return context.WithTimeout(parent, time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
+	return context.Background()
+}
+
+func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(operationContext(ctx), time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
 }
 
 func parseIDOrName(input string) string {
@@ -512,14 +520,22 @@ func parsePositiveEnvFlag(key string) bool {
 }
 
 func resolveProfile(flagValue, defaultProfile string) string {
+	name, _ := resolveProfileSelection(flagValue, "", defaultProfile)
+	return name
+}
+
+func resolveProfileSelection(flagValue, projectDefault, userDefault string) (string, string) {
 	if flagValue != "" {
-		return flagValue
+		return flagValue, "flag"
 	}
 	if env := os.Getenv("TODOIST_PROFILE"); env != "" {
-		return env
+		return env, "environment"
 	}
-	if defaultProfile != "" {
-		return defaultProfile
+	if projectDefault != "" {
+		return projectDefault, "project"
 	}
-	return "default"
+	if userDefault != "" {
+		return userDefault, "user"
+	}
+	return "default", "fallback"
 }

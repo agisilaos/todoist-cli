@@ -86,6 +86,8 @@ func helpCommand(ctx *Context, args []string) error {
 		printInboxHelp(ctx.Stdout)
 	case "auth":
 		printAuthHelp(ctx.Stdout)
+	case "profile":
+		printProfileHelp(ctx.Stdout)
 	case "add":
 		printAddHelp(ctx.Stdout)
 	case "review":
@@ -153,13 +155,18 @@ Storage:
   Existing profiles keep their backend. Status reads metadata without retrieving secrets.
   Keychain never prompts; unlock or adjust it externally, then retry.
   Manual login verifies the token with Todoist before saving; network access is required.
+  Manage credential profiles with 'todoist profile --help'. Profiles are grants, not accounts.
+
+OAuth setup:
+  Supply your own public PKCE client ID and registered callback; no client is bundled.
+  Short-lived or refresh-bearing grants are rejected; token refresh is not implemented.
+  Todoist device authorization is not advertised; --oauth-device is configurable/unverified.
 
 Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist --profile reader auth login --oauth --read-only
-  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser
   todoist auth login --print-env
 `)
@@ -179,7 +186,7 @@ Flags:
   --token-stdin                Read token from stdin
   --print-env                  Print token export instead of saving profile credentials
   --oauth                      Authenticate using OAuth PKCE flow
-  --oauth-device               Authenticate using OAuth device flow (headless-friendly)
+  --oauth-device               Configurable device flow (Todoist support unverified)
   --read-only                  Request data:read; requires --oauth or --oauth-device
   --no-browser                 Do not auto-open browser for OAuth flow
   --client-id <id>             OAuth client ID (or TODOIST_OAUTH_CLIENT_ID)
@@ -194,7 +201,6 @@ Examples:
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist --profile reader auth login --oauth --read-only
-  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser --print-env
 
 Notes:
@@ -205,7 +211,42 @@ Notes:
   Planning, local inspection, and dry runs remain available with read-only credentials.
   Manual, environment, and legacy tokens have unknown scopes and permit write attempts.
   --print-env exports only the token; later environment use has unknown authorization.
+  OAuth needs a public PKCE client with an accepted redirect; no client ID or secret is bundled.
+  Short-lived or refresh-bearing grants are rejected before changing credentials.
   Device flow endpoint support by Todoist is unverified. Token refresh is not implemented.
+`)
+}
+
+func printProfileHelp(out interface{ Write([]byte) (int, error) }) {
+	fmt.Fprint(out, `Usage:
+  todoist profile list
+  todoist profile current
+  todoist profile use <name>
+  todoist profile remove <name>
+
+Credential profiles:
+  Profiles are named credentials; multiple grants can belong to the same Todoist account.
+  Create one with 'todoist --profile <name> auth login'. List/current stay offline
+  and never retrieve native secrets. Accessibility and account identity are unchecked.
+  TODOIST_TOKEN overrides the credential; current reports environment authorization.
+
+Selection:
+  --profile > TODOIST_PROFILE > project .todoist.json > user config > default.
+  use saves only default_profile in the resolved user config (--config/TODOIST_CONFIG
+  or the default config path). It preserves project/env/flag overrides and reports them.
+  use requires an enabled profile with valid or legacy metadata; native access stays unchecked.
+
+Removal:
+  remove requires an explicit name and does not change selection or revoke a Todoist grant.
+  A removed default remains missing until explicit use or login; no fallback is activated.
+  Native deletion first disables the profile. Pending cleanup is an error; repeat remove
+  or run 'todoist --profile <name> auth repair'. Absent names are an idempotent success.
+
+Examples:
+  todoist profile list --json
+  todoist profile use work
+  todoist profile current --json
+  todoist profile remove scratch
 `)
 }
 

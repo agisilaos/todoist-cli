@@ -2,7 +2,7 @@
 
 `--task-output-version 2` selects faithful task-resource JSON/NDJSON over Todoist
 API v1. The default remains legacy version 1. This is a CLI output version, not a
-Todoist API version. The [compatibility decision](adr/0006-preserve-legacy-task-output-with-a-faithful-projection.md)
+Todoist API version. The [compatibility decision](adr/0008-preserve-legacy-task-output-with-a-faithful-projection.md)
 preserves existing clients and the human-only meaning of `--full`.
 
 ```sh

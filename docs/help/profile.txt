@@ -1,0 +1,29 @@
+Usage:
+  todoist profile list
+  todoist profile current
+  todoist profile use <name>
+  todoist profile remove <name>
+
+Credential profiles:
+  Profiles are named credentials; multiple grants can belong to the same Todoist account.
+  Create one with 'todoist --profile <name> auth login'. List/current stay offline
+  and never retrieve native secrets. Accessibility and account identity are unchecked.
+  TODOIST_TOKEN overrides the credential; current reports environment authorization.
+
+Selection:
+  --profile > TODOIST_PROFILE > project .todoist.json > user config > default.
+  use saves only default_profile in the resolved user config (--config/TODOIST_CONFIG
+  or the default config path). It preserves project/env/flag overrides and reports them.
+  use requires an enabled profile with valid or legacy metadata; native access stays unchecked.
+
+Removal:
+  remove requires an explicit name and does not change selection or revoke a Todoist grant.
+  A removed default remains missing until explicit use or login; no fallback is activated.
+  Native deletion first disables the profile. Pending cleanup is an error; repeat remove
+  or run 'todoist --profile <name> auth repair'. Absent names are an idempotent success.
+
+Examples:
+  todoist profile list --json
+  todoist profile use work
+  todoist profile current --json
+  todoist profile remove scratch

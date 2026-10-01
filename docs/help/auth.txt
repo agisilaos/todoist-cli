@@ -12,12 +12,17 @@ Storage:
   Existing profiles keep their backend. Status reads metadata without retrieving secrets.
   Keychain never prompts; unlock or adjust it externally, then retry.
   Manual login verifies the token with Todoist before saving; network access is required.
+  Manage credential profiles with 'todoist profile --help'. Profiles are grants, not accounts.
+
+OAuth setup:
+  Supply your own public PKCE client ID and registered callback; no client is bundled.
+  Short-lived or refresh-bearing grants are rejected; token refresh is not implemented.
+  Todoist device authorization is not advertised; --oauth-device is configurable/unverified.
 
 Examples:
   todoist auth login
   todoist auth login --token-stdin < token.txt
   todoist auth login --oauth --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist --profile reader auth login --oauth --read-only
-  todoist auth login --oauth-device --client-id "$TODOIST_OAUTH_CLIENT_ID"
   todoist auth login --oauth --no-browser
   todoist auth login --print-env

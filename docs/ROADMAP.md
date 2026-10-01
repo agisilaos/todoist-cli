@@ -13,7 +13,9 @@ availability is recorded in [CHANGELOG.md](../CHANGELOG.md).
 - Focused leaf-command help and human command-typo recovery
 - IDs-only output for supported lists
 - Task updates by ID or text reference
-- OAuth PKCE and device-flow login
+- Credential profile listing, selection, inspection, and recoverable removal
+- OAuth PKCE login with explicit public-client setup and token-lifetime checks
+- Configurable device-flow client; live Todoist device support is unverified
 - Workspace listing and project collaborators
 - Agent progress events, action policies, and replay protection
 - Reference disambiguation and bulk task operations with previews

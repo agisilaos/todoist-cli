@@ -93,7 +93,41 @@ todoist --profile reader auth status --json
 todoist --profile reader task list
 ```
 
-Both `--oauth` (PKCE) and `--oauth-device` accept `--read-only`, requesting exactly `data:read`. OAuth without this flag requests `data:read_write,data:delete,project:delete`. The existing configurable device-flow client is protocol-tested, but live Todoist device authorization support is unverified. Token refresh is not implemented; saved authorization metadata does not extend token validity. `--timeout` bounds each OAuth HTTP request, not human approval: PKCE allows three minutes for its callback, and device authorization honors the provider’s code lifetime.
+Both `--oauth` (PKCE) and the configurable `--oauth-device` accept `--read-only`, requesting exactly `data:read`. OAuth without this flag requests `data:read_write,data:delete,project:delete`. Device flow requires an explicit provider endpoint; Todoist does not currently advertise device authorization. Mock-provider tests do not establish live Todoist support. `--timeout` bounds each OAuth HTTP request, not human approval: PKCE allows three minutes for its callback, and device authorization honors the provider’s code lifetime.
+
+### OAuth onboarding
+
+No OAuth client ID or client secret is bundled. `--client-id` overrides
+`TODOIST_OAUTH_CLIENT_ID`. Use a public client configured for PKCE/S256 and
+`token_endpoint_auth_method: none`, with a redirect URI accepted by Todoist.
+An ordinary confidential App Console client cannot be assumed compatible with
+this secretless CLI. A maintainer-owned public registration or publicly hosted
+HTTPS client metadata document could supply future default onboarding; none is
+currently configured for this project.
+
+The callback defaults to `http://127.0.0.1:8765/callback`. Match its host, port,
+and path to your registered redirect, or supply matching `--oauth-listen` and
+`--oauth-redirect-uri` values. The listener is started before browser launch.
+Use `--no-browser` to open the printed URL manually; authorization still needs
+human approval and a callback to this machine. Cancellation before persistence, rejected exchanges,
+and unacceptable grants leave the prior credential unchanged. Provider response
+bodies and callback error text are never echoed.
+
+Todoist's current docs describe public-client dynamic registration and HTTPS
+client metadata documents, but allow localhost redirects specifically for testing.
+This project's loopback registration and completed live exchange remain unverified.
+Neither command registers an application automatically.
+
+**Refresh support is a prerequisite for new short-lived grants.** Todoist says
+new apps issue one-hour access tokens. This CLI rejects refresh-bearing responses
+and finite lifetimes other than the documented legacy compatibility value
+(`315360000` seconds), before saving or exporting a token. An omitted expiry is
+retained for legacy compatibility. The error is `OAUTH_LIFECYCLE_UNSUPPORTED`;
+use manual login or a verified legacy public client until durable refresh support
+exists. Authorization metadata does not extend token validity.
+
+Sources and the exact maintainer setup/live-verification requirements are in the
+[profile and OAuth contract](docs/profile-oauth-design.md#oauth-prerequisites).
 
 Read-only credentials can read Todoist, construct plans, and run previews. The CLI blocks mutations, including `agent apply/run`, before a mutation request is sent. `--force` and `--on-error=continue` do not override this restriction. External planners are trusted programs and are not sandboxed.
 
@@ -102,6 +136,54 @@ Authorization metadata is saved with each profile. `auth status` reports credent
 Existing stored tokens, manual tokens, and `TODOIST_TOKEN` remain **unknown** and may attempt writes for compatibility. The environment token overrides a selected profile without inheriting its metadata. Exporting with `--print-env` also loses local scope evidence on subsequent environment use. Invalid or unsupported metadata blocks authenticated operations and can be repaired through login/logout. Logout disables the profile and removes its token and metadata; failed native deletion is reported as pending cleanup. It does not revoke the token or unset the environment.
 
 See the [authorization contract](docs/authorization-design.md), [command classification](docs/authorization-command-inventory.md), and [compatibility decision](docs/adr/0003-preserve-write-capability-for-unknown-credentials.md).
+
+## Credential profiles
+
+A credential profile is a named grant, not a Todoist account. Multiple profiles
+can belong to the same account. Profile commands report stored metadata offline;
+they do not retrieve native secrets, verify token validity, discover identity,
+or expose token fragments.
+
+```bash
+todoist --profile work auth login
+todoist --profile reader auth login --token-stdin < token.txt
+todoist profile list --json
+todoist profile use work
+todoist profile current --json
+todoist profile remove reader
+```
+
+For scratch or portable storage, retain the same `--config /path/to/config.json`
+on every command and explicitly select `--credential-store=file` for new login.
+Configuration files in the same directory share credentials. `list` includes
+disabled cleanup records and safe per-row errors; invalid rows produce exit 3
+after the report. JSON and NDJSON each emit one complete report, including an
+empty `profiles: []`; human/plain output explains empty results.
+
+Selection is `--profile` > `TODOIST_PROFILE` > current directory `.todoist.json`
+`default_profile` > resolved user config `default_profile` > `default`. `use NAME`
+requires an enabled profile with valid or legacy metadata, and saves only
+`default_profile` in the user config selected by `--config`, `TODOIST_CONFIG`,
+or the default path. It preserves other fields and never changes project config.
+The acknowledgement identifies the saved choice and any overriding selection.
+Native accessibility remains unchecked.
+
+`TODOIST_TOKEN` overrides the credential regardless of profile selection.
+`current` reports `source: env` and external/unknown authorization in that case;
+the selected profile is inactive context and its stored metadata is not read.
+Without the environment override, missing/disabled selection produces a report
+and exit 4; invalid metadata fails closed. `auth status` keeps its existing
+compatibility contract.
+
+`remove NAME` targets the explicit name and succeeds idempotently for absent
+names. Removing a selected/default profile **retains its selection**, so the
+next stored invocation fails as missing until explicit `use` or login. It does
+not select another credential or revoke the remote grant. Native removal first
+durably disables the profile; cleanup failure returns exit 3 with
+`CREDENTIAL_CLEANUP_PENDING` and `committed: true`. Repeat `profile remove NAME`
+or run `todoist --profile NAME auth repair` to retry. Failure details provide
+targeted recovery commands retaining the configuration. `TODOIST_TOKEN` remains
+active until deliberately changed or unset.
 
 ## Config
 
@@ -233,7 +315,7 @@ Manage Todoist credentials and profiles.
 ```
 todoist auth login [--token-stdin] [--print-env] [--credential-store=native|file]
 todoist auth login --oauth [--read-only] [--client-id <id>] [--no-browser] [--print-env]
-todoist auth login --oauth-device [--read-only] [--client-id <id>] [--print-env]
+todoist auth login --oauth-device --oauth-device-url <url> [--read-only] [--client-id <id>] [--print-env]
                   [--oauth-authorize-url <url>] [--oauth-token-url <url>]
                   [--oauth-device-url <url>] [--oauth-listen <host:port>] [--oauth-redirect-uri <uri>]
 todoist auth status
@@ -245,7 +327,7 @@ todoist auth repair
 - `auth login` prompts for a token without echoing it (TTY) or reads from stdin with `--token-stdin`. New profiles default to native storage (macOS Keychain); select `--credential-store=file` explicitly for portable plaintext storage. Existing profiles retain their backend. See [credential storage and recovery](#credential-storage-and-recovery).
 - OAuth defaults use Todoist’s documented `https://app.todoist.com/oauth/authorize` and `https://api.todoist.com/oauth/access_token` endpoints. Endpoint override flags and environment variables remain available.
 - `auth login --oauth` runs OAuth PKCE via local callback (`http://127.0.0.1:8765/callback` by default). If browser auto-open fails, the command prints a warning and continues waiting for callback so you can open the URL manually.
-- `auth login --oauth-device` prints a verification URL/code and polls until authorized. The configurable client flow is protocol-tested; live Todoist support remains unverified.
+- `auth login --oauth-device` needs an explicitly configured device endpoint, then prints a verification URL/code and polls until authorized. Todoist does not advertise this flow; only mock-provider behavior is tested.
 - `auth status` reports the selected profile, credential source, authorization mode, scope evidence, and write capability without contacting Todoist.
 - `auth logout` disables the selected profile before deleting its token and authorization metadata. An environment token remains active.
 - `auth migrate --credential-store=native|file` explicitly changes the selected profile’s backend after verifying the destination.
@@ -873,7 +955,7 @@ todoist doctor --strict
 Output JSON schemas and wire-format descriptors (always emitted as JSON):
 
 ```
-todoist schema [--name task_list|task_item_ndjson|ids_only|error|plan|plan_preview|planner_request] [--json]
+todoist schema [--name task_list|task_item_ndjson|profile_list|profile_current|profile_use|profile_remove|ids_only|error|plan|plan_preview|planner_request] [--json]
 ```
 
 Task schemas: `task_item` and `task_item_ndjson` describe legacy objects;

@@ -74,7 +74,7 @@ func TestAuthLoginOAuthDeviceStoresToken(t *testing.T) {
 	})
 	defer restore()
 
-	if err := authLogin(ctx, []string{"--oauth-device", "--client-id", "client-1"}); err != nil {
+	if err := authLogin(ctx, []string{"--oauth-device", "--client-id", "client-1", "--oauth-device-url", "https://provider.example/device"}); err != nil {
 		t.Fatalf("authLogin: %v", err)
 	}
 
@@ -147,9 +147,11 @@ func TestAuthLoginTokenStdinPrintEnvNDJSONMode(t *testing.T) {
 
 func TestAuthOAuthLoginContinuesWhenBrowserOpenFails(t *testing.T) {
 	ctx := newAuthTestContext(t)
+	address := scratchOAuthAddress(t)
 	cfg := oauthConfig{
 		ClientID:    "client-1",
-		RedirectURI: "http://127.0.0.1:8765/callback",
+		ListenAddr:  address,
+		RedirectURI: "http://" + address + "/callback",
 	}
 	restore := stubOAuthFlowDeps(
 		func(size int) (string, error) {
@@ -187,9 +189,11 @@ func TestAuthOAuthLoginContinuesWhenBrowserOpenFails(t *testing.T) {
 
 func TestAuthOAuthLoginNoBrowserSkipsBrowserOpen(t *testing.T) {
 	ctx := newAuthTestContext(t)
+	address := scratchOAuthAddress(t)
 	cfg := oauthConfig{
 		ClientID:    "client-1",
-		RedirectURI: "http://127.0.0.1:8765/callback",
+		ListenAddr:  address,
+		RedirectURI: "http://" + address + "/callback",
 		NoBrowser:   true,
 	}
 	openCalls := 0

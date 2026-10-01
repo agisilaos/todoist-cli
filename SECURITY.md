@@ -35,6 +35,14 @@ original entries. Unsupported/corrupt storage is reported rather than overwritte
 Preserve corrupt files for deliberate recovery. Use `auth repair` only for recognized
 interrupted operations and pending cleanup.
 
+Profile list/current inspect metadata only. Profile names do not establish account
+identity; multiple grants can belong to one account. Removing a default retains
+its missing selection and never activates a different credential automatically.
+Target-profile and rejected OAuth errors must not borrow the active credential's
+scope evidence. OAuth diagnostics exclude untrusted provider bodies and callback
+error text. No shared client secret or copied third-party client ID is bundled;
+short-lived or refresh-bearing grants are rejected until durable refresh exists.
+
 ## Isolated native tests
 
 Ordinary CLI tests inject native adapters and use temporary configurations. The
