@@ -70,8 +70,10 @@ invocation tests exercise different credentials and UTC date windows.
 An optional operation context follows the invocation through task resolution,
 credential inspection, manual-token verification, and planner processes. Review
 and OAuth signal contexts derive from that parent. Task service adapters honor
-the supplied context and restore the enclosing invocation context afterward;
-lookup caches and request metadata remain shared within the invocation.
+the supplied context through a scoped copy instead of swapping the enclosing
+invocation context. The copy shares the invocation lookup cache; resolution uses
+REST reads, which do not generate request IDs. Lookup state and command adapters
+still belong to a single sequential invocation, not a concurrent command runner.
 Caller cancellation and expired operation deadlines stop bulk task operations and
 agent application even in continue mode. Task-write timeouts remain uncertain outcomes and stop
 further writes under ADR-0009; unrelated action timeouts remain individual

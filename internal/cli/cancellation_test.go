@@ -317,3 +317,57 @@ func TestApplyTaskRequestTimeoutStopsOnUncertainty(t *testing.T) {
 		t.Fatalf("pending action was blindly retried: err=%v calls=%d", err, calls)
 	}
 }
+
+func TestTaskAdaptersLeaveParentContextUntouchedDuringRequests(t *testing.T) {
+	for _, adapter := range []string{"target", "action", "filter"} {
+		t.Run(adapter, func(t *testing.T) {
+			ctx := newApplyTestContext(t.TempDir(), "https://example.com")
+			parent := context.Background()
+			ctx.OperationContext = parent
+			type marker struct{}
+			operation := context.WithValue(parent, marker{}, "child")
+			ctx.Client.SetTransport(cancellationTransport(func(r *http.Request) (*http.Response, error) {
+				if ctx.OperationContext != parent {
+					t.Error("adapter overwrote the shared parent during dispatch")
+				}
+				if r.Context().Value(marker{}) != "child" {
+					t.Error("adapter discarded the caller's context")
+				}
+				body := `{"id":"task"}`
+				if adapter == "filter" {
+					body = `{"results":[{"id":"task","parent_id":null}],"next_cursor":null}`
+				}
+				return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
+			}))
+			var err error
+			switch adapter {
+			case "target":
+				_, err = (cliTaskResolver{ctx: ctx}).ResolveTaskRef(operation, "id:task")
+			case "action":
+				_, err = (&taskActionResolver{ctx: ctx}).ResolveTaskRef(operation, "id:task")
+			case "filter":
+				_, err = (cliTaskFilterLister{ctx: ctx}).ListByFilter(operation, "today")
+			}
+			if err != nil || ctx.OperationContext != parent {
+				t.Fatalf("adapter changed parent: %v", err)
+			}
+		})
+	}
+}
+
+func TestTaskAdapterPreservesInvocationLookupCache(t *testing.T) {
+	ctx := newApplyTestContext(t.TempDir(), "https://example.com")
+	calls := 0
+	ctx.Client.SetTransport(cancellationTransport(func(r *http.Request) (*http.Response, error) {
+		calls++
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"results":[{"id":"task","content":"Shared task"}]}`))}, nil
+	}))
+	task, err := (cliTaskResolver{ctx: ctx}).ResolveTaskRef(context.Background(), "Shared task")
+	if err != nil || task.ID != "task" {
+		t.Fatalf("resolution: %v %v", task, err)
+	}
+	tasks, err := listAllActiveTasks(ctx)
+	if err != nil || len(tasks) != 1 || calls != 1 {
+		t.Fatalf("adapter lost invocation cache: %v calls=%d", err, calls)
+	}
+}

@@ -20,10 +20,7 @@ func (r *taskActionResolver) ResolveTaskRef(operation context.Context, ref strin
 	if err := operation.Err(); err != nil {
 		return api.Task{}, err
 	}
-	prior := r.ctx.OperationContext
-	r.ctx.OperationContext = operation
-	defer func() { r.ctx.OperationContext = prior }()
-	task, err := resolveTaskRef(r.ctx, ref)
+	task, err := resolveTaskRef(taskAdapterContext(r.ctx, operation), ref)
 	if err == nil {
 		r.task = &task
 	}
@@ -38,10 +35,7 @@ func (r cliTaskResolver) ResolveTaskRef(operation context.Context, ref string) (
 	if err := operation.Err(); err != nil {
 		return api.Task{}, err
 	}
-	prior := r.ctx.OperationContext
-	r.ctx.OperationContext = operation
-	defer func() { r.ctx.OperationContext = prior }()
-	return resolveTaskRef(r.ctx, ref)
+	return resolveTaskRef(taskAdapterContext(r.ctx, operation), ref)
 }
 
 type cliTaskFilterLister struct {
@@ -52,11 +46,18 @@ func (l cliTaskFilterLister) ListByFilter(operation context.Context, filter stri
 	if err := operation.Err(); err != nil {
 		return nil, err
 	}
-	prior := l.ctx.OperationContext
-	l.ctx.OperationContext = operation
-	defer func() { l.ctx.OperationContext = prior }()
-	tasks, _, err := listTasksByFilter(l.ctx, filter, "", 200, true, true)
+	tasks, _, err := listTasksByFilter(taskAdapterContext(l.ctx, operation), filter, "", 200, true, true)
 	return tasks, err
+}
+
+// Bind the caller's operation without temporarily changing the enclosing one.
+// The invocation owns mutable lookup state and still uses adapters sequentially.
+func taskAdapterContext(ctx *Context, operation context.Context) *Context {
+	cache := ctx.cache()
+	scoped := *ctx
+	scoped.OperationContext = operation
+	scoped.lookupCache = cache
+	return &scoped
 }
 
 func asUsageIfGeneric(err error) error {
