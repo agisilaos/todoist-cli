@@ -38,7 +38,13 @@ type Credential struct {
 }
 
 func DefaultUserConfigPath() (string, error) {
-	xdg := os.Getenv("XDG_CONFIG_HOME")
+	return DefaultUserConfigPathWithEnv(os.Getenv)
+}
+
+// DefaultUserConfigPathWithEnv allows an invocation to select XDG configuration
+// independently of the process environment. Home directory discovery is unchanged.
+func DefaultUserConfigPathWithEnv(getenv func(string) string) (string, error) {
+	xdg := getenv("XDG_CONFIG_HOME")
 	if xdg == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {

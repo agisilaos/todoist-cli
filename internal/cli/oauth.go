@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -71,32 +70,32 @@ func oauthContextError(cause error) error {
 	return &CodeError{Code: exitError, Err: &oauthError{Code: code, Message: message, cause: cause}}
 }
 
-func buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
+func buildOAuthConfig(ctx *Context, clientID, authorizeURL, tokenURL, deviceURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
 	if clientID == "" {
-		clientID = strings.TrimSpace(os.Getenv("TODOIST_OAUTH_CLIENT_ID"))
+		clientID = strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_CLIENT_ID"))
 	}
 	if clientID == "" {
 		return oauthConfig{}, errors.New("missing OAuth client id; set --client-id or TODOIST_OAUTH_CLIENT_ID to your public PKCE client ID or hosted client metadata URL. This CLI has no maintainer-owned registered client. Configure the client's exact loopback redirect before login; confidential clients requiring a client secret are unsupported. See https://developer.todoist.com/api/v1/#tag/Authorization/OAuth-Client-ID-Metadata-Document or use manual auth login")
 	}
 	if authorizeURL == "" {
-		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_AUTHORIZE_URL")); env != "" {
+		if env := strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_AUTHORIZE_URL")); env != "" {
 			authorizeURL = env
 		} else {
 			authorizeURL = defaultOAuthAuthorizeURL
 		}
 	}
 	if tokenURL == "" {
-		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_TOKEN_URL")); env != "" {
+		if env := strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_TOKEN_URL")); env != "" {
 			tokenURL = env
 		} else {
 			tokenURL = defaultOAuthTokenURL
 		}
 	}
 	if deviceURL == "" {
-		deviceURL = strings.TrimSpace(os.Getenv("TODOIST_OAUTH_DEVICE_URL"))
+		deviceURL = strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_DEVICE_URL"))
 	}
 	if listenAddr == "" {
-		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_LISTEN")); env != "" {
+		if env := strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_LISTEN")); env != "" {
 			listenAddr = env
 		} else {
 			listenAddr = defaultOAuthListenAddr

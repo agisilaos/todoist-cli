@@ -79,17 +79,17 @@ func TestLoadConfigPrecedence(t *testing.T) {
 
 func TestResolveProfilePrecedence(t *testing.T) {
 	t.Setenv("TODOIST_PROFILE", "env-profile")
-	if got := resolveProfile("flag-profile", "default-profile"); got != "flag-profile" {
+	if got := resolveProfile(&Context{}, "flag-profile", "default-profile"); got != "flag-profile" {
 		t.Fatalf("flag should win, got %q", got)
 	}
-	if got := resolveProfile("", "default-profile"); got != "env-profile" {
+	if got := resolveProfile(&Context{}, "", "default-profile"); got != "env-profile" {
 		t.Fatalf("env should win when flag absent, got %q", got)
 	}
 	t.Setenv("TODOIST_PROFILE", "")
-	if got := resolveProfile("", "default-profile"); got != "default-profile" {
+	if got := resolveProfile(&Context{}, "", "default-profile"); got != "default-profile" {
 		t.Fatalf("default profile should win when env absent, got %q", got)
 	}
-	if got := resolveProfile("", ""); got != "default" {
+	if got := resolveProfile(&Context{}, "", ""); got != "default" {
 		t.Fatalf("fallback should be default, got %q", got)
 	}
 }
@@ -97,21 +97,21 @@ func TestResolveProfilePrecedence(t *testing.T) {
 func TestApplyEnvIntAndFlagParser(t *testing.T) {
 	v := 10
 	t.Setenv("TEST_POSITIVE", "0")
-	applyEnvInt("TEST_POSITIVE", &v, true)
+	applyEnvInt(&Context{}, "TEST_POSITIVE", &v, true)
 	if v != 10 {
 		t.Fatalf("positiveOnly should ignore non-positive values")
 	}
 	t.Setenv("TEST_POSITIVE", "12")
-	applyEnvInt("TEST_POSITIVE", &v, true)
+	applyEnvInt(&Context{}, "TEST_POSITIVE", &v, true)
 	if v != 12 {
 		t.Fatalf("expected env int override, got %d", v)
 	}
 	t.Setenv("TEST_FUZZY", "1")
-	if !parsePositiveEnvFlag("TEST_FUZZY") {
+	if !parsePositiveEnvFlag(&Context{}, "TEST_FUZZY") {
 		t.Fatalf("expected positive env flag true")
 	}
 	t.Setenv("TEST_FUZZY", "0")
-	if parsePositiveEnvFlag("TEST_FUZZY") {
+	if parsePositiveEnvFlag(&Context{}, "TEST_FUZZY") {
 		t.Fatalf("expected non-positive env flag false")
 	}
 }

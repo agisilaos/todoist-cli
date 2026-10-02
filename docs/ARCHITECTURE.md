@@ -51,6 +51,19 @@ points. For command changes, use the existing [command-change checklist](README.
 | Credential selection, storage, authorization | Selection: [cli.go](../internal/cli/cli.go) (`loadConfig`); lazy retrieval: [credential_store.go](../internal/cli/credential_store.go). Persistence boundary: [store.go](../internal/credentials/store.go). Policy: [authorization.go](../internal/authorization/authorization.go); HTTP guard: [api/authorization.go](../internal/api/authorization.go). | [Profile selection](profile-oauth-design.md#profile-selection-and-inspection), [storage](credential-store-design.md), [authorization](authorization-design.md), [security boundary](../SECURITY.md). | [profile_contract_test.go](../internal/cli/profile_contract_test.go): selection/output; [store_test.go](../internal/credentials/store_test.go): persistence/recovery; [authorization_test.go](../internal/api/authorization_test.go): resource and redirect guards. |
 | Review, agent application, replay persistence | Review selection/snapshots: [app/review/review.go](../internal/app/review/review.go); interaction: [cli/review.go](../internal/cli/review.go). Shared apply loop: [agent_apply.go](../internal/cli/agent_apply.go); review preconditions/checkpoints: [review_apply.go](../internal/cli/review_apply.go); journal: [agent_replay.go](../internal/cli/agent_replay.go). | [Daily review](review-design.md); [replay success boundary and limitations](adr/0002-treat-replay-recording-as-part-of-action-success.md). | [agent_apply_test.go](../internal/cli/agent_apply_test.go): success recording and reruns; [review_apply_test.go](../internal/cli/review_apply_test.go): pending/checkpoint failures; [agent_replay_test.go](../internal/cli/agent_replay_test.go): journal persistence. |
 
+## Invocation inputs
+
+`internal/cli.Execute` uses process defaults and delegates to
+`ExecuteWithEnvironment`. Its invocation inputs allow tests and embedded callers
+to supply a clock, stdin, and environment lookup without replacing shared state.
+CLI environment reads (including credential/profile overrides, OAuth settings,
+planner selection, and display/completion settings) use that lookup. Filesystem
+state, working directory, home-directory discovery, and child-process environments
+remain process-owned; callers should select scratch paths explicitly.
+OAuth adapters are held on each CLI context rather than mutable package globals.
+Date-sensitive command contracts pin their reference clock, while concurrent
+invocation tests exercise different credentials and UTC date windows.
+
 ## Service coverage
 
 - `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, task mutation payload builders, returned due evidence and recurrence-preserving rescheduling, and hierarchy destination/selection rules. The CLI retains invocation-local ancestry fetching and caching.

@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 
@@ -300,8 +299,8 @@ func writeError(ctx *Context, err error) {
 	}
 }
 
-func terminalWidth() int {
-	if env := os.Getenv("COLUMNS"); env != "" {
+func terminalWidth(ctx *Context) int {
+	if env := ctx.getenv("COLUMNS"); env != "" {
 		if val, err := strconv.Atoi(env); err == nil && val > 0 {
 			return val
 		}
@@ -313,7 +312,7 @@ func tableWidth(ctx *Context) int {
 	if ctx != nil && ctx.Config.TableWidth > 0 {
 		return ctx.Config.TableWidth
 	}
-	return terminalWidth()
+	return terminalWidth(ctx)
 }
 
 func cleanCell(value string) string {

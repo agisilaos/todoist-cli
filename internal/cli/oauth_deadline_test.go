@@ -36,9 +36,9 @@ func TestDeviceApprovalOutlivesRequestTimeout(t *testing.T) {
 func TestPKCEApprovalGetsSeparateExchangeDeadline(t *testing.T) {
 	ctx := newAuthTestContext(t)
 	ctx.Config.TimeoutSeconds = 1
-	previousWait, previousExchange := waitForOAuthCodeFn, exchangeOAuthTokenFn
-	defer func() { waitForOAuthCodeFn = previousWait; exchangeOAuthTokenFn = previousExchange }()
-	waitForOAuthCodeFn = func(wait context.Context, _ oauthConfig, _ string, _ time.Duration) (string, error) {
+	previousWait, previousExchange := ctx.oauth.waitForCode, ctx.oauth.exchangeToken
+	defer func() { ctx.oauth.waitForCode = previousWait; ctx.oauth.exchangeToken = previousExchange }()
+	ctx.oauth.waitForCode = func(wait context.Context, _ oauthConfig, _ string, _ time.Duration) (string, error) {
 		select {
 		case <-time.After(1100 * time.Millisecond):
 			return "synthetic-code", nil
@@ -46,7 +46,7 @@ func TestPKCEApprovalGetsSeparateExchangeDeadline(t *testing.T) {
 			return "", wait.Err()
 		}
 	}
-	exchangeOAuthTokenFn = func(exchange context.Context, _ oauthConfig, _, _ string) (oauthToken, error) {
+	ctx.oauth.exchangeToken = func(exchange context.Context, _ oauthConfig, _, _ string) (oauthToken, error) {
 		if err := exchange.Err(); err != nil {
 			return oauthToken{}, err
 		}

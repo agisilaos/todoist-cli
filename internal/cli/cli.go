@@ -59,6 +59,13 @@ type GlobalOptions struct {
 	ProgressJSONL        string
 }
 
+// Environment supplies invocation inputs. Nil fields use process defaults.
+type Environment struct {
+	Now    func() time.Time
+	Stdin  io.Reader
+	Getenv func(string) string
+}
+
 type Context struct {
 	OperationContext context.Context
 	Stdout           io.Writer
@@ -88,6 +95,8 @@ type Context struct {
 	Authorization *authorization.Report
 
 	Client      *api.Client
+	Getenv      func(string) string
+	oauth       oauthDependencies
 	Now         func() time.Time
 	RequestID   string
 	Progress    *progressSink
@@ -95,6 +104,21 @@ type Context struct {
 }
 
 func Execute(args []string, stdout, stderr io.Writer) int {
+	return ExecuteWithEnvironment(args, stdout, stderr, Environment{})
+}
+
+// ExecuteWithEnvironment runs a command with invocation-local inputs, allowing
+// callers to pin the clock or provide stdin without changing process globals.
+func ExecuteWithEnvironment(args []string, stdout, stderr io.Writer, env Environment) int {
+	if env.Now == nil {
+		env.Now = time.Now
+	}
+	if env.Stdin == nil {
+		env.Stdin = os.Stdin
+	}
+	if env.Getenv == nil {
+		env.Getenv = os.Getenv
+	}
 	opts, rest, err := parseGlobalFlags(args, stderr)
 	if err != nil {
 		if len(rest) > 0 && rest[0] == "skill" {
@@ -130,10 +154,11 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	ctx := &Context{
 		Stdout: stdout,
 		Stderr: stderr,
-		Stdin:  os.Stdin,
+		Stdin:  env.Stdin,
 		Global: opts,
 		Mode:   mode,
-		Now:    time.Now,
+		Now:    env.Now,
+		Getenv: env.Getenv,
 	}
 	if opts.IDsOnly && !idsOnlyEligible(rest, opts.Help) {
 		idsErr := fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')")
@@ -343,10 +368,10 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 func loadConfig(ctx *Context) error {
 	configPath := ctx.Global.ConfigPath
 	if configPath == "" {
-		configPath = os.Getenv("TODOIST_CONFIG")
+		configPath = ctx.getenv("TODOIST_CONFIG")
 	}
 	if configPath == "" {
-		path, err := config.DefaultUserConfigPath()
+		path, err := config.DefaultUserConfigPathWithEnv(ctx.getenv)
 		if err != nil {
 			return err
 		}
@@ -368,15 +393,15 @@ func loadConfig(ctx *Context) error {
 		return fmt.Errorf("load config %s: %w", projectConfigPath, err)
 	}
 	cfg := config.MergeConfig(userCfg, projectCfg)
-	applyEnvString("TODOIST_BASE_URL", &cfg.BaseURL)
+	applyEnvString(ctx, "TODOIST_BASE_URL", &cfg.BaseURL)
 	if ctx.Global.BaseURL != "" {
 		cfg.BaseURL = ctx.Global.BaseURL
 	}
-	applyEnvInt("TODOIST_TIMEOUT", &cfg.TimeoutSeconds, false)
+	applyEnvInt(ctx, "TODOIST_TIMEOUT", &cfg.TimeoutSeconds, false)
 	if ctx.Global.TimeoutSec > 0 {
 		cfg.TimeoutSeconds = ctx.Global.TimeoutSec
 	}
-	applyEnvInt("TODOIST_TABLE_WIDTH", &cfg.TableWidth, true)
+	applyEnvInt(ctx, "TODOIST_TABLE_WIDTH", &cfg.TableWidth, true)
 	if cfg.TimeoutSeconds == 0 {
 		cfg.TimeoutSeconds = 10
 	}
@@ -384,11 +409,11 @@ func loadConfig(ctx *Context) error {
 
 	ctx.UserDefaultProfile = userCfg.DefaultProfile
 	ctx.ProjectDefaultProfile = projectCfg.DefaultProfile
-	ctx.Profile, ctx.SelectionSource = resolveProfileSelection(ctx.Global.Profile, projectCfg.DefaultProfile, userCfg.DefaultProfile)
+	ctx.Profile, ctx.SelectionSource = resolveProfileSelection(ctx, ctx.Global.Profile, projectCfg.DefaultProfile, userCfg.DefaultProfile)
 
 	// Fuzzy resolution flag/env
 	fuzzy := ctx.Global.Fuzzy
-	if parsePositiveEnvFlag("TODOIST_FUZZY") {
+	if parsePositiveEnvFlag(ctx, "TODOIST_FUZZY") {
 		fuzzy = true
 	}
 	if ctx.Global.NoFuzzy {
@@ -396,12 +421,12 @@ func loadConfig(ctx *Context) error {
 	}
 	ctx.Fuzzy = fuzzy
 	accessible := ctx.Global.Accessible
-	if parsePositiveEnvFlag("TODOIST_ACCESSIBLE") {
+	if parsePositiveEnvFlag(ctx, "TODOIST_ACCESSIBLE") {
 		accessible = true
 	}
 	ctx.Accessible = accessible
 
-	token := os.Getenv("TODOIST_TOKEN")
+	token := ctx.getenv("TODOIST_TOKEN")
 	if token != "" {
 		ctx.Token = token
 		ctx.TokenSource = "env"
@@ -518,20 +543,20 @@ func requestContext(ctx *Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(operationContext(ctx), time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
 }
 
-func applyEnvString(key string, target *string) {
+func applyEnvString(ctx *Context, key string, target *string) {
 	if target == nil {
 		return
 	}
-	if env := os.Getenv(key); env != "" {
+	if env := ctx.getenv(key); env != "" {
 		*target = env
 	}
 }
 
-func applyEnvInt(key string, target *int, positiveOnly bool) {
+func applyEnvInt(ctx *Context, key string, target *int, positiveOnly bool) {
 	if target == nil {
 		return
 	}
-	env := strings.TrimSpace(os.Getenv(key))
+	env := strings.TrimSpace(ctx.getenv(key))
 	if env == "" {
 		return
 	}
@@ -545,21 +570,21 @@ func applyEnvInt(key string, target *int, positiveOnly bool) {
 	*target = v
 }
 
-func parsePositiveEnvFlag(key string) bool {
-	v, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+func parsePositiveEnvFlag(ctx *Context, key string) bool {
+	v, err := strconv.Atoi(strings.TrimSpace(ctx.getenv(key)))
 	return err == nil && v > 0
 }
 
-func resolveProfile(flagValue, defaultProfile string) string {
-	name, _ := resolveProfileSelection(flagValue, "", defaultProfile)
+func resolveProfile(ctx *Context, flagValue, defaultProfile string) string {
+	name, _ := resolveProfileSelection(ctx, flagValue, "", defaultProfile)
 	return name
 }
 
-func resolveProfileSelection(flagValue, projectDefault, userDefault string) (string, string) {
+func resolveProfileSelection(ctx *Context, flagValue, projectDefault, userDefault string) (string, string) {
 	if flagValue != "" {
 		return flagValue, "flag"
 	}
-	if env := os.Getenv("TODOIST_PROFILE"); env != "" {
+	if env := ctx.getenv("TODOIST_PROFILE"); env != "" {
 		return env, "environment"
 	}
 	if projectDefault != "" {
@@ -569,4 +594,11 @@ func resolveProfileSelection(flagValue, projectDefault, userDefault string) (str
 		return userDefault, "user"
 	}
 	return "default", "fallback"
+}
+
+func (ctx *Context) getenv(key string) string {
+	if ctx != nil && ctx.Getenv != nil {
+		return ctx.Getenv(key)
+	}
+	return os.Getenv(key)
 }

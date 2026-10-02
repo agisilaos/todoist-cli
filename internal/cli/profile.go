@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -97,7 +96,7 @@ func profileSelectionSource(ctx *Context) string {
 	if ctx.SelectionSource != "" {
 		return ctx.SelectionSource
 	}
-	_, source := resolveProfileSelection(ctx.Global.Profile, ctx.ProjectDefaultProfile, ctx.UserDefaultProfile)
+	_, source := resolveProfileSelection(ctx, ctx.Global.Profile, ctx.ProjectDefaultProfile, ctx.UserDefaultProfile)
 	return source
 }
 
@@ -138,7 +137,7 @@ func profileListCommand(ctx *Context, args []string) error {
 		invalid = invalid || row.Error != nil
 		rows = append(rows, row)
 	}
-	payload := map[string]any{"profiles": rows, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}
+	payload := map[string]any{"profiles": rows, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "environment_token_active": ctx.getenv("TODOIST_TOKEN") != ""}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		if err := writeStructuredValue(ctx, payload); err != nil {
 			return err
@@ -160,7 +159,7 @@ func profileListCommand(ctx *Context, args []string) error {
 				fmt.Fprintf(ctx.Stdout, "  %s: %s\n", row.Error.Code, row.Error.Message)
 			}
 		}
-		if os.Getenv("TODOIST_TOKEN") != "" {
+		if ctx.getenv("TODOIST_TOKEN") != "" {
 			fmt.Fprintln(ctx.Stdout, "TODOIST_TOKEN overrides the selected stored profile; listed authorization describes each stored credential.")
 		}
 	}
@@ -174,7 +173,7 @@ func profileCurrentCommand(ctx *Context, args []string) error {
 	if _, help, err := profileArguments(ctx, "current", args, false); err != nil || help {
 		return err
 	}
-	environment := os.Getenv("TODOIST_TOKEN") != ""
+	environment := ctx.getenv("TODOIST_TOKEN") != ""
 	info := credentials.Info{Accessibility: "unchecked"}
 	var inspectErr error
 	if !environment {
@@ -257,9 +256,9 @@ func profileUseCommand(ctx *Context, args []string) error {
 	if err := persistProfileSelection(operationContext(ctx), ctx.ConfigPath, name); err != nil {
 		return &CodeError{Code: exitError, Err: err}
 	}
-	selected, source := resolveProfileSelection(ctx.Global.Profile, ctx.ProjectDefaultProfile, name)
+	selected, source := resolveProfileSelection(ctx, ctx.Global.Profile, ctx.ProjectDefaultProfile, name)
 	shadowed := source != "user"
-	payload := map[string]any{"profile": name, "saved": true, "config_path": ctx.ConfigPath, "selected_profile": selected, "selection_source": source, "shadowed": shadowed, "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}
+	payload := map[string]any{"profile": name, "saved": true, "config_path": ctx.ConfigPath, "selected_profile": selected, "selection_source": source, "shadowed": shadowed, "environment_token_active": ctx.getenv("TODOIST_TOKEN") != ""}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		return writeStructuredValue(ctx, payload)
 	}
@@ -267,7 +266,7 @@ func profileUseCommand(ctx *Context, args []string) error {
 	if shadowed {
 		fmt.Fprintf(ctx.Stdout, "This invocation selects %q from %s; that setting overrides the saved user default.\n", selected, source)
 	}
-	if os.Getenv("TODOIST_TOKEN") != "" {
+	if ctx.getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stdout, "TODOIST_TOKEN remains the active credential and overrides stored profile selection.")
 	}
 	return nil
@@ -281,7 +280,7 @@ func profileRemoveCommand(ctx *Context, args []string) error {
 	if err := profileStore(ctx).Delete(operationContext(ctx), name); err != nil {
 		return &profileStorageError{Profile: name, Err: err}
 	}
-	payload := map[string]any{"profile": name, "removed": true, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "selection_retained": true, "environment_token_active": os.Getenv("TODOIST_TOKEN") != ""}
+	payload := map[string]any{"profile": name, "removed": true, "selected_profile": ctx.Profile, "selection_source": profileSelectionSource(ctx), "selection_retained": true, "environment_token_active": ctx.getenv("TODOIST_TOKEN") != ""}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		return writeStructuredValue(ctx, payload)
 	}
@@ -289,7 +288,7 @@ func profileRemoveCommand(ctx *Context, args []string) error {
 	if name == ctx.Profile {
 		fmt.Fprintln(ctx.Stdout, "The selected profile now has no stored credential. Select another profile explicitly with `todoist profile use NAME`, or log in again.")
 	}
-	if os.Getenv("TODOIST_TOKEN") != "" {
+	if ctx.getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stdout, "TODOIST_TOKEN remains active; profile removal does not unset it or revoke a Todoist grant.")
 	}
 	return nil
