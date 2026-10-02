@@ -43,12 +43,12 @@ func requireOAuthCode(t *testing.T, err error, code string, exit int) {
 
 func TestOAuthClientOverrideAndSetupErrors(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_CLIENT_ID", "environment-client")
-	cfg, err := buildOAuthConfig("explicit-client", "", "", "", "", "", true)
+	cfg, err := buildOAuthConfig(&Context{}, "explicit-client", "", "", "", "", "", true)
 	if err != nil || cfg.ClientID != "explicit-client" {
 		t.Fatalf("explicit client did not override environment: %v", err)
 	}
 	t.Setenv("TODOIST_OAUTH_CLIENT_ID", "")
-	_, err = buildOAuthConfig("", "", "", "", "", "", true)
+	_, err = buildOAuthConfig(&Context{}, "", "", "", "", "", "", true)
 	for _, text := range []string{"public PKCE", "exact loopback redirect", "confidential clients", "manual auth login"} {
 		if err == nil || !strings.Contains(err.Error(), text) {
 			t.Fatalf("missing actionable setup guidance %q", text)
@@ -67,7 +67,7 @@ func TestOAuthCallbackConfigurationRequiresExactLoopbackAddress(t *testing.T) {
 		{"127.0.0.1:8765", "http://user:secret@127.0.0.1:8765/callback"},
 		{"127.0.0.1:8765", "http://127.0.0.1:8765/callback?secret=value"},
 	} {
-		_, err := buildOAuthConfig("client", "", "", "", tc.redirect, tc.listen, true)
+		_, err := buildOAuthConfig(&Context{}, "client", "", "", "", tc.redirect, tc.listen, true)
 		if err == nil || strings.Contains(err.Error(), "secret") {
 			t.Fatalf("invalid callback accepted or unsafe error: %v", err)
 		}
@@ -91,12 +91,12 @@ func TestOAuthDefaultDeviceFlowRequiresConfiguredProvider(t *testing.T) {
 
 func TestOAuthDeviceEndpointRequiresConfigurationWithoutRejectingExplicitURL(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_DEVICE_URL", "")
-	cfg, err := buildOAuthConfig("client", "", "", "", "", "", true)
+	cfg, err := buildOAuthConfig(&Context{}, "client", "", "", "", "", "", true)
 	if err != nil || cfg.DeviceURL != "" {
 		t.Fatal("unconfigured device flow must not invent a provider endpoint")
 	}
 	const explicit = "https://todoist.com/oauth/device/code"
-	cfg, err = buildOAuthConfig("client", "", "", explicit, "", "", true)
+	cfg, err = buildOAuthConfig(&Context{}, "client", "", "", explicit, "", "", true)
 	if err != nil || cfg.DeviceURL != explicit {
 		t.Fatal("explicit device endpoint was not preserved")
 	}
@@ -112,10 +112,10 @@ func TestOAuthCallbackReadyBeforeBrowserLaunch(t *testing.T) {
 		fmt.Fprint(w, `{"access_token":"synthetic-new-token"}`)
 	}))
 	defer server.Close()
-	previous := openOAuthBrowserFn
-	defer func() { openOAuthBrowserFn = previous }()
+	previous := ctx.oauth.openBrowser
+	defer func() { ctx.oauth.openBrowser = previous }()
 	opened := false
-	openOAuthBrowserFn = func(value string) error {
+	ctx.oauth.openBrowser = func(value string) error {
 		opened = true
 		u, _ := url.Parse(value)
 		if u.Query().Get("response_type") != "code" {
@@ -293,7 +293,7 @@ func TestOAuthCancellationBeforePersistenceOrExport(t *testing.T) {
 		}
 		path := config.CredentialsPathFromConfig(ctx.ConfigPath)
 		before, _ := os.ReadFile(path)
-		restore := stubPerformOAuthLogin(func(*Context, oauthConfig) (oauthToken, error) {
+		restore := stubPerformOAuthLogin(ctx, func(*Context, oauthConfig) (oauthToken, error) {
 			cancel()
 			return oauthToken{AccessToken: "synthetic-new-secret", Authorization: authorization.ManualMetadata()}, nil
 		})
@@ -336,7 +336,7 @@ func TestOAuthCancellationInsideSaveReportsSafeErrorAndPreservesCredential(t *te
 	operation, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ctx.OperationContext, disk.cancel = operation, cancel
-	restore := stubPerformOAuthLogin(func(*Context, oauthConfig) (oauthToken, error) {
+	restore := stubPerformOAuthLogin(ctx, func(*Context, oauthConfig) (oauthToken, error) {
 		return oauthToken{AccessToken: "synthetic-candidate", Authorization: authorization.ManualMetadata()}, nil
 	})
 	defer restore()

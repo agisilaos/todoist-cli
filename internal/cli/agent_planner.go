@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
 	"github.com/agisilaos/todoist-cli/internal/output"
@@ -50,7 +49,7 @@ func savePlannerCmd(ctx *Context, cmd string) error {
 	cfgPath := ctx.ConfigPath
 	if cfgPath == "" {
 		var err error
-		cfgPath, err = config.DefaultUserConfigPath()
+		cfgPath, err = config.DefaultUserConfigPathWithEnv(ctx.getenv)
 		if err != nil {
 			return err
 		}
@@ -65,7 +64,7 @@ func resolvePlannerCmd(ctx *Context, override string, includeEnv bool) (string, 
 		return override, "flag"
 	}
 	if includeEnv {
-		if env := os.Getenv("TODOIST_PLANNER_CMD"); env != "" {
+		if env := ctx.getenv("TODOIST_PLANNER_CMD"); env != "" {
 			return env, "env"
 		}
 	}

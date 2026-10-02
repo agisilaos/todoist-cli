@@ -48,7 +48,7 @@ func TestReminderUpdateDryRun(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	t.Setenv("TODOIST_TOKEN", "dummy")
-	code := Execute([]string{"reminder", "update", "--id", "r1", "--before", "30m", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"reminder", "update", "--id", "r1", "--before", "30m", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}

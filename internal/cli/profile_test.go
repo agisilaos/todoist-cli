@@ -102,11 +102,8 @@ func (s *profileObservedStore) Probe(ctx context.Context, name string) error {
 	return s.Store.Probe(ctx, name)
 }
 
-func injectProfileStore(t *testing.T, store credentials.Store) {
-	t.Helper()
-	previous := newCredentialStore
-	newCredentialStore = func(string) credentials.Store { return store }
-	t.Cleanup(func() { newCredentialStore = previous })
+func profileStoreEnvironment(store credentials.Store) Environment {
+	return Environment{local: localDependencies{credentialStore: func(string) credentials.Store { return store }}}
 }
 
 func TestProfileMetadataOperationsNeverRetrieveNativeSecrets(t *testing.T) {
@@ -118,9 +115,9 @@ func TestProfileMetadataOperationsNeverRetrieveNativeSecrets(t *testing.T) {
 	}
 	native.inaccessible = true
 	observed := &profileObservedStore{Store: store}
-	injectProfileStore(t, observed)
+	env := profileStoreEnvironment(observed)
 	for _, args := range [][]string{{"--profile", "reader", "profile", "list", "--json"}, {"--profile", "reader", "profile", "current", "--json"}, {"profile", "use", "reader", "--json"}} {
-		code, out, errOut := executeAuthorization(t, path, args...)
+		code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, args...)
 		if code != 0 || strings.Contains(out+errOut, "synthetic-native-secret") {
 			t.Fatalf("metadata operation: %d %s %s", code, out, errOut)
 		}
@@ -130,7 +127,7 @@ func TestProfileMetadataOperationsNeverRetrieveNativeSecrets(t *testing.T) {
 	}
 	observed.inspects = 0
 	t.Setenv("TODOIST_TOKEN", "synthetic-environment-secret")
-	code, out, errOut := executeAuthorization(t, path, "profile", "current", "--json")
+	code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "profile", "current", "--json")
 	if code != 0 || observed.inspects != 0 || strings.Contains(out+errOut, "synthetic-environment-secret") {
 		t.Fatalf("environment override inspected storage: %d %s %s", code, out, errOut)
 	}
@@ -245,10 +242,8 @@ func TestProfileUseRejectsMissingInvalidAndFailedPersistence(t *testing.T) {
 			t.Fatal("rejected use changed config")
 		}
 	}
-	previous := persistProfileSelection
-	persistProfileSelection = func(context.Context, string, string) error { return &config.SelectionError{Uncertain: true} }
-	t.Cleanup(func() { persistProfileSelection = previous })
-	code, out, errOut := executeAuthorization(t, path, "profile", "use", "healthy", "--json")
+	env := Environment{local: localDependencies{persistProfileSelection: func(context.Context, string, string) error { return &config.SelectionError{Uncertain: true} }}}
+	code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "profile", "use", "healthy", "--json")
 	if code != 1 || out != "" || !strings.Contains(errOut, "may have changed") {
 		t.Fatalf("persistence failure claimed success: %d %s %s", code, out, errOut)
 	}
@@ -280,10 +275,10 @@ func TestProfileRemoveRetainsSelectionAndRecoversNativeCleanup(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	injectProfileStore(t, store)
+	env := profileStoreEnvironment(store)
 	before, _ := os.ReadFile(path)
 	native.failDelete = true
-	code, out, errOut := executeAuthorization(t, path, "profile", "remove", "selected", "--json")
+	code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "profile", "remove", "selected", "--json")
 	if code != 3 || out != "" || !strings.Contains(errOut, "CREDENTIAL_CLEANUP_PENDING") || !strings.Contains(errOut, `"committed": true`) || strings.Contains(errOut, "synthetic-delete-secret") {
 		t.Fatalf("cleanup failure: %d %s %s", code, out, errOut)
 	}
@@ -291,21 +286,21 @@ func TestProfileRemoveRetainsSelectionAndRecoversNativeCleanup(t *testing.T) {
 	if err != nil || info.Configured || info.Recovery != "cleanup" || info.Authorization != nil {
 		t.Fatalf("removed profile not disabled: %+v %v", info, err)
 	}
-	code, out, errOut = executeAuthorization(t, path, "profile", "current", "--json")
+	code, out, errOut = executeAuthorizationWithEnvironment(t, path, env, "profile", "current", "--json")
 	if code != 4 || !strings.Contains(out, `"selected_profile": "selected"`) || !strings.Contains(out, `"recovery": "cleanup"`) {
 		t.Fatalf("removal silently activated another profile: %d %s %s", code, out, errOut)
 	}
-	code, out, errOut = executeAuthorization(t, path, "profile", "list", "--json")
+	code, out, errOut = executeAuthorizationWithEnvironment(t, path, env, "profile", "list", "--json")
 	if code != 0 || !strings.Contains(out, `"profile": "selected"`) || !strings.Contains(out, `"recovery": "cleanup"`) {
 		t.Fatalf("cleanup profile hidden: %d %s %s", code, out, errOut)
 	}
-	code, _, _ = executeAuthorization(t, path, "profile", "use", "selected", "--json")
+	code, _, _ = executeAuthorizationWithEnvironment(t, path, env, "profile", "use", "selected", "--json")
 	if code != 4 {
 		t.Fatalf("disabled profile selectable: %d", code)
 	}
 	native.failDelete = false
 	for i := 0; i < 2; i++ {
-		code, out, errOut = executeAuthorization(t, path, "profile", "remove", "selected", "--json")
+		code, out, errOut = executeAuthorizationWithEnvironment(t, path, env, "profile", "remove", "selected", "--json")
 		if code != 0 {
 			t.Fatalf("retry/idempotent removal: %d %s %s", code, out, errOut)
 		}

@@ -91,7 +91,7 @@ func reviewCommand(ctx *Context, args []string) error {
 	if ctx.Global.Force {
 		return &CodeError{Code: exitUsage, Err: errors.New("review requires explicit confirmation; remove --force")}
 	}
-	operation, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	operation, stop := signal.NotifyContext(operationContext(ctx), os.Interrupt)
 	defer stop()
 	prior := ctx.OperationContext
 	ctx.OperationContext = operation

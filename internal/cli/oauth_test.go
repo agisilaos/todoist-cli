@@ -15,7 +15,7 @@ import (
 func TestBuildOAuthConfigRequiresClientID(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_CLIENT_ID", "")
 
-	_, err := buildOAuthConfig("", "", "", "", "", "", false)
+	_, err := buildOAuthConfig(&Context{}, "", "", "", "", "", "", false)
 	if err == nil {
 		t.Fatalf("expected missing client id error")
 	}
@@ -31,7 +31,7 @@ func TestBuildOAuthConfigDefaultsAndEnv(t *testing.T) {
 	t.Setenv("TODOIST_OAUTH_DEVICE_URL", "https://auth.example.com/device")
 	t.Setenv("TODOIST_OAUTH_LISTEN", "127.0.0.1:9999")
 
-	cfg, err := buildOAuthConfig("", "", "", "", "", "", true)
+	cfg, err := buildOAuthConfig(&Context{}, "", "", "", "", "", "", true)
 	if err != nil {
 		t.Fatalf("buildOAuthConfig: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestOAuthDefaultsUseDocumentedTodoistEndpoints(t *testing.T) {
 	for _, key := range []string{"TODOIST_OAUTH_AUTHORIZE_URL", "TODOIST_OAUTH_TOKEN_URL"} {
 		t.Setenv(key, "")
 	}
-	cfg, err := buildOAuthConfig("client", "", "", "", "", "", true)
+	cfg, err := buildOAuthConfig(&Context{}, "client", "", "", "", "", "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,9 +102,8 @@ func TestStartOAuthDeviceFlowSuccess(t *testing.T) {
 }
 
 func TestPollOAuthDeviceTokenSuccessAfterPending(t *testing.T) {
-	prevWait := waitForOAuthPollFn
-	waitForOAuthPollFn = func(ctx context.Context, delay time.Duration) error { return nil }
-	defer func() { waitForOAuthPollFn = prevWait }()
+	t.Parallel()
+	wait := func(ctx context.Context, delay time.Duration) error { return nil }
 
 	calls := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +118,7 @@ func TestPollOAuthDeviceTokenSuccessAfterPending(t *testing.T) {
 	defer ts.Close()
 
 	cfg := oauthConfig{ClientID: "client-1", TokenURL: ts.URL}
-	token, err := pollOAuthDeviceToken(context.Background(), cfg, "dev-1", 1, 10)
+	token, err := pollOAuthDeviceTokenWithWait(context.Background(), cfg, "dev-1", 1, 10, wait)
 	if err != nil {
 		t.Fatalf("pollOAuthDeviceToken: %v", err)
 	}

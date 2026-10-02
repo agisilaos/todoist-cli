@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -71,32 +70,32 @@ func oauthContextError(cause error) error {
 	return &CodeError{Code: exitError, Err: &oauthError{Code: code, Message: message, cause: cause}}
 }
 
-func buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
+func buildOAuthConfig(ctx *Context, clientID, authorizeURL, tokenURL, deviceURL, redirectURI, listenAddr string, noBrowser bool) (oauthConfig, error) {
 	if clientID == "" {
-		clientID = strings.TrimSpace(os.Getenv("TODOIST_OAUTH_CLIENT_ID"))
+		clientID = strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_CLIENT_ID"))
 	}
 	if clientID == "" {
 		return oauthConfig{}, errors.New("missing OAuth client id; set --client-id or TODOIST_OAUTH_CLIENT_ID to your public PKCE client ID or hosted client metadata URL. This CLI has no maintainer-owned registered client. Configure the client's exact loopback redirect before login; confidential clients requiring a client secret are unsupported. See https://developer.todoist.com/api/v1/#tag/Authorization/OAuth-Client-ID-Metadata-Document or use manual auth login")
 	}
 	if authorizeURL == "" {
-		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_AUTHORIZE_URL")); env != "" {
+		if env := strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_AUTHORIZE_URL")); env != "" {
 			authorizeURL = env
 		} else {
 			authorizeURL = defaultOAuthAuthorizeURL
 		}
 	}
 	if tokenURL == "" {
-		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_TOKEN_URL")); env != "" {
+		if env := strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_TOKEN_URL")); env != "" {
 			tokenURL = env
 		} else {
 			tokenURL = defaultOAuthTokenURL
 		}
 	}
 	if deviceURL == "" {
-		deviceURL = strings.TrimSpace(os.Getenv("TODOIST_OAUTH_DEVICE_URL"))
+		deviceURL = strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_DEVICE_URL"))
 	}
 	if listenAddr == "" {
-		if env := strings.TrimSpace(os.Getenv("TODOIST_OAUTH_LISTEN")); env != "" {
+		if env := strings.TrimSpace(ctx.getenv("TODOIST_OAUTH_LISTEN")); env != "" {
 			listenAddr = env
 		} else {
 			listenAddr = defaultOAuthListenAddr
@@ -462,6 +461,10 @@ func startOAuthDeviceFlow(ctx context.Context, cfg oauthConfig) (deviceCode, use
 }
 
 func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int) (oauthToken, error) {
+	return pollOAuthDeviceTokenWithWait(ctx, cfg, deviceCode, intervalSec, expiresInSec, waitForOAuthPoll)
+}
+
+func pollOAuthDeviceTokenWithWait(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int, wait func(context.Context, time.Duration) error) (oauthToken, error) {
 	if intervalSec <= 0 {
 		intervalSec = 5
 	}
@@ -499,7 +502,7 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 				if payload.Error == "slow_down" {
 					intervalSec += 5
 				}
-				if err := waitForOAuthPollFn(ctx, time.Duration(intervalSec)*time.Second); err != nil {
+				if err := wait(ctx, time.Duration(intervalSec)*time.Second); err != nil {
 					return oauthToken{}, oauthContextError(err)
 				}
 				continue
@@ -512,8 +515,6 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 		return oauthToken{}, oauthFailure("OAUTH_EXCHANGE_FAILED", fmt.Sprintf("OAuth device token polling failed: status %d. Nothing was saved; existing credentials are unchanged.", status))
 	}
 }
-
-var waitForOAuthPollFn = waitForOAuthPoll
 
 func waitForOAuthPoll(ctx context.Context, delay time.Duration) error {
 	timer := time.NewTimer(delay)

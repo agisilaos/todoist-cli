@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -188,12 +187,11 @@ func applyReviewAndReport(ctx *Context, plan Plan, path, onError, command string
 	if onError != "fail" {
 		return &CodeError{Code: exitUsage, Err: errors.New("review plans require --on-error=fail")}
 	}
-	if ctx.OperationContext == nil {
-		operation, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer stop()
-		ctx.OperationContext = operation
-		defer func() { ctx.OperationContext = nil }()
-	}
+	prior := ctx.OperationContext
+	operation, stop := signal.NotifyContext(operationContext(ctx), os.Interrupt)
+	defer stop()
+	ctx.OperationContext = operation
+	defer func() { ctx.OperationContext = prior }()
 	results, applyErr := applyReviewPlan(ctx, plan)
 	if applyErr == nil {
 		_, _, replayed := summarizeApplyResults(results)

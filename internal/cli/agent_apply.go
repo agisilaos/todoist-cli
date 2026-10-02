@@ -115,7 +115,7 @@ func applyActionsWithPreparation(ctx *Context, confirmToken string, actions []Ac
 			}
 			results = append(results, applyResult{Action: action, Error: err})
 			emitActionFailure(ctx, idx, action, err, nil)
-			if shouldAbortApply(onError, err) {
+			if shouldAbortApply(ctx, onError, err) {
 				return results, err
 			}
 			continue
@@ -153,7 +153,7 @@ func emitActionFailure(ctx *Context, idx int, action Action, err error, extra ma
 	emitProgress(ctx, "agent_action_failed", fields)
 }
 
-func shouldAbortApply(onError applyErrorMode, err error) bool {
+func shouldAbortApply(ctx *Context, onError applyErrorMode, err error) bool {
 	if err == nil {
 		return false
 	}
@@ -162,5 +162,5 @@ func shouldAbortApply(onError applyErrorMode, err error) bool {
 	}
 	var replayErr *replayStoreError
 	var authorizationErr *authorization.Error
-	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr) || api.TaskWriteOutcome(err) == api.TaskWriteUncertain || api.TaskWriteOutcome(err) == api.TaskWriteAccepted
+	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr) || api.TaskWriteOutcome(err) == api.TaskWriteUncertain || api.TaskWriteOutcome(err) == api.TaskWriteAccepted || operationContext(ctx).Err() != nil
 }

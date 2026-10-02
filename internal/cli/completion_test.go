@@ -54,8 +54,8 @@ func TestDefaultPowerShellCompletionPath(t *testing.T) {
 		t.Setenv("XDG_DATA_HOME", xdg)
 		want := filepath.Join(xdg, "todoist", "completions", "todoist.ps1")
 		for _, shell := range []string{"powershell", "pwsh"} {
-			if got := defaultCompletionPath(shell); got != want {
-				t.Fatalf("defaultCompletionPath(%s) = %q, want %q", shell, got, want)
+			if got := defaultCompletionPath(&Context{}, shell); got != want {
+				t.Fatalf("defaultCompletionPath(&Context{}, %s) = %q, want %q", shell, got, want)
 			}
 		}
 	})
@@ -65,8 +65,8 @@ func TestDefaultPowerShellCompletionPath(t *testing.T) {
 		t.Setenv("XDG_DATA_HOME", "")
 		t.Setenv("HOME", home)
 		want := filepath.Join(home, ".local", "share", "todoist", "completions", "todoist.ps1")
-		if got := defaultCompletionPath("powershell"); got != want {
-			t.Fatalf("defaultCompletionPath(powershell) = %q, want %q", got, want)
+		if got := defaultCompletionPath(&Context{}, "powershell"); got != want {
+			t.Fatalf("defaultCompletionPath(&Context{}, powershell) = %q, want %q", got, want)
 		}
 	})
 }
@@ -87,8 +87,8 @@ func TestDetectShellRecognizesPowerShellWithoutShell(t *testing.T) {
 			t.Setenv("SHELL", tt.shell)
 			t.Setenv("PSModulePath", tt.modulePath)
 			t.Setenv("POWERSHELL_DISTRIBUTION_CHANNEL", tt.distribution)
-			if got := detectShell(); got != "powershell" {
-				t.Fatalf("detectShell() = %q, want powershell", got)
+			if got := detectShell(&Context{}); got != "powershell" {
+				t.Fatalf("detectShell(&Context{}) = %q, want powershell", got)
 			}
 		})
 	}
@@ -113,7 +113,7 @@ func TestCompletionInstallPowerShellHumanOutputAndProfileSafety(t *testing.T) {
 	if err := completionCommand(ctx, []string{"install", "pwsh"}); err != nil {
 		t.Fatalf("completion install pwsh: %v", err)
 	}
-	installedPath := defaultCompletionPath("powershell")
+	installedPath := defaultCompletionPath(&Context{}, "powershell")
 	if _, err := os.Stat(installedPath); err != nil {
 		t.Fatalf("installed completion: %v", err)
 	}
@@ -281,7 +281,7 @@ func TestCompletionUninstallPowerShellJSONNoop(t *testing.T) {
 func TestCompletionUninstallTargetsIncludePowerShell(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", xdg)
-	targets, err := completionUninstallTargets("", "")
+	targets, err := completionUninstallTargets(&Context{}, "", "")
 	if err != nil {
 		t.Fatalf("completionUninstallTargets: %v", err)
 	}

@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -21,17 +18,6 @@ type Reminder struct {
 	Due          *ReminderDue `json:"due,omitempty"`
 	MinuteOffset int          `json:"minute_offset,omitempty"`
 	IsDeleted    bool         `json:"is_deleted"`
-}
-
-type reminderSyncResponse struct {
-	Filters       []filterSyncItem  `json:"filters"`
-	Reminders     []Reminder        `json:"reminders"`
-	TempIDMapping map[string]string `json:"temp_id_mapping"`
-	SyncStatus    map[string]any    `json:"sync_status"`
-	Error         string            `json:"error"`
-	ErrorTag      string            `json:"error_tag"`
-	FullSync      bool              `json:"full_sync"`
-	ExtraData     map[string]any    `json:"-"`
 }
 
 type ReminderAddInput struct {
@@ -83,9 +69,10 @@ func (c *Client) AddReminder(ctx context.Context, in ReminderAddInput) (string, 
 	if in.Due != nil && strings.TrimSpace(in.Due.Date) != "" {
 		args["due"] = map[string]any{"date": in.Due.Date}
 	}
+	uuid := NewRequestID()
 	commands := []map[string]any{{
 		"type":    "reminder_add",
-		"uuid":    NewRequestID(),
+		"uuid":    uuid,
 		"temp_id": tempID,
 		"args":    args,
 	}}
@@ -97,10 +84,13 @@ func (c *Client) AddReminder(ctx context.Context, in ReminderAddInput) (string, 
 	if err != nil {
 		return "", requestID, err
 	}
+	if err := checkSyncCommand(resp, uuid, "reminder_add", requestID, "todoist reminder list --task id:"+in.ItemID); err != nil {
+		return "", requestID, err
+	}
 	if mapped := strings.TrimSpace(resp.TempIDMapping[tempID]); mapped != "" {
 		return mapped, requestID, nil
 	}
-	return tempID, requestID, nil
+	return "", requestID, fmt.Errorf("reminder response omitted its server ID; run 'todoist reminder list --task id:%s' to confirm before retrying", in.ItemID)
 }
 
 func (c *Client) UpdateReminder(ctx context.Context, in ReminderUpdateInput) (string, error) {
@@ -114,15 +104,19 @@ func (c *Client) UpdateReminder(ctx context.Context, in ReminderUpdateInput) (st
 	if in.Due != nil && strings.TrimSpace(in.Due.Date) != "" {
 		args["due"] = map[string]any{"date": in.Due.Date}
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "reminder_update",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": args,
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "reminder_update", requestID, "todoist reminder list --task <task-reference>")
+	}
 	return requestID, err
 }
 
@@ -130,61 +124,18 @@ func (c *Client) DeleteReminder(ctx context.Context, id string) (string, error) 
 	if strings.TrimSpace(id) == "" {
 		return "", fmt.Errorf("id is required")
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "reminder_delete",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{"id": id},
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "reminder_delete", requestID, "todoist reminder list --task <task-reference>")
+	}
 	return requestID, err
-}
-
-func (c *Client) syncRequest(ctx context.Context, formValues map[string]string) (reminderSyncResponse, string, error) {
-	fullURL, err := c.buildURL("/sync", nil)
-	if err != nil {
-		return reminderSyncResponse{}, "", err
-	}
-	requestID := NewRequestID()
-	form := url.Values{}
-	for key, value := range formValues {
-		form.Set(key, value)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return reminderSyncResponse{}, requestID, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("X-Request-Id", requestID)
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-	resp, err := c.dispatch(req, "/sync")
-	if err != nil {
-		return reminderSyncResponse{}, requestID, err
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
-	if resp.StatusCode >= 400 {
-		return reminderSyncResponse{}, requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(data)), RequestID: requestID}
-	}
-	var raw map[string]any
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return reminderSyncResponse{}, requestID, fmt.Errorf("decode sync response: %w", err)
-	}
-	var payload reminderSyncResponse
-	if err := json.Unmarshal(data, &payload); err != nil {
-		return reminderSyncResponse{}, requestID, fmt.Errorf("decode sync response: %w", err)
-	}
-	payload.ExtraData = raw
-	if payload.Error != "" {
-		msg := payload.Error
-		if payload.ErrorTag != "" {
-			msg = payload.ErrorTag + ": " + payload.Error
-		}
-		return reminderSyncResponse{}, requestID, &APIError{Status: 400, Message: msg, RequestID: requestID}
-	}
-	return payload, requestID, nil
 }

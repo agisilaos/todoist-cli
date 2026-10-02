@@ -51,6 +51,36 @@ points. For command changes, use the existing [command-change checklist](README.
 | Credential selection, storage, authorization | Selection: [cli.go](../internal/cli/cli.go) (`loadConfig`); lazy retrieval: [credential_store.go](../internal/cli/credential_store.go). Persistence boundary: [store.go](../internal/credentials/store.go). Policy: [authorization.go](../internal/authorization/authorization.go); HTTP guard: [api/authorization.go](../internal/api/authorization.go). | [Profile selection](profile-oauth-design.md#profile-selection-and-inspection), [storage](credential-store-design.md), [authorization](authorization-design.md), [security boundary](../SECURITY.md). | [profile_contract_test.go](../internal/cli/profile_contract_test.go): selection/output; [store_test.go](../internal/credentials/store_test.go): persistence/recovery; [authorization_test.go](../internal/api/authorization_test.go): resource and redirect guards. |
 | Review, agent application, replay persistence | Review selection/snapshots: [app/review/review.go](../internal/app/review/review.go); interaction: [cli/review.go](../internal/cli/review.go). Shared apply loop: [agent_apply.go](../internal/cli/agent_apply.go); review preconditions/checkpoints: [review_apply.go](../internal/cli/review_apply.go); journal: [agent_replay.go](../internal/cli/agent_replay.go). | [Daily review](review-design.md); [replay success boundary and limitations](adr/0002-treat-replay-recording-as-part-of-action-success.md). | [agent_apply_test.go](../internal/cli/agent_apply_test.go): success recording and reruns; [review_apply_test.go](../internal/cli/review_apply_test.go): pending/checkpoint failures; [agent_replay_test.go](../internal/cli/agent_replay_test.go): journal persistence. |
 
+## Invocation inputs
+
+`internal/cli.Execute` uses process defaults and delegates to
+`ExecuteWithEnvironment`. Its invocation inputs allow tests and embedded callers
+to supply a clock, stdin, and environment lookup without replacing shared state.
+CLI environment reads (including credential/profile overrides, OAuth settings,
+planner selection, and display/completion settings) use that lookup. Filesystem
+state, working directory, home-directory discovery, and child-process environments
+remain process-owned; callers should select scratch paths explicitly.
+OAuth adapters (including device polling and browser opening), credential-store
+construction, and profile-selection persistence are held on each CLI context
+rather than mutable package globals. CLI tests supply synthetic native stores
+through their invocation environment instead of replacing a suite-wide factory.
+Date-sensitive command contracts pin their reference clock, while concurrent
+invocation tests exercise different credentials and UTC date windows.
+
+An optional operation context follows the invocation through task resolution,
+credential inspection, manual-token verification, and planner processes. Review
+and OAuth signal contexts derive from that parent. Task service adapters honor
+the supplied context through a scoped copy instead of swapping the enclosing
+invocation context. The copy shares the invocation lookup cache; resolution uses
+REST reads, which do not generate request IDs. Lookup state and command adapters
+still belong to a single sequential invocation, not a concurrent command runner.
+Caller cancellation and expired operation deadlines stop bulk task operations and
+agent application even in continue mode. Task-write timeouts remain uncertain outcomes and stop
+further writes under ADR-0009; unrelated action timeouts remain individual
+failures in agent continue mode. Interrupted bulk commands emit the maintained
+batch target accounting before returning the error. Successfully recorded actions remain recorded; cancellation
+does not undo Todoist mutations or resolve an uncertain remote outcome.
+
 ## Service coverage
 
 - `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, task mutation payload builders, returned due evidence and recurrence-preserving rescheduling, and hierarchy destination/selection rules. The CLI retains invocation-local ancestry fetching and caching.
@@ -102,6 +132,24 @@ application entry points enforce review preconditions through the existing apply
 loop. The replay journal stores review pending markers and post-update snapshots
 alongside ordinary action records. Existing task API output models are unchanged;
 review reads its own snapshot projection. See [daily review](review-design.md).
+
+## HTTP and Sync transport
+
+JSON and Sync form requests share `internal/api.Client.doRequest` for dispatch,
+request-body replay, transient status/transport retries, and response reads. Every
+attempt still passes through the authorization boundary. REST mutation retries
+require an idempotency request ID. Sync reads are retry-safe; Sync mutations are
+retried only when every command carries its original non-empty UUID, as described
+in [Todoist's Sync command contract](https://developer.todoist.com/api/v1/).
+Request IDs and encoded command bodies remain identical across at most three
+attempts; cancellation and request deadlines bound retry waits.
+
+Workspaces, current-user lookup, filters, reminders, settings, and notifications
+use one Sync response type and decoder. Successful bodies are read completely,
+like REST responses, and read failures are returned before decoding. This removes
+silent 16 KiB/256 KiB truncation. Accepted mutations with optional advisory bodies
+retain their separate bounded best-effort handling; malformed Sync responses and
+provider command errors are returned without retry.
 
 ## Authorization boundary
 

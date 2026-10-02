@@ -346,6 +346,7 @@ ID. Structured ambiguity enrichment requires a separate compatibility decision.
   `agent_action_validated`, `agent_action_dispatched`, `agent_action_succeeded`,
   `agent_action_failed`, and `agent_apply_summary`.
 - An agent action succeeds only after the Todoist mutation and its replay record both succeed. `agent_action_complete` and `agent_action_succeeded` are emitted only after durable recording.
+- Caller cancellation or an expired operation deadline stops bulk task commands and agent application, even under `--on-error=continue`; prior Todoist mutations are not undone. Task-write timeouts are uncertain outcomes and stop further writes under ADR-0009; unrelated action timeouts remain individual failures in agent continue mode. Interrupted bulk commands emit the maintained `task_batch` accounting before returning the error: accepted, rejected, uncertain, and unattempted targets remain explicit. `failed` counts rejected or uncertain targets; `unattempted` counts targets not dispatched.
 - A replay-record failure emits `agent_action_error` and `agent_action_failed` with `stage: "replay_record"` and `remote_succeeded: true`, then terminates application even under `--on-error=continue`.
 - Successful Todoist mutations are recorded immediately by replacing `agent_replay.json`; replay skips, action failures, and duplicate records do not write the file. Interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded and make a rerun duplicate it. The journal is unbounded, assumes a single applying process, and delegates replacement visibility to the underlying OS and filesystem; it does not promise OS- or storage-power-loss durability.
 - Human agent apply/run output includes a compact summary block with success/failure/replay counts,
@@ -616,3 +617,20 @@ when another write is uncertain. Existing authorization guards and dry runs rema
 Ordinary agent task writes persist pending evidence before dispatch, replace it
 atomically on acceptance, clear it for definite rejection, and block automatic
 replay on uncertainty. Review checkpoints remain mandatory.
+
+## Request retries
+
+Transient HTTP 429/5xx responses and transport failures receive at most two
+retries within the command's request timeout. Task writes are excluded under
+[ADR-0009](adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md),
+including native Sync task commands. REST reads and non-task mutations with an
+idempotency request ID are eligible. Sync resource reads and non-task commands that all
+carry stable UUIDs are eligible; the command body and request ID remain unchanged
+across attempts. UUID deduplication does not establish response replay: filter and
+reminder mutations require their command acknowledgement, and creates require a
+server ID mapping. Missing evidence returns an error and requires inspecting the
+resource before retrying; temporary reminder IDs are never reported as server IDs.
+Authentication/authorization failures, malformed successful
+responses, body read failures, and Sync command errors are not retried. Retries do
+not establish that an interrupted mutation was unapplied; use the documented
+recovery workflow for uncertain outcomes.

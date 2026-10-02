@@ -217,7 +217,11 @@ func taskAction(ctx *Context, args []string, move bool) error {
 	}
 	results := make([]taskBatchTarget, 0, len(plans))
 	stop := false
+	var interrupted error
 	for _, plan := range plans {
+		if err := operationContext(ctx).Err(); err != nil {
+			interrupted, stop = err, true
+		}
 		target := taskBatchTarget{ID: plan.id, Outcome: "unattempted"}
 		if plan.unchanged {
 			target.Outcome = api.TaskWriteAccepted
@@ -227,6 +231,9 @@ func taskAction(ctx *Context, args []string, move bool) error {
 			target.Outcome = api.TaskWriteOutcome(err)
 			target.Dispatched = target.Outcome != api.TaskWriteNotDispatched
 			if err != nil {
+				if err := operationContext(ctx).Err(); err != nil {
+					interrupted, stop = err, true
+				}
 				target.Error = safeErrorText(ctx, err)
 				if target.Outcome == api.TaskWriteNotDispatched {
 					target.Outcome = api.TaskWriteRejected
@@ -238,7 +245,7 @@ func taskAction(ctx *Context, args []string, move bool) error {
 		}
 		results = append(results, target)
 	}
-	return writeTaskBatch(ctx, o.filter, operation, results, nil)
+	return errors.Join(writeTaskBatch(ctx, o.filter, operation, results, nil), interrupted)
 }
 func dispatchTaskAction(ctx *Context, plan plannedTaskAction, move bool) ([]byte, string, error) {
 	if plan.native != "" {

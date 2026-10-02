@@ -26,8 +26,6 @@ func TestTodayLoadsStoredCredentialsInEveryOutputMode(t *testing.T) {
 	}))
 	defer server.Close()
 	t.Setenv("TODOIST_BASE_URL", server.URL)
-	old := newCredentialStore
-	defer func() { newCredentialStore = old }()
 	for _, backend := range []string{"file", "native"} {
 		t.Run(backend, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "config.json")
@@ -35,14 +33,14 @@ func TestTodayLoadsStoredCredentialsInEveryOutputMode(t *testing.T) {
 			if err := store.Save(context.Background(), "default", config.Credential{Token: "synthetic-today-token"}, backend); err != nil {
 				t.Fatal(err)
 			}
-			newCredentialStore = func(string) credentials.Store { return store }
+			env := profileStoreEnvironment(store)
 			for _, mode := range []string{"--json", "--ndjson", "--plain", "--ids-only"} {
-				code, out, errOut := executeAuthorization(t, path, "today", mode)
+				code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "today", mode)
 				if code != 0 || !strings.Contains(out, "101") || errOut != "" {
 					t.Fatalf("%s exit=%d stdout=%q stderr=%q", mode, code, out, errOut)
 				}
 			}
-			code, _, errOut := executeAuthorization(t, path, "view", "https://app.todoist.com/app/today", "--json")
+			code, _, errOut := executeAuthorizationWithEnvironment(t, path, env, "view", "https://app.todoist.com/app/today", "--json")
 			if code != 0 {
 				t.Fatalf("today URL: exit=%d stderr=%q", code, errOut)
 			}

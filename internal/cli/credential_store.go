@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -11,18 +10,18 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
-var newCredentialStore = func(path string) credentials.Store {
+func newCredentialStore(path string) credentials.Store {
 	return credentials.New(config.CredentialsPathFromConfig(path), credentials.NewNative(), nil)
 }
 
 func profileStore(ctx *Context) credentials.Store {
 	if ctx.Credentials == nil {
-		ctx.Credentials = newCredentialStore(ctx.ConfigPath)
+		ctx.Credentials = ctx.localDeps().credentialStore(ctx.ConfigPath)
 	}
 	return ctx.Credentials
 }
 func inspectProfile(ctx *Context) {
-	info, err := profileStore(ctx).Inspect(context.Background(), ctx.Profile)
+	info, err := profileStore(ctx).Inspect(operationContext(ctx), ctx.Profile)
 	ctx.CredentialInfo = info
 	ctx.CredentialErr = err
 	if info.Configured {
@@ -57,7 +56,7 @@ func loginBackend(ctx *Context, explicit string) (string, error) {
 	if explicit != "" && explicit != "native" && explicit != "file" {
 		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("--credential-store must be native or file")}
 	}
-	info, err := profileStore(ctx).Inspect(context.Background(), ctx.Profile)
+	info, err := profileStore(ctx).Inspect(operationContext(ctx), ctx.Profile)
 	if err != nil {
 		var e *credentials.Error
 		if !errors.As(err, &e) || e.Kind != credentials.Namespace {

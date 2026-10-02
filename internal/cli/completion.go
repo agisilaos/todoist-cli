@@ -56,7 +56,7 @@ func completionInstall(ctx *Context, args []string) error {
 		shell = canonicalCompletionShell(fs.Arg(0))
 	}
 	if shell == "" {
-		shell = detectShell()
+		shell = detectShell(ctx)
 	}
 	if shell == "" {
 		return &CodeError{Code: exitUsage, Err: fmt.Errorf("shell is required (supported: %s)", supportedCompletionShells)}
@@ -66,7 +66,7 @@ func completionInstall(ctx *Context, args []string) error {
 		return err
 	}
 	if path == "" {
-		path = defaultCompletionPath(shell)
+		path = defaultCompletionPath(ctx, shell)
 		if path == "" {
 			return &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported shell: %s", shell)}
 		}
@@ -110,7 +110,7 @@ func completionUninstall(ctx *Context, args []string) error {
 		shell = canonicalCompletionShell(fs.Arg(0))
 	}
 
-	targets, err := completionUninstallTargets(shell, path)
+	targets, err := completionUninstallTargets(ctx, shell, path)
 	if err != nil {
 		return err
 	}
@@ -184,8 +184,8 @@ func canonicalCompletionShell(shell string) string {
 	return shell
 }
 
-func defaultCompletionPath(shell string) string {
-	xdg := os.Getenv("XDG_DATA_HOME")
+func defaultCompletionPath(ctx *Context, shell string) string {
+	xdg := ctx.getenv("XDG_DATA_HOME")
 	if xdg == "" {
 		home, err := os.UserHomeDir()
 		if err == nil && home != "" {
@@ -215,11 +215,11 @@ func defaultCompletionPath(shell string) string {
 	return ""
 }
 
-func detectShell() string {
-	if os.Getenv("POWERSHELL_DISTRIBUTION_CHANNEL") != "" || os.Getenv("PSModulePath") != "" {
+func detectShell(ctx *Context) string {
+	if ctx.getenv("POWERSHELL_DISTRIBUTION_CHANNEL") != "" || ctx.getenv("PSModulePath") != "" {
 		return "powershell"
 	}
-	shell := os.Getenv("SHELL")
+	shell := ctx.getenv("SHELL")
 	if shell == "" {
 		return ""
 	}
@@ -283,13 +283,13 @@ type completionTarget struct {
 	path  string
 }
 
-func completionUninstallTargets(shell, explicitPath string) ([]completionTarget, error) {
+func completionUninstallTargets(ctx *Context, shell, explicitPath string) ([]completionTarget, error) {
 	shell = canonicalCompletionShell(shell)
 	if explicitPath != "" {
 		return []completionTarget{{shell: shell, path: explicitPath}}, nil
 	}
 	if shell != "" {
-		path := defaultCompletionPath(shell)
+		path := defaultCompletionPath(ctx, shell)
 		if path == "" {
 			return nil, &CodeError{Code: exitUsage, Err: fmt.Errorf("unsupported shell: %s (supported: %s)", shell, supportedCompletionShells)}
 		}
@@ -297,7 +297,7 @@ func completionUninstallTargets(shell, explicitPath string) ([]completionTarget,
 	}
 	targets := make([]completionTarget, 0, 4)
 	for _, candidate := range []string{"bash", "zsh", "fish", "powershell"} {
-		path := defaultCompletionPath(candidate)
+		path := defaultCompletionPath(ctx, candidate)
 		if path != "" {
 			targets = append(targets, completionTarget{shell: candidate, path: path})
 		}

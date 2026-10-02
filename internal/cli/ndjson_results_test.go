@@ -18,7 +18,16 @@ func TestNDJSONCommandResults(t *testing.T) {
 		case "/tasks/101/close", "/tasks/101/reopen":
 			w.WriteHeader(http.StatusNoContent)
 		case "/sync":
-			fmt.Fprint(w, `{"sync_status":{},"live_notifications":[{"id":"901","notification_type":"item_assigned","is_unread":true}]}`)
+			r.ParseForm()
+			var commands []struct {
+				UUID string `json:"uuid"`
+			}
+			json.Unmarshal([]byte(r.Form.Get("commands")), &commands)
+			status := map[string]string{}
+			for _, command := range commands {
+				status[command.UUID] = "ok"
+			}
+			json.NewEncoder(w).Encode(map[string]any{"sync_status": status, "live_notifications": []map[string]any{{"id": "901", "notification_type": "item_assigned", "is_unread": true}}})
 		default:
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 			http.NotFound(w, r)

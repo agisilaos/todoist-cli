@@ -83,7 +83,7 @@ func TestProfileUseHonorsEnvironmentConfigPath(t *testing.T) {
 	writeProfileFixture(t, config.CredentialsPathFromConfig(path), `{"profiles":{"scratch":{"token":"synthetic-config-path"}}}`)
 	t.Setenv("TODOIST_CONFIG", path)
 	var stdout, stderr bytes.Buffer
-	code := Execute([]string{"profile", "use", "scratch", "--no-input", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"profile", "use", "scratch", "--no-input", "--json"}, &stdout, &stderr)
 	if code != 0 || profileObject(t, stdout.String())["config_path"] != path {
 		t.Fatal("profile use ignored TODOIST_CONFIG")
 	}
@@ -102,8 +102,8 @@ func TestProfileRemovalCleanupGuidanceTargetsNamedProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	native.failDelete = true
-	injectProfileStore(t, store)
-	code, out, errOut := executeAuthorization(t, path, "profile", "remove", "scratch", "--json")
+	env := profileStoreEnvironment(store)
+	code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "profile", "remove", "scratch", "--json")
 	if code != 3 || out != "" {
 		t.Fatal("cleanup failure did not preserve the error contract")
 	}
@@ -143,9 +143,9 @@ func TestProfileInspectionRecoveryRetainsConfiguration(t *testing.T) {
 	if err := store.Delete(operationContext(&Context{}), "scratch"); err == nil {
 		t.Fatal("fixture did not retain pending native cleanup")
 	}
-	injectProfileStore(t, store)
+	env := profileStoreEnvironment(store)
 	for _, operation := range []string{"list", "current"} {
-		_, out, _ := executeAuthorization(t, path, "profile", operation)
+		_, out, _ := executeAuthorizationWithEnvironment(t, path, env, "profile", operation)
 		if !strings.Contains(out, "--config "+shellEscape(path)) || !strings.Contains(out, "--profile scratch auth repair") || strings.Contains(out, "synthetic-inspection-recovery") {
 			t.Fatalf("profile %s recovery lost its configuration or target", operation)
 		}

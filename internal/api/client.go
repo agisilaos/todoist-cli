@@ -69,8 +69,10 @@ func (c *Client) Get(ctx context.Context, path string, query url.Values, out any
 	return c.doJSON(ctx, http.MethodGet, path, query, nil, out, false)
 }
 
-func (c *Client) Post(ctx context.Context, path string, query url.Values, body any, out any, includeRequestID bool) (string, error) {
-	return c.doJSON(ctx, http.MethodPost, path, query, body, out, includeRequestID)
+// Post permits retries for non-task mutations only when retryWithRequestID is
+// true; task writes dispatch once. Each retry keeps its idempotency request ID.
+func (c *Client) Post(ctx context.Context, path string, query url.Values, body any, out any, retryWithRequestID bool) (string, error) {
+	return c.doJSON(ctx, http.MethodPost, path, query, body, out, retryWithRequestID)
 }
 
 // PostWithOptionalResponse acknowledges the mutation status independently of its
@@ -83,6 +85,7 @@ func (c *Client) PostWithOptionalResponse(ctx context.Context, path string, body
 }
 
 type optionalResponse []byte
+type responseBytes []byte
 
 const maxOptionalResponseSize = 256 * 1024
 
@@ -99,88 +102,7 @@ func (c *Client) QuickAdd(ctx context.Context, text string) (Task, string, error
 	return task, reqID, nil
 }
 
-func (c *Client) SyncWorkspaces(ctx context.Context) ([]Workspace, string, error) {
-	fullURL, err := c.buildURL("/sync", nil)
-	if err != nil {
-		return nil, "", err
-	}
-	requestID := NewRequestID()
-	form := url.Values{}
-	form.Set("sync_token", "*")
-	form.Set("resource_types", `["workspaces"]`)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return nil, requestID, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("X-Request-Id", requestID)
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-	resp, err := c.dispatch(req, "/sync")
-	if err != nil {
-		return nil, requestID, err
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
-	if resp.StatusCode >= 400 {
-		return nil, requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(data)), RequestID: requestID}
-	}
-	var payload struct {
-		Workspaces []Workspace `json:"workspaces"`
-	}
-	if err := json.Unmarshal(data, &payload); err != nil {
-		return nil, requestID, fmt.Errorf("decode sync response: %w", err)
-	}
-	return payload.Workspaces, requestID, nil
-}
-
-func (c *Client) SyncCurrentUserID(ctx context.Context) (string, string, error) {
-	fullURL, err := c.buildURL("/sync", nil)
-	if err != nil {
-		return "", "", err
-	}
-	requestID := NewRequestID()
-	form := url.Values{}
-	form.Set("sync_token", "*")
-	form.Set("resource_types", `["user"]`)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return "", requestID, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("X-Request-Id", requestID)
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-	resp, err := c.dispatch(req, "/sync")
-	if err != nil {
-		return "", requestID, err
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
-	if resp.StatusCode >= 400 {
-		return "", requestID, &APIError{Status: resp.StatusCode, Message: strings.TrimSpace(string(data)), RequestID: requestID}
-	}
-	var payload struct {
-		User map[string]any `json:"user"`
-	}
-	if err := json.Unmarshal(data, &payload); err != nil {
-		return "", requestID, fmt.Errorf("decode sync user response: %w", err)
-	}
-	if payload.User == nil {
-		return "", requestID, fmt.Errorf("sync user response missing user")
-	}
-	if id, ok := payload.User["id"].(string); ok && strings.TrimSpace(id) != "" {
-		return id, requestID, nil
-	}
-	if idf, ok := payload.User["id"].(float64); ok {
-		return strconv.FormatInt(int64(idf), 10), requestID, nil
-	}
-	return "", requestID, fmt.Errorf("sync user response missing user id")
-}
-
-func (c *Client) doJSON(ctx context.Context, method, path string, query url.Values, body any, out any, includeRequestID bool) (string, error) {
+func (c *Client) doJSON(ctx context.Context, method, path string, query url.Values, body any, out any, retryWithRequestID bool) (string, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {
 		return "", err
@@ -193,34 +115,53 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		}
 	}
 	requestID := ""
-	if includeRequestID {
+	if retryWithRequestID {
 		requestID = NewRequestID()
 	}
-	taskWrite := taskWritePath(method, path)
+	var buf io.Reader
+	if payload != nil {
+		buf = bytes.NewReader(payload)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, buf)
+	if err != nil {
+		return requestID, err
+	}
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if requestID != "" {
+		req.Header.Set("X-Request-Id", requestID)
+	}
+	return c.doRequest(req, path, out, isRetrySafe(method, retryWithRequestID))
+}
+
+// doRequest shares authorization, bounded retries, and response handling across
+// JSON and Sync form requests. Retry eligibility is independent of request IDs.
+func (c *Client) doRequest(template *http.Request, path string, out any, retrySafe bool) (string, error) {
+	ctx := template.Context()
+	requestID := template.Header.Get("X-Request-Id")
+	taskWrite := taskWritePath(template.Method, path)
 	for attempt := 0; attempt <= maxRetries; attempt++ {
-		var buf io.Reader
-		if payload != nil {
-			buf = bytes.NewReader(payload)
-		}
-		req, err := http.NewRequestWithContext(ctx, method, fullURL, buf)
-		if err != nil {
+		if err := ctx.Err(); err != nil {
 			return requestID, err
+		}
+		req := template.Clone(ctx)
+		if template.GetBody != nil {
+			body, err := template.GetBody()
+			if err != nil {
+				return requestID, err
+			}
+			req.Body = body
 		}
 		if c.Token != "" {
 			req.Header.Set("Authorization", "Bearer "+c.Token)
-		}
-		if payload != nil {
-			req.Header.Set("Content-Type", "application/json")
-		}
-		if requestID != "" {
-			req.Header.Set("X-Request-Id", requestID)
 		}
 
 		taskWrite = taskWrite || c.taskWriteRequest(req)
 		resp, err := c.dispatch(req, path)
 		if err != nil {
 			var authorizationErr *authorization.Error
-			if !taskWrite && !errors.As(err, &authorizationErr) && shouldRetryTransport(method, includeRequestID, err) && attempt < maxRetries {
+			if !taskWrite && !errors.As(err, &authorizationErr) && shouldRetryTransport(template.Method, retrySafe, err) && attempt < maxRetries {
 				if err := waitForRetry(ctx, retryDelay(attempt, "")); err != nil {
 					return requestID, err
 				}
@@ -237,7 +178,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		if resp.StatusCode >= 400 {
 			msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
 			_ = resp.Body.Close()
-			if shouldRetryStatus(method, includeRequestID, resp.StatusCode) && attempt < maxRetries {
+			if shouldRetryStatus(template.Method, retrySafe, resp.StatusCode) && attempt < maxRetries {
 				if err := waitForRetry(ctx, retryDelay(attempt, resp.Header.Get("Retry-After"))); err != nil {
 					return requestID, err
 				}
@@ -266,6 +207,10 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 			}
 			return requestID, err
 		}
+		if response, ok := out.(*responseBytes); ok {
+			*response = data
+			return requestID, nil
+		}
 		if len(bytes.TrimSpace(data)) == 0 {
 			return requestID, nil
 		}
@@ -291,8 +236,8 @@ func (c *Client) buildURL(path string, query url.Values) (string, error) {
 	return u.String(), nil
 }
 
-func shouldRetryStatus(method string, includeRequestID bool, status int) bool {
-	if !isRetrySafe(method, includeRequestID) {
+func shouldRetryStatus(method string, explicitlyRetrySafe bool, status int) bool {
+	if !isRetrySafe(method, explicitlyRetrySafe) {
 		return false
 	}
 	switch status {
@@ -303,12 +248,12 @@ func shouldRetryStatus(method string, includeRequestID bool, status int) bool {
 	}
 }
 
-func shouldRetryTransport(method string, includeRequestID bool, err error) bool {
-	return isRetrySafe(method, includeRequestID) && err != nil
+func shouldRetryTransport(method string, explicitlyRetrySafe bool, err error) bool {
+	return isRetrySafe(method, explicitlyRetrySafe) && err != nil
 }
 
-func isRetrySafe(method string, includeRequestID bool) bool {
-	return method == http.MethodGet || includeRequestID
+func isRetrySafe(method string, explicitlyRetrySafe bool) bool {
+	return method == http.MethodGet || explicitlyRetrySafe
 }
 
 func retryDelay(attempt int, retryAfter string) time.Duration {

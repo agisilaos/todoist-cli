@@ -33,7 +33,7 @@ func TestSchedulePreservesArgumentsWithMetacharacters(t *testing.T) {
 				args = append(args, "--cron")
 			}
 			var out, diagnostic bytes.Buffer
-			if code := Execute(args, &out, &diagnostic); code != 0 {
+			if code := executeTest(args, &out, &diagnostic); code != 0 {
 				t.Fatalf("schedule failed (%d): %s", code, diagnostic.String())
 			}
 			var got []string
@@ -89,7 +89,7 @@ func TestCronScheduleEscapesPercentAndRejectsLineBreaks(t *testing.T) {
 		{"read\ronly", 2},
 	} {
 		var out, diagnostic bytes.Buffer
-		code := Execute([]string{"--config", filepath.Join(t.TempDir(), "config.json"), "--profile", tc.profile, "agent", "schedule", "print", "--weekly", "sat 09:00", "--instruction", "review", "--cron", "--bin", "todoist"}, &out, &diagnostic)
+		code := executeTest([]string{"--config", filepath.Join(t.TempDir(), "config.json"), "--profile", tc.profile, "agent", "schedule", "print", "--weekly", "sat 09:00", "--instruction", "review", "--cron", "--bin", "todoist"}, &out, &diagnostic)
 		if code != tc.code {
 			t.Fatalf("profile %q: exit %d want %d: %s", tc.profile, code, tc.code, diagnostic.String())
 		}

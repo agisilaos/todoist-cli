@@ -68,7 +68,7 @@ func TestReviewPersistenceFailureBoundaries(t *testing.T) {
 				return persistReplayJournal(path, journal)
 			}
 			results, err := applyActionsWithPreparation(ctx, plan.ConfirmToken, plan.Actions, applyErrorModeFail, store.fileReplayStore, store.prepare)
-			if !errors.Is(err, injected) || !shouldAbortApply(applyErrorModeContinue, err) {
+			if !errors.Is(err, injected) || !shouldAbortApply(ctx, applyErrorModeContinue, err) {
 				t.Fatalf("expected terminal persistence failure, got %v", err)
 			}
 			if writes != test.failWrite || len(fixture.writes) != test.mutations || len(results) != test.results {

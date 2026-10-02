@@ -19,7 +19,7 @@ import (
 func runSkill(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
 	var out, diagnostic bytes.Buffer
-	code := Execute(args, &out, &diagnostic)
+	code := executeTest(args, &out, &diagnostic)
 	return code, out.String(), diagnostic.String()
 }
 
@@ -256,7 +256,7 @@ func TestSkillResultOutputFailureReportsCommittedState(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), ".agents", "skills", "todoist-cli")
 			var diagnostic bytes.Buffer
-			code := Execute([]string{"skill", "install", "codex", "--scope", "local", "--path", path, mode}, &skillFailingOutput{}, &diagnostic)
+			code := executeTest([]string{"skill", "install", "codex", "--scope", "local", "--path", path, mode}, &skillFailingOutput{}, &diagnostic)
 			var envelope struct {
 				Code    string `json:"code"`
 				Details struct {

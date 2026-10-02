@@ -301,7 +301,7 @@ func TestTaskDetailJSONAndPlainPreserveLegacyOutput(t *testing.T) {
 				args = append(args, "--full")
 			}
 			var out, stderr bytes.Buffer
-			if code := Execute(args, &out, &stderr); code != 0 || stderr.Len() != 0 {
+			if code := executeTest(args, &out, &stderr); code != 0 || stderr.Len() != 0 {
 				t.Fatalf("%v: code=%d stderr=%s", args, code, &stderr)
 			}
 			if mode == "--json" {

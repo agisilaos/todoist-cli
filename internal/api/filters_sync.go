@@ -60,7 +60,7 @@ func (c *Client) DeleteFilter(ctx context.Context, id string) (string, error) {
 	return requestID, err
 }
 
-func (c *Client) filterCommand(ctx context.Context, kind string, args map[string]any, tempID string) (reminderSyncResponse, string, error) {
+func (c *Client) filterCommand(ctx context.Context, kind string, args map[string]any, tempID string) (syncResponse, string, error) {
 	uuid := NewRequestID()
 	command := map[string]any{"type": kind, "uuid": uuid, "args": args}
 	if tempID != "" {
@@ -68,7 +68,7 @@ func (c *Client) filterCommand(ctx context.Context, kind string, args map[string
 	}
 	payload, err := json.Marshal([]map[string]any{command})
 	if err != nil {
-		return reminderSyncResponse{}, "", err
+		return syncResponse{}, "", err
 	}
 	resp, requestID, err := c.syncRequest(ctx, map[string]string{
 		"commands": string(payload), "sync_token": "*", "resource_types": `["filters"]`,
@@ -76,24 +76,10 @@ func (c *Client) filterCommand(ctx context.Context, kind string, args map[string
 	if err != nil {
 		return resp, requestID, err
 	}
-	status, exists := resp.SyncStatus[uuid]
-	if !exists {
-		return resp, requestID, fmt.Errorf("%s response omitted command acknowledgement; run 'todoist filter list' to confirm", kind)
-	}
-	if status == "ok" {
-		return resp, requestID, nil
-	}
-	code := 400
-	if details, ok := status.(map[string]any); ok {
-		if httpCode, ok := details["http_code"].(float64); ok && httpCode >= 400 && httpCode <= 599 {
-			code = int(httpCode)
-		}
-	}
-	details, _ := json.Marshal(status)
-	return resp, requestID, &APIError{Status: code, RequestID: requestID, Message: kind + ": " + string(details)}
+	return resp, requestID, checkSyncCommand(resp, uuid, kind, requestID, "todoist filter list")
 }
 
-func filterFromSync(resp reminderSyncResponse, id string) (Filter, error) {
+func filterFromSync(resp syncResponse, id string) (Filter, error) {
 	for _, item := range resp.Filters {
 		if item.ID == id && !item.IsDeleted {
 			return item.Filter, nil

@@ -18,14 +18,6 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
-var performOAuthLogin = authOAuthLogin
-var performOAuthDeviceLogin = authOAuthDeviceLogin
-var generateOAuthRandomFn = generateOAuthRandom
-var buildOAuthAuthorizationURLFn = buildOAuthAuthorizationURL
-var openOAuthBrowserFn = openOAuthBrowser
-var waitForOAuthCodeFn = waitForOAuthCode
-var exchangeOAuthTokenFn = exchangeOAuthToken
-
 func authCommand(ctx *Context, args []string) error {
 	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
 		printAuthHelp(ctx.Stdout)
@@ -127,7 +119,7 @@ func authLogin(ctx *Context, args []string) error {
 			return &CodeError{Code: exitUsage, Err: fmt.Errorf("--token-stdin cannot be used with %s", flag)}
 		}
 		var err error
-		cfg, err = buildOAuthConfig(clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, noBrowser || oauthDevice)
+		cfg, err = buildOAuthConfig(ctx, clientID, authorizeURL, tokenURL, deviceURL, redirectURI, oauthListen, noBrowser || oauthDevice)
 		if err != nil {
 			return &CodeError{Code: exitUsage, Err: err}
 		}
@@ -149,9 +141,9 @@ func authLogin(ctx *Context, args []string) error {
 		defer stop()
 		ctx.OperationContext = operation
 		defer func() { ctx.OperationContext = previous }()
-		login := performOAuthLogin
+		login := ctx.oauthDeps().login
 		if oauthDevice {
-			login = performOAuthDeviceLogin
+			login = ctx.oauthDeps().deviceLogin
 		}
 		token, err := login(ctx, cfg)
 		if err != nil {
@@ -210,7 +202,7 @@ func validateManualLoginToken(ctx *Context, token string) error {
 		timeout = 10 * time.Second
 	}
 	client := api.NewClient(ctx.Config.BaseURL, token, timeout, authorization.Resolve(nil, "env", true))
-	req, cancel := context.WithTimeout(context.Background(), timeout)
+	req, cancel := context.WithTimeout(operationContext(ctx), timeout)
 	defer cancel()
 	var page api.Paginated[api.Project]
 	_, err := client.Get(req, "/projects", url.Values{"limit": {"1"}}, &page)
@@ -228,11 +220,11 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	if err := operationContext(ctx).Err(); err != nil {
 		return oauthToken{}, oauthContextError(err)
 	}
-	verifier, err := generateOAuthRandomFn(32)
+	verifier, err := ctx.oauthDeps().random(32)
 	if err != nil {
 		return oauthToken{}, err
 	}
-	state, err := generateOAuthRandomFn(16)
+	state, err := ctx.oauthDeps().random(16)
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -241,24 +233,24 @@ func authOAuthLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 		return oauthToken{}, err
 	}
 	defer cfg.callback.close()
-	authURL, err := buildOAuthAuthorizationURLFn(cfg, oauthCodeChallenge(verifier), state)
+	authURL, err := ctx.oauthDeps().authorizationURL(cfg, oauthCodeChallenge(verifier), state)
 	if err != nil {
 		return oauthToken{}, err
 	}
 	fmt.Fprintf(ctx.Stderr, "OAuth authorization URL:\n%s\n", authURL)
 	if !cfg.NoBrowser {
-		if err := openOAuthBrowserFn(authURL); err != nil {
+		if err := ctx.oauthDeps().openBrowser(authURL); err != nil {
 			fmt.Fprintln(ctx.Stderr, "warning: could not open browser automatically.")
 			fmt.Fprintln(ctx.Stderr, "Open the OAuth authorization URL manually to continue.")
 		}
 	}
-	code, err := waitForOAuthCodeFn(operationContext(ctx), cfg, state, 3*time.Minute)
+	code, err := ctx.oauthDeps().waitForCode(operationContext(ctx), cfg, state, 3*time.Minute)
 	if err != nil {
 		return oauthToken{}, err
 	}
 	reqCtx, cancel := requestContext(ctx)
 	defer cancel()
-	token, err := exchangeOAuthTokenFn(reqCtx, cfg, code, verifier)
+	token, err := ctx.oauthDeps().exchangeToken(reqCtx, cfg, code, verifier)
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -282,7 +274,7 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	}
 	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
 	cfg.RequestTimeout = time.Duration(ctx.Config.TimeoutSeconds) * time.Second
-	token, err := pollOAuthDeviceToken(operationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec)
+	token, err := pollOAuthDeviceTokenWithWait(operationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec, ctx.oauthDeps().waitForPoll)
 	if err != nil {
 		return oauthToken{}, err
 	}
@@ -317,7 +309,7 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 		"stored":                   true,
 		"backend":                  info.Backend,
 		"authorization":            report,
-		"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
+		"environment_token_active": ctx.getenv("TODOIST_TOKEN") != "",
 	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, payload)
@@ -331,7 +323,7 @@ func storeProfileCredential(ctx *Context, token string, metadata authorization.M
 	}
 	fmt.Fprintf(ctx.Stdout, "Connected to Todoist. Token saved in %s for profile %q.\n", storage, ctx.Profile)
 	fmt.Fprintf(ctx.Stdout, "Run `%s` to see your tasks.\n", credentialCommand(ctx, ctx.Profile, "today"))
-	if os.Getenv("TODOIST_TOKEN") != "" {
+	if ctx.getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN still overrides the stored profile.")
 	}
 	return nil
@@ -400,7 +392,7 @@ func authLogout(ctx *Context) error {
 	payload := map[string]any{
 		"profile":                  ctx.Profile,
 		"removed":                  true,
-		"environment_token_active": os.Getenv("TODOIST_TOKEN") != "",
+		"environment_token_active": ctx.getenv("TODOIST_TOKEN") != "",
 	}
 	if ctx.Mode == output.ModeJSON {
 		return output.WriteJSON(ctx.Stdout, payload)
@@ -409,7 +401,7 @@ func authLogout(ctx *Context) error {
 		return output.WriteNDJSON(ctx.Stdout, []any{payload})
 	}
 	fmt.Fprintf(ctx.Stdout, "removed token for profile %q\n", ctx.Profile)
-	if os.Getenv("TODOIST_TOKEN") != "" {
+	if ctx.getenv("TODOIST_TOKEN") != "" {
 		fmt.Fprintln(ctx.Stderr, "TODOIST_TOKEN remains active; logout only removes stored credentials.")
 	}
 	return nil

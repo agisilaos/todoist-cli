@@ -41,19 +41,8 @@ func decodeTaskResource(t *testing.T, data string) map[string]any {
 
 func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 	data := bytes.ReplaceAll(taskResourceFixture(t, "populated"), []byte("task-fidelity-fixture"), []byte("taskfixture"))
-	// Keep the fixture inside the upcoming window when exercising the public
-	// entry point, which uses the real clock. Tomorrow also tolerates midnight.
-	due := time.Now().UTC().AddDate(0, 0, 1).Format("2006-01-02") + "T07:00:00Z"
-	data = bytes.ReplaceAll(data, []byte("2026-10-01T07:00:00Z"), []byte(due))
+	// The invocation clock below keeps this fixed fidelity fixture in the upcoming window.
 	want := decodeTaskResource(t, string(data))
-	// Execute uses the wall clock. Keep this fidelity fixture inside the upcoming
-	// window, with room for a UTC midnight rollover during the command matrix.
-	want["due"].(map[string]any)["date"] = time.Now().UTC().AddDate(0, 0, 3).Format("2006-01-02T07:00:00Z")
-	var err error
-	data, err = json.Marshal(want)
-	if err != nil {
-		t.Fatal(err)
-	}
 	delete(want, "future_field")
 	delete(want["due"].(map[string]any), "future_due_field")
 	want["reference_item"] = map[string]any{"is_reference": true, "source": "content_prefix"}
@@ -111,7 +100,10 @@ func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 		for _, mode := range []string{"--json", "--ndjson"} {
 			t.Run(strings.Join(tc.args, " ")+mode, func(t *testing.T) {
 				args := append([]string{"--base-url", server.URL, "--no-input", mode, "--task-output-version", "2"}, tc.args...)
-				code, out, errOut := executeAuthorization(t, path, args...)
+				var stdout, stderr bytes.Buffer
+				args = append([]string{"--config", path}, args...)
+				code := executeTestWithEnvironment(args, &stdout, &stderr, Environment{Now: func() time.Time { return time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC) }})
+				out, errOut := stdout.String(), stderr.String()
 				if code != 0 || errOut != "" {
 					t.Fatalf("exit %d stdout %s stderr %s", code, out, errOut)
 				}

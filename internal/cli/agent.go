@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -178,7 +177,7 @@ func agentApply(ctx *Context, args []string) error {
 
 	applyMode := applyErrorMode(onError)
 	results, err := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, applyMode)
-	if shouldAbortApply(applyMode, err) {
+	if shouldAbortApply(ctx, applyMode, err) {
 		emitAgentApplySummary(ctx, "agent apply", results, false, err)
 		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
 		return err
@@ -239,7 +238,7 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 	if err != nil {
 		return Plan{}, err
 	}
-	cmdCtx, cancel := context.WithTimeout(context.Background(), time.Duration(ctx.Config.TimeoutSeconds)*time.Second)
+	cmdCtx, cancel := requestContext(ctx)
 	defer cancel()
 	cmd := exec.CommandContext(cmdCtx, "/bin/sh", "-c", plannerCmd)
 	cmd.Stdin = bytes.NewReader(payload)
@@ -248,6 +247,9 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if cmdCtx.Err() != nil {
+			return Plan{}, fmt.Errorf("planner failed: %w", cmdCtx.Err())
+		}
 		msg := strings.TrimSpace(stderr.String())
 		if msg == "" {
 			msg = err.Error()
