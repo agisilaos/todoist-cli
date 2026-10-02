@@ -2,6 +2,11 @@
 
 ## Core
 
+These are maintained contracts and reference documentation. Design documents may
+also retain historical acceptance dates, base revisions, and delivery notes;
+those record provenance, not a current review base or standing authorization.
+Use the [contributor handoff gate](../CONTRIBUTING.md#ready-for-handoff) for current validation.
+
 - [CLI specification](SPEC.md): supported behavior and machine output contracts
 - [Architecture overview](ARCHITECTURE.md): package responsibilities and boundaries
 - [Domain vocabulary](../CONTEXT.md): shared terminology
@@ -10,9 +15,23 @@
 - [CLI help snapshots](help/): generated from the current binary
 - [Agent skill lifecycle](agent-skill.md): supported targets, ownership, updates, machine output, and recovery
 - [Errors and recovery](error-recovery.md): failure classifications, safe next steps, and compatibility boundaries
+- [Task-data fidelity](task-data-fidelity.md): versioned task-resource output, field presence, and compatibility
+- [Authorization contract](authorization-design.md): scope evidence, credential lifecycle, and mutation enforcement
+- [Authorization command inventory](authorization-command-inventory.md): remote, local, planning, and dry-run effects
+- [Authorization verification](authorization-implementation.md): regression boundaries and verification limits
+- [Credential storage](credential-store-design.md): backend selection, token/metadata pairing, migration, and recovery
+- [Security policy](../SECURITY.md): vulnerability reporting, secret handling, and isolated native tests
 - [Daily review](review-design.md): interaction, review-plan compatibility, and recovery
 - [Credential profiles and OAuth onboarding](profile-oauth-design.md): selection, removal recovery, and external OAuth prerequisites
-- [Profile consumer review](profile-consumer-review.md): isolated public-path execution, repairs, and verification limits
+- [Contributor guidance](../CONTRIBUTING.md): development workflow, validation, and handoff requirements
+
+## Historical review evidence
+
+These records describe particular revisions and review environments. They are
+supporting evidence, not maintained behavior contracts or validation of later changes.
+
+- [Profile consumer review](profile-consumer-review.md): recorded public-path execution, repairs, and verification limits
+- [Review evidence](evidence/): retained task, recovery, and agent-skill execution records
 
 ## Release
 
