@@ -42,6 +42,14 @@ func decodeTaskResource(t *testing.T, data string) map[string]any {
 func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 	data := taskResourceFixture(t, "populated")
 	want := decodeTaskResource(t, string(data))
+	// Execute uses the wall clock. Keep this fidelity fixture inside the upcoming
+	// window, with room for a UTC midnight rollover during the command matrix.
+	want["due"].(map[string]any)["date"] = time.Now().UTC().AddDate(0, 0, 3).Format("2006-01-02T07:00:00Z")
+	var err error
+	data, err = json.Marshal(want)
+	if err != nil {
+		t.Fatal(err)
+	}
 	delete(want, "future_field")
 	delete(want["due"].(map[string]any), "future_due_field")
 	want["reference_item"] = map[string]any{"is_reference": true, "source": "content_prefix"}
