@@ -9,17 +9,59 @@ import (
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 )
 
+// Retain context from the existing resolution without another lookup or any
+// change to target selection. Explicit --id still bypasses resolution.
+type taskActionResolver struct {
+	ctx  *Context
+	task *api.Task
+}
+
+func (r *taskActionResolver) ResolveTaskRef(operation context.Context, ref string) (api.Task, error) {
+	if err := operation.Err(); err != nil {
+		return api.Task{}, err
+	}
+	prior := r.ctx.OperationContext
+	r.ctx.OperationContext = operation
+	defer func() { r.ctx.OperationContext = prior }()
+	task, err := resolveTaskRef(r.ctx, ref)
+	if err == nil {
+		r.task = &task
+	}
+	return task, err
+}
+
 type cliTaskResolver struct {
 	ctx *Context
 }
 
-func (r cliTaskResolver) ResolveTaskRef(_ context.Context, ref string) (api.Task, error) {
+func (r cliTaskResolver) ResolveTaskRef(operation context.Context, ref string) (api.Task, error) {
+	if err := operation.Err(); err != nil {
+		return api.Task{}, err
+	}
+	prior := r.ctx.OperationContext
+	r.ctx.OperationContext = operation
+	defer func() { r.ctx.OperationContext = prior }()
 	return resolveTaskRef(r.ctx, ref)
 }
 
+type cliTaskFilterLister struct {
+	ctx *Context
+}
+
+func (l cliTaskFilterLister) ListByFilter(operation context.Context, filter string) ([]api.Task, error) {
+	if err := operation.Err(); err != nil {
+		return nil, err
+	}
+	prior := l.ctx.OperationContext
+	l.ctx.OperationContext = operation
+	defer func() { l.ctx.OperationContext = prior }()
+	tasks, _, err := listTasksByFilter(l.ctx, filter, "", 200, true, true)
+	return tasks, err
+}
+
 func asUsageIfGeneric(err error) error {
-	if err == nil {
-		return nil
+	if err == nil || isOperationCancellation(err) {
+		return err
 	}
 	var codeErr *CodeError
 	if errors.As(err, &codeErr) {
@@ -73,7 +115,7 @@ func taskDelete(ctx *Context, args []string) error {
 		return err
 	}
 	svc := apptasks.Service{Resolver: cliTaskResolver{ctx: ctx}}
-	resolvedID, err := svc.ResolveTaskTarget(context.Background(), apptasks.ResolveTaskTargetInput{ID: id, Ref: ref})
+	resolvedID, err := svc.ResolveTaskTarget(operationContext(ctx), apptasks.ResolveTaskTargetInput{ID: id, Ref: ref})
 	if err != nil {
 		if strings.TrimSpace(id) == "" && strings.TrimSpace(ref) == "" {
 			printTaskHelp(ctx.Stderr)

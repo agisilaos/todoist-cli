@@ -61,9 +61,10 @@ type GlobalOptions struct {
 
 // Environment supplies invocation inputs. Nil fields use process defaults.
 type Environment struct {
-	Now    func() time.Time
-	Stdin  io.Reader
-	Getenv func(string) string
+	OperationContext context.Context
+	Now              func() time.Time
+	Stdin            io.Reader
+	Getenv           func(string) string
 }
 
 type Context struct {
@@ -152,13 +153,14 @@ func ExecuteWithEnvironment(args []string, stdout, stderr io.Writer, env Environ
 	}
 
 	ctx := &Context{
-		Stdout: stdout,
-		Stderr: stderr,
-		Stdin:  env.Stdin,
-		Global: opts,
-		Mode:   mode,
-		Now:    env.Now,
-		Getenv: env.Getenv,
+		OperationContext: env.OperationContext,
+		Stdout:           stdout,
+		Stderr:           stderr,
+		Stdin:            env.Stdin,
+		Global:           opts,
+		Mode:             mode,
+		Now:              env.Now,
+		Getenv:           env.Getenv,
 	}
 	if opts.IDsOnly && !idsOnlyEligible(rest, opts.Help) {
 		idsErr := fmt.Errorf("--ids-only is only supported by stable-ID list commands (see 'todoist schema --name ids_only')")
@@ -601,4 +603,8 @@ func (ctx *Context) getenv(key string) string {
 		return ctx.Getenv(key)
 	}
 	return os.Getenv(key)
+}
+
+func isOperationCancellation(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }

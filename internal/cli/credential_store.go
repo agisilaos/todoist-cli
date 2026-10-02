@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -22,7 +21,7 @@ func profileStore(ctx *Context) credentials.Store {
 	return ctx.Credentials
 }
 func inspectProfile(ctx *Context) {
-	info, err := profileStore(ctx).Inspect(context.Background(), ctx.Profile)
+	info, err := profileStore(ctx).Inspect(operationContext(ctx), ctx.Profile)
 	ctx.CredentialInfo = info
 	ctx.CredentialErr = err
 	if info.Configured {
@@ -57,7 +56,7 @@ func loginBackend(ctx *Context, explicit string) (string, error) {
 	if explicit != "" && explicit != "native" && explicit != "file" {
 		return "", &CodeError{Code: exitUsage, Err: fmt.Errorf("--credential-store must be native or file")}
 	}
-	info, err := profileStore(ctx).Inspect(context.Background(), ctx.Profile)
+	info, err := profileStore(ctx).Inspect(operationContext(ctx), ctx.Profile)
 	if err != nil {
 		var e *credentials.Error
 		if !errors.As(err, &e) || e.Kind != credentials.Namespace {

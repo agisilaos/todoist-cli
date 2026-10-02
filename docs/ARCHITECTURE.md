@@ -64,6 +64,15 @@ OAuth adapters are held on each CLI context rather than mutable package globals.
 Date-sensitive command contracts pin their reference clock, while concurrent
 invocation tests exercise different credentials and UTC date windows.
 
+An optional operation context follows the invocation through task resolution,
+credential inspection, manual-token verification, and planner processes. Review
+and OAuth signal contexts derive from that parent. Task service adapters honor
+the supplied context and restore the enclosing invocation context afterward;
+lookup caches and request metadata remain shared within the invocation.
+Cancellation and expired deadlines stop bulk task operations and agent application
+even in continue mode. Successfully recorded actions remain recorded; cancellation
+does not undo Todoist mutations or resolve an uncertain remote outcome.
+
 ## Service coverage
 
 - `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, task mutation payload builders, returned due evidence and recurrence-preserving rescheduling, and hierarchy destination/selection rules. The CLI retains invocation-local ancestry fetching and caching.

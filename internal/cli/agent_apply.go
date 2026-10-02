@@ -162,5 +162,5 @@ func shouldAbortApply(onError applyErrorMode, err error) bool {
 	}
 	var replayErr *replayStoreError
 	var authorizationErr *authorization.Error
-	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr) || api.TaskWriteOutcome(err) == api.TaskWriteUncertain || api.TaskWriteOutcome(err) == api.TaskWriteAccepted
+	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr) || api.TaskWriteOutcome(err) == api.TaskWriteUncertain || api.TaskWriteOutcome(err) == api.TaskWriteAccepted || isOperationCancellation(err)
 }

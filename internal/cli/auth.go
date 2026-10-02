@@ -202,7 +202,7 @@ func validateManualLoginToken(ctx *Context, token string) error {
 		timeout = 10 * time.Second
 	}
 	client := api.NewClient(ctx.Config.BaseURL, token, timeout, authorization.Resolve(nil, "env", true))
-	req, cancel := context.WithTimeout(context.Background(), timeout)
+	req, cancel := context.WithTimeout(operationContext(ctx), timeout)
 	defer cancel()
 	var page api.Paginated[api.Project]
 	_, err := client.Get(req, "/projects", url.Values{"limit": {"1"}}, &page)

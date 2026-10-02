@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -111,7 +110,7 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 	}
 	ref := strings.Join(fs.Args(), " ")
 	svc := apptasks.Service{Resolver: cliTaskResolver{ctx: ctx}}
-	resolvedID, err := svc.ResolveTaskTarget(context.Background(), apptasks.ResolveTaskTargetInput{Ref: ref})
+	resolvedID, err := svc.ResolveTaskTarget(operationContext(ctx), apptasks.ResolveTaskTargetInput{Ref: ref})
 	if err != nil {
 		return "", err
 	}
