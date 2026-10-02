@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/agisilaos/todoist-cli/internal/api"
+	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -79,27 +80,18 @@ func taskAction(ctx *Context, args []string, move bool) error {
 		o.parent = id
 	}
 	ref := strings.Join(fs.Args(), " ")
-	if o.id != "" && ref != "" || o.filter != "" && (o.id != "" || ref != "") {
-		return fail("task selectors cannot be combined")
-	}
-	if o.id == "" && ref == "" && o.filter == "" {
-		return fail("task target required")
+	if err := apptasks.ValidateActionSelection(apptasks.ActionSelection{
+		ID: o.id, Ref: ref, Filter: o.filter, Confirmed: o.yes || ctx.Global.Force,
+	}); err != nil {
+		return &CodeError{Code: exitUsage, Err: err}
 	}
 	if move {
-		clear := o.clearParent || o.clearSection
-		destination := o.project != "" || o.section != "" || o.parent != ""
-		if !clear && !destination {
-			return fail("move destination or clear flag required")
+		if err := apptasks.ValidateMoveDestination(apptasks.MoveDestination{
+			Project: o.project, Section: o.section, Parent: o.parent,
+			ClearParent: o.clearParent, ClearSection: o.clearSection,
+		}); err != nil {
+			return &CodeError{Code: exitUsage, Err: err}
 		}
-		if clear && destination {
-			return fail("hierarchy clear flags cannot accompany destination setters")
-		}
-		if o.parent != "" && (o.project != "" || o.section != "") {
-			return fail("parent cannot accompany project or section destination")
-		}
-	}
-	if o.filter != "" && !o.yes && !ctx.Global.Force {
-		return fail("filtered batch requires --yes (or --force)")
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err

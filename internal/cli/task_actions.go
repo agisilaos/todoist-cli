@@ -3,25 +3,11 @@ package cli
 import (
 	"context"
 	"errors"
+	"strings"
+
 	"github.com/agisilaos/todoist-cli/internal/api"
 	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
-	"strings"
 )
-
-// Retain context from the existing resolution without another lookup or any
-// change to target selection. Explicit --id still bypasses resolution.
-type taskActionResolver struct {
-	ctx  *Context
-	task *api.Task
-}
-
-func (r *taskActionResolver) ResolveTaskRef(_ context.Context, ref string) (api.Task, error) {
-	task, err := resolveTaskRef(r.ctx, ref)
-	if err == nil {
-		r.task = &task
-	}
-	return task, err
-}
 
 type cliTaskResolver struct {
 	ctx *Context
@@ -29,15 +15,6 @@ type cliTaskResolver struct {
 
 func (r cliTaskResolver) ResolveTaskRef(_ context.Context, ref string) (api.Task, error) {
 	return resolveTaskRef(r.ctx, ref)
-}
-
-type cliTaskFilterLister struct {
-	ctx *Context
-}
-
-func (l cliTaskFilterLister) ListByFilter(_ context.Context, filter string) ([]api.Task, error) {
-	tasks, _, err := listTasksByFilter(l.ctx, filter, "", 200, true)
-	return tasks, err
 }
 
 func asUsageIfGeneric(err error) error {

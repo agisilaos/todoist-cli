@@ -594,3 +594,49 @@ func TestTaskEditingBatchRedactsRejectedCredential(t *testing.T) {
 		t.Fatal(out)
 	}
 }
+
+func TestReferenceOnlyTextEditUsesExactTask(t *testing.T) {
+	for _, tc := range []struct {
+		name, exact, flag, want string
+		writes                  int
+		missing                 bool
+	}{
+		{name: "add prefix to current title", exact: "Report changed", flag: "--reference=true", want: "* Report changed", writes: 1},
+		{name: "remove current prefix", exact: "* Report changed", flag: "--reference=false", want: "Report changed", writes: 1},
+		{name: "current reference already matches", exact: "* Report changed", flag: "--reference=true", want: "* Report changed"},
+		{name: "missing exact task refuses write", flag: "--reference=true", missing: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, ctx, _ := editingTestContext(t)
+			f.tasks["t"]["content"] = tc.exact
+			if tc.missing {
+				delete(f.tasks, "t")
+			}
+			f.page = func(w http.ResponseWriter, r *http.Request) bool {
+				if r.URL.Path != "/tasks" {
+					return false
+				}
+				fmt.Fprint(w, `{"results":[{"id":"t","content":"Report"}],"next_cursor":null}`)
+				return true
+			}
+			err := taskUpdate(ctx, []string{"Report", tc.flag})
+			if tc.missing {
+				if toExitCode(err) != exitNotFound {
+					t.Fatalf("expected exact-task lookup failure, got %v", err)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			if len(f.requests) < 2 || f.requests[0].path != "/tasks" || f.requests[1].method != "GET" || f.requests[1].path != "/tasks/t" {
+				t.Fatalf("expected selection then exact read, got %#v", f.requests)
+			}
+			writes := f.writes()
+			if len(writes) != tc.writes {
+				t.Fatalf("writes=%d, want %d: %#v", len(writes), tc.writes, writes)
+			}
+			if tc.writes != 0 && writes[0].body["content"] != tc.want {
+				t.Fatalf("title=%v, want %q", writes[0].body["content"], tc.want)
+			}
+		})
+	}
+}

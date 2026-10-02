@@ -372,12 +372,23 @@ func resolveEditingTarget(ctx *Context, id, ref string, needFacts bool) (string,
 		}
 		ref = "id:" + id
 	}
+	_, exact, err := apprefs.NormalizeEntityRef(ref, "task")
+	if err != nil {
+		return "", nil, &CodeError{Code: exitUsage, Err: err}
+	}
 	task, err := resolveTaskRef(ctx, ref)
 	if err != nil {
 		return "", nil, err
 	}
 	if !apptasks.ValidTaskID(task.ID) {
 		return "", nil, errors.New("resolved task identity unavailable")
+	}
+	if needFacts && !exact {
+		// A collection resolves identity; preservation edits use the exact task.
+		task, err = resolveTaskRef(ctx, "id:"+task.ID)
+		if err != nil {
+			return "", nil, err
+		}
 	}
 	return task.ID, &task, nil
 }

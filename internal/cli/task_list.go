@@ -92,10 +92,10 @@ func taskList(ctx *Context, args []string) error {
 			Empty: "No active tasks returned for this filter.",
 		}, sorting)
 	}
-	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, "", sorting)
+	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, sorting)
 }
 
-func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sortBy string, options ...taskSortOptions) error {
+func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sorting taskSortOptions) error {
 	query := url.Values{}
 	scope := activeTaskScope(project, section, parent, label, ids)
 	empty := "No active tasks returned for this selection."
@@ -149,24 +149,20 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 	if err != nil {
 		return err
 	}
-	sorting := firstTaskSort(options)
 	if err := sorting.apply(allTasks); err != nil {
 		return err
-	}
-	if sorting.key == "" {
-		sortTasks(allTasks, sortBy)
 	}
 	return writeTaskOverview(ctx, allTasks, next, wide, taskOverview{Scope: scope, Empty: empty, Continued: cursor != ""})
 }
 
-func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool, view taskOverview, options ...taskSortOptions) error {
+func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool, view taskOverview, sorting taskSortOptions) error {
 	allTasks, next, err := listTasksByFilter(ctx, filter, cursor, limit, all)
 	if err != nil {
 		return err
 	}
-	// Keep original ordering from API for filter; no client sort to preserve meaning.
+	// Omitted sorting preserves the filter response order.
 	view.Continued = cursor != ""
-	if err := firstTaskSort(options).apply(allTasks); err != nil {
+	if err := sorting.apply(allTasks); err != nil {
 		return err
 	}
 	return writeTaskOverview(ctx, allTasks, next, wide, view)
@@ -190,7 +186,7 @@ func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool,
 	return fetchPaginated[api.Task](ctx, "/tasks/filter", query, all, strict...)
 }
 
-func taskListCompleted(ctx *Context, completedBy, filter, project, section, parent, since, until, cursor string, limit int, all bool, wide bool, options ...taskSortOptions) error {
+func taskListCompleted(ctx *Context, completedBy, filter, project, section, parent, since, until, cursor string, limit int, all bool, wide bool, sorting taskSortOptions) error {
 	path := "/tasks/completed/by_completion_date"
 	if completedBy == "due" {
 		path = "/tasks/completed/by_due_date"
@@ -234,7 +230,7 @@ func taskListCompleted(ctx *Context, completedBy, filter, project, section, pare
 	if err != nil {
 		return err
 	}
-	if err := firstTaskSort(options).apply(allTasks); err != nil {
+	if err := sorting.apply(allTasks); err != nil {
 		return err
 	}
 	return writeTaskList(ctx, allTasks, next, wide)

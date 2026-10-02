@@ -28,7 +28,7 @@ func inboxCommand(ctx *Context, args []string) error {
 		if err := ensureClient(ctx); err != nil {
 			return err
 		}
-		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, "", sorting)
+		return taskListActive(ctx, "", "", "", "", "", "", 50, true, false, false, sorting)
 	}
 	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		printInboxHelp(ctx.Stdout)

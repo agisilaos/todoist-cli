@@ -10,11 +10,19 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/api"
 )
 
+type TimeCharacter string
+
+const (
+	DateOnly  TimeCharacter = "date"
+	Floating  TimeCharacter = "floating"
+	FixedZone TimeCharacter = "fixed"
+)
+
 type DueEvidence struct {
-	Kind     string
-	Value    time.Time
-	zone     *time.Location
-	timezone api.ResponseFact
+	Character TimeCharacter
+	Value     time.Time
+	zone      *time.Location
+	timezone  api.ResponseFact
 }
 
 var taskLocalPattern = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?$`)
@@ -27,15 +35,15 @@ func ParseInstant(value string) (time.Time, error) {
 	}
 	return time.Parse(time.RFC3339Nano, value)
 }
-func parseDueValue(value string) (string, time.Time, error) {
+func parseDueValue(value string) (TimeCharacter, time.Time, error) {
 	if t, err := time.Parse("2006-01-02", value); err == nil {
-		return "date", t, nil
+		return DateOnly, t, nil
 	}
 	if t, err := ParseInstant(value); err == nil {
-		return "fixed", t, nil
+		return FixedZone, t, nil
 	}
 	if t, err := time.Parse("2006-01-02T15:04:05", value); err == nil && taskLocalPattern.MatchString(value) {
-		return "floating", t, nil
+		return Floating, t, nil
 	}
 	return "", time.Time{}, errors.New("invalid returned due date")
 }
@@ -68,14 +76,14 @@ func DueFacts(task api.Task, preserve bool) (DueEvidence, error) {
 	}
 	if text, ok := secondary.Text(); ok {
 		otherKind, other, err := parseDueValue(text)
-		if err != nil || otherKind == "date" {
+		if err != nil || otherKind == DateOnly {
 			return out, errors.New("invalid compatibility datetime")
 		}
 		localOther := other
-		if otherKind == "fixed" && out.zone != nil {
+		if otherKind == FixedZone && out.zone != nil {
 			localOther = other.In(out.zone)
 		}
-		if kind == "date" {
+		if kind == DateOnly {
 			if localOther.Format("2006-01-02") != t.Format("2006-01-02") {
 				return out, errors.New("contradictory due calendar date and datetime")
 			}
@@ -85,16 +93,16 @@ func DueFacts(task api.Task, preserve bool) (DueEvidence, error) {
 		}
 	}
 	if preserve {
-		if kind == "fixed" && out.zone == nil || kind != "fixed" && out.timezone.State != api.ResponseNull {
+		if kind == FixedZone && out.zone == nil || kind != FixedZone && out.timezone.State != api.ResponseNull {
 			return out, errors.New("returned timezone cannot establish time character")
 		}
-	} else if kind != "fixed" && out.zone != nil {
+	} else if kind != FixedZone && out.zone != nil {
 		return out, errors.New("contradictory due timezone")
 	}
-	if kind == "fixed" && out.zone != nil {
+	if kind == FixedZone && out.zone != nil {
 		t = t.In(out.zone)
 	}
-	out.Kind, out.Value = kind, t
+	out.Character, out.Value = kind, t
 	return out, nil
 }
 func RescheduleDue(task api.Task, date, instant, local string) (map[string]any, error) {
@@ -107,7 +115,7 @@ func RescheduleDue(task api.Task, date, instant, local string) (map[string]any, 
 		return nil, errors.New("recurrence not returned; cannot promise preservation")
 	}
 	due := map[string]any{"is_recurring": recurring, "timezone": nil}
-	if evidence.Kind == "fixed" {
+	if evidence.Character == FixedZone {
 		zone, _ := evidence.timezone.Text()
 		due["timezone"] = zone
 	}
@@ -129,9 +137,9 @@ func RescheduleDue(task api.Task, date, instant, local string) (map[string]any, 
 			return nil, err
 		}
 		wall := time.Date(day.Year(), day.Month(), day.Day(), target.Hour(), target.Minute(), target.Second(), target.Nanosecond(), time.UTC)
-		if evidence.Kind == "date" {
+		if evidence.Character == DateOnly {
 			target = day
-		} else if evidence.Kind == "floating" {
+		} else if evidence.Character == Floating {
 			target = wall
 		} else {
 			target, err = uniqueWallInstant(wall, evidence.zone)
@@ -140,7 +148,7 @@ func RescheduleDue(task api.Task, date, instant, local string) (map[string]any, 
 			}
 		}
 	case instant != "":
-		if evidence.Kind != "fixed" {
+		if evidence.Character != FixedZone {
 			return nil, errors.New("RFC3339 target requires an existing fixed-zone due time")
 		}
 		target, err = ParseInstant(instant)
@@ -148,7 +156,7 @@ func RescheduleDue(task api.Task, date, instant, local string) (map[string]any, 
 			return nil, err
 		}
 	case local != "":
-		if evidence.Kind != "floating" {
+		if evidence.Character != Floating {
 			return nil, errors.New("local datetime target requires an existing floating due time")
 		}
 		target, err = ParseLocalDatetime(local)
@@ -156,12 +164,12 @@ func RescheduleDue(task api.Task, date, instant, local string) (map[string]any, 
 			return nil, err
 		}
 	}
-	switch evidence.Kind {
-	case "date":
+	switch evidence.Character {
+	case DateOnly:
 		due["date"] = target.Format("2006-01-02")
-	case "floating":
+	case Floating:
 		due["date"] = target.Format("2006-01-02T15:04:05.999999999")
-	case "fixed":
+	case FixedZone:
 		due["date"] = target.UTC().Format(time.RFC3339Nano)
 	}
 	return due, nil

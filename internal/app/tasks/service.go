@@ -13,146 +13,50 @@ type TaskResolver interface {
 	ResolveTaskRef(ctx context.Context, ref string) (api.Task, error)
 }
 
-type TaskFilterLister interface {
-	ListByFilter(ctx context.Context, filter string) ([]api.Task, error)
-}
-
 type Service struct {
 	Resolver TaskResolver
-	Lister   TaskFilterLister
 }
 
-type ResolveCompletionInput struct {
-	ID     string
-	Ref    string
-	Filter string
-	Yes    bool
-	Force  bool
+type ActionSelection struct {
+	ID, Ref, Filter string
+	Confirmed       bool
 }
 
-type ResolveCompletionResult struct {
-	Mode   string
-	ID     string
-	IDs    []string
-	Filter string
+type MoveDestination struct {
+	Project, Section, Parent  string
+	ClearParent, ClearSection bool
 }
 
-type ResolveMoveInput struct {
-	ID      string
-	Ref     string
-	Filter  string
-	Yes     bool
-	Force   bool
-	Project string
-	Section string
-	Parent  string
+func ValidateActionSelection(in ActionSelection) error {
+	if in.ID != "" && in.Ref != "" || in.Filter != "" && (in.ID != "" || in.Ref != "") {
+		return errors.New("task selectors cannot be combined")
+	}
+	if in.ID == "" && in.Ref == "" && in.Filter == "" {
+		return errors.New("task target required")
+	}
+	if in.Filter != "" && !in.Confirmed {
+		return errors.New("filtered batch requires --yes (or --force)")
+	}
+	return nil
 }
 
-type ResolveMoveResult struct {
-	Mode   string
-	ID     string
-	IDs    []string
-	Filter string
+func ValidateMoveDestination(in MoveDestination) error {
+	clear := in.ClearParent || in.ClearSection
+	destination := in.Project != "" || in.Section != "" || in.Parent != ""
+	if !clear && !destination {
+		return errors.New("move destination or clear flag required")
+	}
+	if clear && destination {
+		return errors.New("hierarchy clear flags cannot accompany destination setters")
+	}
+	if in.Parent != "" && (in.Project != "" || in.Section != "") {
+		return errors.New("parent cannot accompany project or section destination")
+	}
+	return nil
 }
 
 type ResolveTaskTargetInput struct {
-	ID  string
-	Ref string
-}
-
-func (s Service) ResolveCompletionTargets(ctx context.Context, in ResolveCompletionInput) (ResolveCompletionResult, error) {
-	id, err := normalizeTaskID(in.ID)
-	if err != nil {
-		return ResolveCompletionResult{}, err
-	}
-	ref := strings.TrimSpace(in.Ref)
-	filter := strings.TrimSpace(in.Filter)
-
-	if filter != "" {
-		if id != "" || ref != "" {
-			return ResolveCompletionResult{}, errors.New("--filter cannot be combined with --id or positional task reference")
-		}
-		if !in.Yes && !in.Force {
-			return ResolveCompletionResult{}, errors.New("bulk complete with --filter requires --yes (or --force)")
-		}
-		if s.Lister == nil {
-			return ResolveCompletionResult{}, errors.New("task filter lister is not configured")
-		}
-		tasks, err := s.Lister.ListByFilter(ctx, filter)
-		if err != nil {
-			return ResolveCompletionResult{}, err
-		}
-		ids := make([]string, 0, len(tasks))
-		for _, task := range tasks {
-			ids = append(ids, task.ID)
-		}
-		return ResolveCompletionResult{Mode: "bulk", IDs: ids, Filter: filter}, nil
-	}
-
-	if id == "" && ref != "" {
-		if s.Resolver == nil {
-			return ResolveCompletionResult{}, errors.New("task resolver is not configured")
-		}
-		task, err := s.Resolver.ResolveTaskRef(ctx, ref)
-		if err != nil {
-			return ResolveCompletionResult{}, err
-		}
-		id = task.ID
-	}
-
-	if id == "" {
-		return ResolveCompletionResult{}, errors.New("task complete requires --id or a reference")
-	}
-	return ResolveCompletionResult{Mode: "single", ID: id, IDs: []string{id}}, nil
-}
-
-func (s Service) ResolveMoveTargets(ctx context.Context, in ResolveMoveInput) (ResolveMoveResult, error) {
-	id, err := normalizeTaskID(in.ID)
-	if err != nil {
-		return ResolveMoveResult{}, err
-	}
-	ref := strings.TrimSpace(in.Ref)
-	filter := strings.TrimSpace(in.Filter)
-
-	if strings.TrimSpace(in.Project) == "" && strings.TrimSpace(in.Section) == "" && strings.TrimSpace(in.Parent) == "" {
-		return ResolveMoveResult{}, errors.New("at least one of --project, --section, or --parent is required")
-	}
-
-	if filter != "" {
-		if id != "" || ref != "" {
-			return ResolveMoveResult{}, errors.New("--filter cannot be combined with --id or positional task reference")
-		}
-		if !in.Yes && !in.Force {
-			return ResolveMoveResult{}, errors.New("bulk move with --filter requires --yes (or --force)")
-		}
-		if s.Lister == nil {
-			return ResolveMoveResult{}, errors.New("task filter lister is not configured")
-		}
-		tasks, err := s.Lister.ListByFilter(ctx, filter)
-		if err != nil {
-			return ResolveMoveResult{}, err
-		}
-		ids := make([]string, 0, len(tasks))
-		for _, task := range tasks {
-			ids = append(ids, task.ID)
-		}
-		return ResolveMoveResult{Mode: "bulk", IDs: ids, Filter: filter}, nil
-	}
-
-	if id == "" && ref != "" {
-		if s.Resolver == nil {
-			return ResolveMoveResult{}, errors.New("task resolver is not configured")
-		}
-		task, err := s.Resolver.ResolveTaskRef(ctx, ref)
-		if err != nil {
-			return ResolveMoveResult{}, err
-		}
-		id = task.ID
-	}
-	if id == "" {
-		return ResolveMoveResult{}, errors.New("--id is required (or pass a text reference)")
-	}
-	return ResolveMoveResult{Mode: "single", ID: id, IDs: []string{id}}, nil
+	ID, Ref string
 }
 
 func (s Service) ResolveTaskTarget(ctx context.Context, in ResolveTaskTargetInput) (string, error) {

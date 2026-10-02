@@ -20,125 +20,6 @@ func (f fakeResolver) ResolveTaskRef(_ context.Context, _ string) (api.Task, err
 	return f.task, nil
 }
 
-type fakeLister struct {
-	tasks []api.Task
-	err   error
-}
-
-func (f fakeLister) ListByFilter(_ context.Context, _ string) ([]api.Task, error) {
-	if f.err != nil {
-		return nil, f.err
-	}
-	return f.tasks, nil
-}
-
-func TestResolveCompletionTargetsSingleFromID(t *testing.T) {
-	svc := Service{}
-	out, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{ID: "id:abc"})
-	if err != nil {
-		t.Fatalf("ResolveCompletionTargets: %v", err)
-	}
-	if out.Mode != "single" || out.ID != "abc" {
-		t.Fatalf("unexpected output: %#v", out)
-	}
-}
-
-func TestResolveCompletionTargetsSingleFromURLID(t *testing.T) {
-	svc := Service{}
-	out, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{ID: "https://app.todoist.com/app/task/call-mom-abc123"})
-	if err != nil {
-		t.Fatalf("ResolveCompletionTargets: %v", err)
-	}
-	if out.Mode != "single" || out.ID != "abc123" {
-		t.Fatalf("unexpected output: %#v", out)
-	}
-}
-
-func TestResolveCompletionTargetsSingleFromRef(t *testing.T) {
-	svc := Service{Resolver: fakeResolver{task: api.Task{ID: "t1"}}}
-	out, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{Ref: "call mom"})
-	if err != nil {
-		t.Fatalf("ResolveCompletionTargets: %v", err)
-	}
-	if out.Mode != "single" || out.ID != "t1" {
-		t.Fatalf("unexpected output: %#v", out)
-	}
-}
-
-func TestResolveCompletionTargetsBulk(t *testing.T) {
-	svc := Service{Lister: fakeLister{tasks: []api.Task{{ID: "a"}, {ID: "b"}}}}
-	out, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{Filter: "today", Yes: true})
-	if err != nil {
-		t.Fatalf("ResolveCompletionTargets: %v", err)
-	}
-	if out.Mode != "bulk" || len(out.IDs) != 2 {
-		t.Fatalf("unexpected output: %#v", out)
-	}
-}
-
-func TestResolveCompletionTargetsBulkRequiresYesOrForce(t *testing.T) {
-	svc := Service{Lister: fakeLister{tasks: []api.Task{{ID: "a"}}}}
-	_, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{Filter: "today"})
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-	if err.Error() != "bulk complete with --filter requires --yes (or --force)" {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestResolveCompletionTargetsBulkRejectsMixedInputs(t *testing.T) {
-	svc := Service{}
-	_, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{Filter: "today", ID: "abc"})
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-	if err.Error() != "--filter cannot be combined with --id or positional task reference" {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestResolveCompletionTargetsPropagatesResolverError(t *testing.T) {
-	svc := Service{Resolver: fakeResolver{err: errors.New("boom")}}
-	_, err := svc.ResolveCompletionTargets(context.Background(), ResolveCompletionInput{Ref: "call mom"})
-	if err == nil || err.Error() != "boom" {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestResolveMoveTargetsSingleFromRef(t *testing.T) {
-	svc := Service{Resolver: fakeResolver{task: api.Task{ID: "t1"}}}
-	out, err := svc.ResolveMoveTargets(context.Background(), ResolveMoveInput{Ref: "Call mom", Project: "Inbox"})
-	if err != nil {
-		t.Fatalf("ResolveMoveTargets: %v", err)
-	}
-	if out.Mode != "single" || out.ID != "t1" {
-		t.Fatalf("unexpected output: %#v", out)
-	}
-}
-
-func TestResolveMoveTargetsBulkRequiresYes(t *testing.T) {
-	svc := Service{Lister: fakeLister{tasks: []api.Task{{ID: "a"}}}}
-	_, err := svc.ResolveMoveTargets(context.Background(), ResolveMoveInput{Filter: "today", Project: "Inbox"})
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-	if err.Error() != "bulk move with --filter requires --yes (or --force)" {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestResolveMoveTargetsRequiresDestination(t *testing.T) {
-	svc := Service{}
-	_, err := svc.ResolveMoveTargets(context.Background(), ResolveMoveInput{ID: "t1"})
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-	if err.Error() != "at least one of --project, --section, or --parent is required" {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func TestResolveTaskTargetFromRef(t *testing.T) {
 	svc := Service{Resolver: fakeResolver{task: api.Task{ID: "t99"}}}
 	id, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{Ref: "Pay rent"})
@@ -162,5 +43,71 @@ func TestResolveTaskTargetRejectsMismatchedURLType(t *testing.T) {
 	_, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{ID: "https://app.todoist.com/app/project/home-2203306141"})
 	if err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestActionSelectionGuards(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		input   ActionSelection
+		invalid bool
+	}{
+		{"ID", ActionSelection{ID: "t"}, false},
+		{"text", ActionSelection{Ref: "Report"}, false},
+		{"confirmed batch", ActionSelection{Filter: "today", Confirmed: true}, false},
+		{"missing target", ActionSelection{}, true},
+		{"mixed ID and text", ActionSelection{ID: "t", Ref: "Report"}, true},
+		{"mixed batch and ID", ActionSelection{ID: "t", Filter: "today", Confirmed: true}, true},
+		{"mixed batch and text", ActionSelection{Ref: "Report", Filter: "today", Confirmed: true}, true},
+		{"unconfirmed batch", ActionSelection{Filter: "today"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := ValidateActionSelection(tc.input); (err != nil) != tc.invalid {
+				t.Fatalf("invalid=%t, error=%v", tc.invalid, err)
+			}
+		})
+	}
+}
+
+func TestMoveDestinationGuards(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		input   MoveDestination
+		invalid bool
+	}{
+		{"project", MoveDestination{Project: "p"}, false},
+		{"scoped section", MoveDestination{Project: "p", Section: "s"}, false},
+		{"parent", MoveDestination{Parent: "t"}, false},
+		{"clear parent", MoveDestination{ClearParent: true}, false},
+		{"clear section", MoveDestination{ClearSection: true}, false},
+		{"clear both", MoveDestination{ClearParent: true, ClearSection: true}, false},
+		{"missing destination", MoveDestination{}, true},
+		{"parent and project", MoveDestination{Parent: "t", Project: "p"}, true},
+		{"parent and section", MoveDestination{Parent: "t", Section: "s"}, true},
+		{"clear and destination", MoveDestination{ClearParent: true, Project: "p"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := ValidateMoveDestination(tc.input); (err != nil) != tc.invalid {
+				t.Fatalf("invalid=%t, error=%v", tc.invalid, err)
+			}
+		})
+	}
+}
+
+func TestResolveTaskTargetFromExactID(t *testing.T) {
+	for _, id := range []string{"id:abc123", "https://app.todoist.com/app/task/report-abc123"} {
+		out, err := (Service{}).ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{ID: id})
+		if err != nil || out != "abc123" {
+			t.Fatalf("id=%q, got %q: %v", id, out, err)
+		}
+	}
+}
+
+func TestResolveTaskTargetPropagatesResolverError(t *testing.T) {
+	want := errors.New("lookup failed")
+	svc := Service{Resolver: fakeResolver{err: want}}
+	_, err := svc.ResolveTaskTarget(context.Background(), ResolveTaskTargetInput{Ref: "Report"})
+	if !errors.Is(err, want) {
+		t.Fatalf("got %v, want resolver error", err)
 	}
 }

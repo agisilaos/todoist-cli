@@ -41,6 +41,10 @@ func decodeTaskResource(t *testing.T, data string) map[string]any {
 
 func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 	data := bytes.ReplaceAll(taskResourceFixture(t, "populated"), []byte("task-fidelity-fixture"), []byte("taskfixture"))
+	// Keep the fixture inside the upcoming window when exercising the public
+	// entry point, which uses the real clock. Tomorrow also tolerates midnight.
+	due := time.Now().UTC().AddDate(0, 0, 1).Format("2006-01-02") + "T07:00:00Z"
+	data = bytes.ReplaceAll(data, []byte("2026-10-01T07:00:00Z"), []byte(due))
 	want := decodeTaskResource(t, string(data))
 	delete(want, "future_field")
 	delete(want["due"].(map[string]any), "future_due_field")

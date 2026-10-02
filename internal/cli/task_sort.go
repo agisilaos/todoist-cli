@@ -72,7 +72,7 @@ func explicitTaskSortKey(task api.Task, key string) taskSortKey {
 			return result
 		}
 		result.text = evidence.Value.Format("2006-01-02")
-		if evidence.Kind != "date" {
+		if evidence.Character != apptasks.DateOnly {
 			result.text += "T" + evidence.Value.Format("15:04:05.999999999")
 		}
 		result.available = true
@@ -170,10 +170,4 @@ func (s taskSortOptions) apply(tasks []api.Task) error {
 		tasks[i] = entry.task
 	}
 	return nil
-}
-func firstTaskSort(options []taskSortOptions) taskSortOptions {
-	if len(options) > 0 {
-		return options[0]
-	}
-	return taskSortOptions{}
 }
