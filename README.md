@@ -1448,6 +1448,25 @@ Action field notes:
 - Task/section/comment actions accept explicit IDs (`project_id`, `section_id`) or reference fields (`project`, `section`) where applicable.
 - `comment_add` must include `content` and one target: `task_id` or `project`/`project_id`.
 
+## Test the capture/review workflow
+
+From a clean checkout on macOS or Linux with Go, Python 3, and Make installed:
+
+```bash
+make capture-review-check
+# Or test an already built binary:
+make capture-review-check BINARY=/absolute/path/to/todoist
+```
+
+This runs capture, a dry run, cancelled and confirmed review, and saved-plan replay
+against a temporary local API fixture using a real terminal (PTY). It verifies
+capture receipt fields, saved state, and mutation counts: replay must send no
+second mutation. No Todoist credentials or real tasks are used. It also checks
+noninteractive refusal and deliberately broken fixtures. This proves the local
+workflow contract, not live Todoist compatibility. See the
+[contributor checks](CONTRIBUTING.md#capture-review-and-replay) for diagnostics and
+coverage boundaries. The same check runs through `make check` in Linux/macOS CI.
+
 ## Release
 
 Run `make verify` (the `make check` alias) while developing. Release settings are

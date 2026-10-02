@@ -1,4 +1,4 @@
-.PHONY: build test check vet fmt fmt-check coverage-check check-help docs-check auth-terminal-check mod-check changelog-context release-check release-check-ci release release-dry-run verify cli-tooling-check
+.PHONY: capture-review-check build test check vet fmt fmt-check coverage-check check-help docs-check auth-terminal-check mod-check changelog-context release-check release-check-ci release release-dry-run verify cli-tooling-check
 
 build:
 	go build -o todoist ./cmd/todoist
@@ -8,7 +8,7 @@ test:
 
 # Check metadata before Go commands can fill in missing checksums.
 check: mod-check
-	$(MAKE) fmt-check vet coverage-check docs-check auth-terminal-check
+	$(MAKE) fmt-check vet coverage-check docs-check auth-terminal-check capture-review-check
 
 vet:
 	go vet ./...
@@ -28,6 +28,10 @@ check-help:
 
 docs-check:
 	./scripts/docs-check.sh
+
+capture-review-check:
+	python3 scripts/test-capture-review.py --self-test $(if $(BINARY),--binary "$(BINARY)")
+	python3 scripts/test_capture_review_harness.py
 
 auth-terminal-check:
 	python3 scripts/test-auth-terminal.py
