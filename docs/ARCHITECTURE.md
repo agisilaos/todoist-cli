@@ -36,6 +36,21 @@ internal/api (HTTP client, request/response types)
 Todoist API v1
 ```
 
+## Where to change what
+
+Choose the entry point for the behavior being changed; the links within a row are
+alternatives, not a required reading bundle. Tests are representative starting
+points. For command changes, use the existing [command-change checklist](README.md#command-discovery-metadata).
+
+| Area | Implementation entry points | Existing behavior contract | Focused tests |
+| --- | --- | --- | --- |
+| Invocation state, global parsing, request context | [cli.go](../internal/cli/cli.go): `Context`, `Execute`, `parseGlobalFlags`, and `requestContext`. | [Parsing rules](SPEC.md#parsing-rules), [configuration](SPEC.md#config). | [flags_test.go](../internal/cli/flags_test.go): values, conflicts, interspersed globals; [config_load_test.go](../internal/cli/config_load_test.go): config loading. |
+| Command dispatch, discovery, help, completion | Start at [dispatch.go](../internal/cli/dispatch.go) for execution or [command_metadata.go](../internal/cli/command_metadata.go) for discovery. Help routing: [command_help.go](../internal/cli/command_help.go); root/leaf content: [help.go](../internal/cli/help.go), [leaf_help.go](../internal/cli/leaf_help.go). Completion entry: [completion.go](../internal/cli/completion.go). | [Help and command recovery](SPEC.md#help-and-command-recovery); [discovery metadata and shell-specific ownership](README.md#command-discovery-metadata). | [command_metadata_test.go](../internal/cli/command_metadata_test.go): dispatch inventory; [help_routing_test.go](../internal/cli/help_routing_test.go): routing and side effects; [completion_test.go](../internal/cli/completion_test.go): shell selection/install. |
+| Error rendering and recovery | [util.go](../internal/cli/util.go): `writeError`; [recovery.go](../internal/cli/recovery.go): human recovery hints; [cli.go](../internal/cli/cli.go): `toExitCode`. | [Errors and recovery](error-recovery.md). | [recovery_test.go](../internal/cli/recovery_test.go): recovery guidance and machine-error compatibility. |
+| Task decoding, presence, output projection, schemas | Decode in [task_response.go](../internal/api/task_response.go); presence and faithful projection in [task_facts.go](../internal/api/task_facts.go). CLI output selection: [task_resource.go](../internal/cli/task_resource.go); task schemas: [task_schema.go](../internal/cli/task_schema.go), registered in [schema.go](../internal/cli/schema.go). | [Task-data contract](task-data-fidelity.md); [legacy compatibility decision](adr/0008-preserve-legacy-task-output-with-a-faithful-projection.md). | [task_facts_test.go](../internal/api/task_facts_test.go): presence, snapshot ownership, malformed facts; [task_resource_test.go](../internal/cli/task_resource_test.go): output selection; [schema_test.go](../internal/cli/schema_test.go): schema contracts. |
+| Credential selection, storage, authorization | Selection: [cli.go](../internal/cli/cli.go) (`loadConfig`); lazy retrieval: [credential_store.go](../internal/cli/credential_store.go). Persistence boundary: [store.go](../internal/credentials/store.go). Policy: [authorization.go](../internal/authorization/authorization.go); HTTP guard: [api/authorization.go](../internal/api/authorization.go). | [Profile selection](profile-oauth-design.md#profile-selection-and-inspection), [storage](credential-store-design.md), [authorization](authorization-design.md), [security boundary](../SECURITY.md). | [profile_contract_test.go](../internal/cli/profile_contract_test.go): selection/output; [store_test.go](../internal/credentials/store_test.go): persistence/recovery; [authorization_test.go](../internal/api/authorization_test.go): resource and redirect guards. |
+| Review, agent application, replay persistence | Review selection/snapshots: [app/review/review.go](../internal/app/review/review.go); interaction: [cli/review.go](../internal/cli/review.go). Shared apply loop: [agent_apply.go](../internal/cli/agent_apply.go); review preconditions/checkpoints: [review_apply.go](../internal/cli/review_apply.go); journal: [agent_replay.go](../internal/cli/agent_replay.go). | [Daily review](review-design.md); [replay success boundary and limitations](adr/0002-treat-replay-recording-as-part-of-action-success.md). | [agent_apply_test.go](../internal/cli/agent_apply_test.go): success recording and reruns; [review_apply_test.go](../internal/cli/review_apply_test.go): pending/checkpoint failures; [agent_replay_test.go](../internal/cli/agent_replay_test.go): journal persistence. |
+
 ## Service coverage
 
 - `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, and task mutation payload builders.
@@ -53,16 +68,6 @@ Todoist API v1
 - `internal/app/reminders`: reminder target and schedule validation.
 - `internal/app/settings`: user settings validation and update payloads.
 - `internal/app/stats`: productivity goals and vacation updates.
-
-## Help routing
-
-The CLI help catalog records canonical command paths, aliases, and leaf-page
-content. It supports help lookup and bounded typo suggestions; existing dispatch
-functions remain the execution authority. Help resolves before configuration or
-credential loading and before opening progress logs. Typed unknown-command
-errors preserve existing error text while allowing human-only recovery hints.
-Behavioral and source-inventory tests check leaf coverage, flags, aliases,
-machine-error compatibility, and absence of help side effects.
 
 ## CLI-local orchestration
 
