@@ -12,6 +12,7 @@ import (
 
 // Identity supports human advice without changing existing machine error text.
 var (
+	errMissingTaskViewRef  = errors.New("task view requires id or text reference")
 	errMissingToken        = errors.New("missing auth token; run 'todoist auth login' or set TODOIST_TOKEN")
 	errInvalidManualToken  = errors.New("Invalid API token format. Paste only the API token from Todoist settings, without spaces, quotes, or a Bearer prefix. Nothing was saved; run `todoist auth login` to retry.")
 	errRejectedManualToken = errors.New("API token was not accepted by Todoist. Copy your API token from Todoist settings and run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")
@@ -73,6 +74,9 @@ func writeRecoveryHints(ctx *Context, err error) {
 		fmt.Fprintln(ctx.Stderr, "Inspect credential selection: todoist auth status --no-input (offline; does not verify token validity).")
 		fmt.Fprintln(ctx.Stderr, "Replace an active TODOIST_TOKEN deliberately, or unset it to use a stored profile. For stored login: todoist auth login --no-input --token-stdin < token.txt (protect this secret file).")
 	case errors.As(err, &usage) && usage.Code == exitUsage && ctx.HelpPath != "":
+		if errors.Is(err, errMissingTaskViewRef) {
+			fmt.Fprintln(ctx.Stderr, "Example: todoist task view id:<id> (replace <id> with a task ID)")
+		}
 		fmt.Fprintf(ctx.Stderr, "See: todoist %s --help\n", ctx.HelpPath)
 	}
 }

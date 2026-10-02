@@ -31,8 +31,10 @@ func taskView(ctx *Context, args []string) error {
 		ref = strings.Join(fs.Args(), " ")
 	}
 	if ref == "" {
-		printTaskHelp(ctx.Stderr)
-		return &CodeError{Code: exitUsage, Err: errors.New("task view requires id or text reference")}
+		if !humanCommandHints(ctx.Global) {
+			printTaskHelp(ctx.Stderr)
+		}
+		return &CodeError{Code: exitUsage, Err: errMissingTaskViewRef}
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
