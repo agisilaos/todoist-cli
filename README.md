@@ -1299,6 +1299,8 @@ stored credentials unchanged. An API 401 during a multi-action command does not
 undo earlier actions; inspect the reported results before resubmitting mutations.
 
 For invalid input, follow the displayed command-specific `--help` reference.
+Calling `task view` without a target shows a short error and an exact-ID example;
+replace `<id>` with the full task ID from a task list.
 Usage errors alone do not establish that an earlier action was undone.
 
 After an interrupted review with an **uncertain remote outcome**, a Todoist

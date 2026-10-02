@@ -272,3 +272,20 @@ func TestRecoveryMissingNativeCredential(t *testing.T) {
 		t.Fatalf("replacement not available: %v", err)
 	}
 }
+
+func TestTaskViewMissingReferenceRecovery(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "")
+	t.Setenv("TODOIST_PROFILE", "")
+	path := filepath.Join(t.TempDir(), "config.json")
+	for _, command := range []string{"view", "show"} {
+		code, out, stderr := executeAuthorization(t, path, "task", command, "--no-input")
+		want := "error: task view requires id or text reference\nExample: todoist task view id:<id> (replace <id> with a task ID)\nSee: todoist task view --help\n"
+		if code != exitUsage || out != "" || stderr != want {
+			t.Fatalf("%s: exit=%d stdout=%q stderr=%q", command, code, out, stderr)
+		}
+	}
+	files, err := os.ReadDir(filepath.Dir(path))
+	if err != nil || len(files) != 0 {
+		t.Fatalf("unexpected state: %v %v", files, err)
+	}
+}
