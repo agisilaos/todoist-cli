@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -107,6 +108,12 @@ func TestSyncRetriesPreserveRequestIdentity(t *testing.T) {
 				status, response := http.StatusOK, `{"workspaces":[]}`
 				if calls == 1 {
 					status, response = http.StatusServiceUnavailable, "temporary"
+				}
+				if command && calls > 1 {
+					form, _ := url.ParseQuery(string(data))
+					var cmds []map[string]any
+					json.Unmarshal([]byte(form.Get("commands")), &cmds)
+					response = fmt.Sprintf(`{"sync_status":{%q:"ok"}}`, cmds[0]["uuid"].(string))
 				}
 				return &http.Response{StatusCode: status, Header: http.Header{"Retry-After": {"0"}}, Body: io.NopCloser(strings.NewReader(response))}, nil
 			}))

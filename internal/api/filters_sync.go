@@ -76,21 +76,7 @@ func (c *Client) filterCommand(ctx context.Context, kind string, args map[string
 	if err != nil {
 		return resp, requestID, err
 	}
-	status, exists := resp.SyncStatus[uuid]
-	if !exists {
-		return resp, requestID, fmt.Errorf("%s response omitted command acknowledgement; run 'todoist filter list' to confirm", kind)
-	}
-	if status == "ok" {
-		return resp, requestID, nil
-	}
-	code := 400
-	if details, ok := status.(map[string]any); ok {
-		if httpCode, ok := details["http_code"].(float64); ok && httpCode >= 400 && httpCode <= 599 {
-			code = int(httpCode)
-		}
-	}
-	details, _ := json.Marshal(status)
-	return resp, requestID, &APIError{Status: code, RequestID: requestID, Message: kind + ": " + string(details)}
+	return resp, requestID, checkSyncCommand(resp, uuid, kind, requestID, "todoist filter list")
 }
 
 func filterFromSync(resp syncResponse, id string) (Filter, error) {

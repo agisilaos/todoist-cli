@@ -118,3 +118,23 @@ func syncRetrySafe(req *http.Request, form map[string]string) bool {
 	}
 	return true
 }
+
+// A replayed UUID prevents duplicate execution, but does not establish success
+// when the response omits the acknowledgement. Keep that outcome uncertain.
+func checkSyncCommand(resp syncResponse, uuid, kind, requestID, confirmCommand string) error {
+	status, exists := resp.SyncStatus[uuid]
+	if !exists {
+		return fmt.Errorf("%s response omitted command acknowledgement; run '%s' to confirm", kind, confirmCommand)
+	}
+	if status == "ok" {
+		return nil
+	}
+	code := 400
+	if details, ok := status.(map[string]any); ok {
+		if httpCode, ok := details["http_code"].(float64); ok && httpCode >= 400 && httpCode <= 599 {
+			code = int(httpCode)
+		}
+	}
+	details, _ := json.Marshal(status)
+	return &APIError{Status: code, RequestID: requestID, Message: kind + ": " + string(details)}
+}

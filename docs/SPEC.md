@@ -626,7 +626,11 @@ retries within the command's request timeout. Task writes are excluded under
 including native Sync task commands. REST reads and non-task mutations with an
 idempotency request ID are eligible. Sync resource reads and non-task commands that all
 carry stable UUIDs are eligible; the command body and request ID remain unchanged
-across attempts. Authentication/authorization failures, malformed successful
+across attempts. UUID deduplication does not establish response replay: filter and
+reminder mutations require their command acknowledgement, and creates require a
+server ID mapping. Missing evidence returns an error and requires inspecting the
+resource before retrying; temporary reminder IDs are never reported as server IDs.
+Authentication/authorization failures, malformed successful
 responses, body read failures, and Sync command errors are not retried. Retries do
 not establish that an interrupted mutation was unapplied; use the documented
 recovery workflow for uncertain outcomes.

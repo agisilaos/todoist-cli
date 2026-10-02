@@ -69,9 +69,10 @@ func (c *Client) AddReminder(ctx context.Context, in ReminderAddInput) (string, 
 	if in.Due != nil && strings.TrimSpace(in.Due.Date) != "" {
 		args["due"] = map[string]any{"date": in.Due.Date}
 	}
+	uuid := NewRequestID()
 	commands := []map[string]any{{
 		"type":    "reminder_add",
-		"uuid":    NewRequestID(),
+		"uuid":    uuid,
 		"temp_id": tempID,
 		"args":    args,
 	}}
@@ -83,10 +84,13 @@ func (c *Client) AddReminder(ctx context.Context, in ReminderAddInput) (string, 
 	if err != nil {
 		return "", requestID, err
 	}
+	if err := checkSyncCommand(resp, uuid, "reminder_add", requestID, "todoist reminder list --task id:"+in.ItemID); err != nil {
+		return "", requestID, err
+	}
 	if mapped := strings.TrimSpace(resp.TempIDMapping[tempID]); mapped != "" {
 		return mapped, requestID, nil
 	}
-	return tempID, requestID, nil
+	return "", requestID, fmt.Errorf("reminder response omitted its server ID; run 'todoist reminder list --task id:%s' to confirm before retrying", in.ItemID)
 }
 
 func (c *Client) UpdateReminder(ctx context.Context, in ReminderUpdateInput) (string, error) {
@@ -100,15 +104,19 @@ func (c *Client) UpdateReminder(ctx context.Context, in ReminderUpdateInput) (st
 	if in.Due != nil && strings.TrimSpace(in.Due.Date) != "" {
 		args["due"] = map[string]any{"date": in.Due.Date}
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "reminder_update",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": args,
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "reminder_update", requestID, "todoist reminder list --task <task-reference>")
+	}
 	return requestID, err
 }
 
@@ -116,14 +124,18 @@ func (c *Client) DeleteReminder(ctx context.Context, id string) (string, error) 
 	if strings.TrimSpace(id) == "" {
 		return "", fmt.Errorf("id is required")
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "reminder_delete",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{"id": id},
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "reminder_delete", requestID, "todoist reminder list --task <task-reference>")
+	}
 	return requestID, err
 }
