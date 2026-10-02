@@ -1,7 +1,19 @@
 # Credential profiles and OAuth onboarding
 
-Status: accepted by the user on 2026-09-30, before implementation. Base: main
-`1ea11d5`. This feature preserves the already-merged manual-token validation.
+Status: implemented for profile management and the OAuth behavior described below.
+Manual-token validation is preserved. General new-client OAuth onboarding still
+depends on the [external prerequisites](#oauth-prerequisites) and durable refresh
+support. See the [CLI specification](SPEC.md#credential-profile-commands) for the
+public profile command contract.
+
+## Historical provenance
+
+The design was accepted by the user on 2026-09-30 against main `1ea11d5`.
+Profile management and OAuth hardening landed in `49c2e77`; `a8ecaff` subsequently
+hardened cancellation during credential storage preparation. The original base
+identifies design history, not a current implementation or review base. The
+[profile consumer review](profile-consumer-review.md) records the original
+scratch-profile and mock-provider results and their verification limits.
 
 ## Profile selection and inspection
 
@@ -76,9 +88,10 @@ are excluded from diagnostics.
 Authorization requests include response_type=code, state and S256 PKCE; exchanges
 include grant_type=authorization_code, redirect and verifier. A client secret is
 never embedded. Configurable mock-provider device flow remains available only with
-an explicit device endpoint. Default Todoist discovery does not advertise that flow.
+an explicit device endpoint. The [recorded provider discovery](#provider-findings-recorded-on-2026-09-30)
+did not advertise that flow.
 
-Token refresh remains outside this feature. Reject refresh-bearing token responses
+Token refresh is not implemented. Reject refresh-bearing token responses
 and any finite expiry other than Todoist's documented legacy `315360000` value
 before save/export; omitted expiry remains legacy-compatible. Invalid lifecycle
 metadata is rejected. The stable code is `OAUTH_LIFECYCLE_UNSUPPORTED`, exit 3.
@@ -87,27 +100,37 @@ Rejection preserves the previous credential. See
 
 ## OAuth prerequisites
 
-Read-only official discovery on 2026-09-30 returned authorization_code/refresh_token,
+The implemented client requires an explicit public-client ID and rejects token
+lifecycles it cannot maintain, as specified in
+[ADR-0006](adr/0006-reject-unsupported-oauth-token-lifecycles.md). A default client
+requires maintainer-owned configuration and verification of its redirect and
+exchange. Mock tests do not establish live Todoist onboarding compatibility.
+
+### Provider findings recorded on 2026-09-30
+
+The original investigation's read-only official discovery returned authorization_code/refresh_token,
 S256, public-client authentication `none`, a registration endpoint and support for
 HTTPS Client ID Metadata Documents. It advertised no device authorization endpoint.
-This verifies public provider metadata, not a completed user authorization/exchange.
+This established public provider metadata at that time, not a completed user
+authorization/exchange.
 
-No maintainer-owned client ID, metadata URL, or accepted redirect was found in
-tracked project configuration. No application was registered or authenticated.
+That investigation found no maintainer-owned client ID, metadata URL, or accepted
+redirect in tracked project configuration. It registered or authenticated no application.
 For a future default, the maintainer must provide either a genuine public-client
 registration, or an HTTPS URL they control serving a public JSON document with
 matching `client_id`, accepted `redirect_uris`, and `token_endpoint_auth_method: none`.
 Confidential App Console clients cannot be assumed usable without a secret.
 
-Todoist docs allow localhost redirects for testing. Literal 127.0.0.1 and any
-production loopback policy remain unverified for this project; configure and
-verify the exact callback. Live verification then requires human Todoist approval
+At the time, Todoist docs allowed localhost redirects for testing. Literal
+127.0.0.1 and any production loopback policy were unverified for this project.
+For live verification, recheck provider requirements and verify the exact callback.
+Live verification requires human Todoist approval
 using scratch credential storage, followed by checks of exchange, effective scopes,
-token lifetime and credential preservation. New apps issue one-hour grants, so
-durable refresh support is also required before advertising general new-client
+token lifetime and credential preservation. The recorded provider docs described
+one-hour grants for new apps, so durable refresh support is also required before advertising general new-client
 onboarding. No mock or discovery test resolves these dependencies.
 
-Primary sources:
+Primary sources used by that investigation (provider behavior may change):
 
 - [Todoist OAuth](https://developer.todoist.com/api/v1/#tag/Authorization/OAuth)
 - [Dynamic registration](https://developer.todoist.com/api/v1/#tag/Authorization/Dynamic-Client-Registration)
@@ -118,8 +141,10 @@ Primary sources:
 ## Verification boundaries
 
 Unit/contract tests use temporary configurations, fake native adapters and local
-HTTP providers. The consumer workflow uses two scratch profiles and isolated
-configuration, records its initial public route and implementation-knowledge limit,
-then fixes and reruns scoped friction. No existing user credentials are removed.
+HTTP providers. The [original consumer review](profile-consumer-review.md) used
+two scratch profiles and isolated configuration, recorded its initial public route
+and implementation-knowledge limit, then fixed and reran scoped friction without
+removing existing user credentials. For ongoing validation, follow the repository
+[handoff workflow](../CONTRIBUTING.md#ready-for-handoff).
 Live Todoist exchanges and real Keychain behavior are separately bounded external
 verification; mock tests and a passing local gate do not establish either.

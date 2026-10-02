@@ -1,22 +1,32 @@
 # Credential storage
 
-Status: accepted. The user confirmed the complete design and all three test boundaries. PR #4 landed in main at 2879104; implementation and review use that fixed point.
+Status: implemented. This document records the accepted storage contract and test
+boundaries. See the [CLI specification](SPEC.md#credential-storage-contract) for public
+behavior and the [profile-management contract](profile-oauth-design.md) for the
+subsequently added profile commands.
+
+## Historical provenance
+
+The original design recorded user acceptance of the complete design and all three
+test boundaries. Its starting point was `2879104` (PR #4, read-only OAuth);
+credential storage landed in `dda3792`. These revisions identify the original
+work, not a standing implementation or review base.
 
 ## Accepted foundations
 
-- A credential store is the persistence boundary for credential profiles. A credential backend is a storage implementation behind that boundary. These are architectural terms; authorization metadata is domain language defined in CONTEXT.md.
+- A credential store is the persistence boundary for credential profiles. A credential backend is a storage implementation behind that boundary. These are architectural terms; authorization metadata is domain language defined in the [glossary](../CONTEXT.md).
 - Keep native tokens in the native store and non-secret authorization metadata plus a reference to the matching token in a local profile record. Metadata inspection must not require secret retrieval. Replacement preserves the pairing through the commit and recovery protocol below.
-- Implement macOS Keychain first, with portable file storage available on macOS, Linux, and Windows in accordance with ADR-0001.
+- macOS Keychain is the first native backend, with portable file storage available on macOS, Linux, and Windows in accordance with [ADR-0001](adr/0001-keep-core-workflows-cross-platform.md).
 - Require native storage by default for new profiles. File storage requires explicit selection. Existing file profiles retain their backend until migration. A native-store failure never causes automatic plaintext fallback.
 - Preserve configuration-directory plus profile isolation. Configuration files within one directory continue to share credentials. Profile names alone must not identify globally shared native entries.
 
 ## Existing authorization contract to preserve
 
-Reuse the versioned authorization representation from docs/authorization-design.md. Missing metadata retains legacy unknown semantics; invalid or unsupported metadata must not become permissive unknown authorization. Environment tokens override stored profiles without inheriting their metadata. Successful replacement selects a new token and its associated metadata together; failed persistence preserves the prior usable record. Preserve unrelated profiles and unknown fields.
+Reuse the versioned authorization representation from the [authorization contract](authorization-design.md). Missing metadata retains legacy unknown semantics; invalid or unsupported metadata must not become permissive unknown authorization. Environment tokens override stored profiles without inheriting their metadata. Successful replacement selects a new token and its associated metadata together; failed persistence preserves the prior usable record. Preserve unrelated profiles and unknown fields.
 
 ## Accepted adapter and selection policy
 
-- Use direct Security.framework access through a cgo adapter. Update macOS release builds to include the adapter. Other platforms and builds without cgo compile with native storage unavailable and explicit file storage available.
+- Use direct Security.framework access through a cgo adapter. macOS release builds include the adapter; see the [release build contract](../RELEASING.md#native-credential-adapter). Other platforms and builds without cgo compile with native storage unavailable and explicit file storage available.
 - Native credential operations display no OS dialogs, even for interactive callers. Users unlock or adjust Keychain externally and retry. Isolate native interaction control and verify its behavior safely before claiming the contract is met.
 - The profile store owns complete-profile load, replacement, deletion, metadata inspection, enumeration, health reporting, and consistency/recovery. Inject a smaller native adapter for secret read/write/delete and limited availability checks. Selection is outside CLI workflows.
 - Enumerate profiles from local records, not a scan of the user's Keychain. Help and local commands retrieve no secrets. Metadata inspection and basic diagnostics distinguish unchecked token accessibility from verified accessibility.
@@ -38,7 +48,7 @@ Keep the existing profiles mapping in credentials.json and reuse the authorizati
 
 Recognized JSON field names retain Go's case-insensitive decoding behavior, including Unicode case folds. Writes use canonical field names and discard their alternate spellings, so migration, replacement, and logout cannot preserve stale credential copies as unknown fields. Profile names and genuinely unknown fields remain unchanged.
 
-The selector native resolves to concrete backend keychain on supported macOS builds; recorded backend identity remains keychain rather than changing meaning across platforms. Metadata inspection and enumeration return no tokens or token-derived fingerprints. Enumeration is a store capability; a new list command is not required by this feature.
+The selector native resolves to concrete backend keychain on supported macOS builds; recorded backend identity remains keychain rather than changing meaning across platforms. Metadata inspection and enumeration return no tokens or token-derived fingerprints. The original storage feature provided enumeration as a store capability; the later [profile-management contract](profile-oauth-design.md#profile-selection-and-inspection) exposes it through `profile list`.
 
 ## Replacement, migration, commit, and recovery
 
@@ -98,16 +108,14 @@ Use test-first vertical slices at these public boundaries:
 
 Cross-platform build checks cover darwin, linux and windows on amd64 and arm64 with cgo disabled, plus macOS native builds with cgo enabled for both supported release architectures. Verify the native adapter in the runnable host architecture; distinguish compilation from runtime verification on the other architecture.
 
-## Delivery and verification
+## Maintenance and verification
 
-Update README, docs/SPEC.md, auth help, config and security documentation, architecture notes, output schemas/examples and relevant help snapshots/completions. Keep domain language in CONTEXT.md and architectural choices in ADR-0004; retain ADR-0001's explicit portable fallback. Update macOS release build configuration without publishing a release.
+For command or contract changes, follow [documentation maintenance](README.md#keeping-docs-in-sync). Keep domain language in the [glossary](../CONTEXT.md) and storage decisions in [ADR-0004](adr/0004-select-credential-storage-explicitly.md), retaining [ADR-0001](adr/0001-keep-core-workflows-cross-platform.md)'s explicit portable fallback.
 
-Follow the repository [handoff workflow](../CONTRIBUTING.md#ready-for-handoff). For native-adapter or portability changes, also use the relevant specialized checks documented there. Report each result and any platform/test limitation explicitly. Preserve unrelated working-tree changes. The later explicitly invoked ship-change workflow authorizes commits, push, and PR creation after its gates and independent reviews. Do not merge a PR, publish a release, or test against real credentials.
-
-The user confirmed this consolidated design and the three test boundaries before implementation. PR #4 landed before implementation began. The later ship-change request authorizes the shipping workflow; review is pinned to main at 2879104.
+Follow the repository [handoff workflow](../CONTRIBUTING.md#ready-for-handoff). For native-adapter or portability changes, also use the relevant specialized checks documented there. Report each result and any platform/test limitation explicitly.
 
 ## Related decisions
 
-- docs/adr/0001-keep-core-workflows-cross-platform.md
-- docs/adr/0003-preserve-write-capability-for-unknown-credentials.md
-- docs/adr/0004-select-credential-storage-explicitly.md (accepted)
+- [ADR-0001: Keep core workflows cross-platform](adr/0001-keep-core-workflows-cross-platform.md)
+- [ADR-0003: Preserve write capability for unknown credentials](adr/0003-preserve-write-capability-for-unknown-credentials.md)
+- [ADR-0004: Select credential storage explicitly](adr/0004-select-credential-storage-explicitly.md) (accepted)
