@@ -61,6 +61,7 @@ type GlobalOptions struct {
 
 // Environment supplies invocation inputs. Nil fields use process defaults.
 type Environment struct {
+	local            localDependencies
 	OperationContext context.Context
 	Now              func() time.Time
 	Stdin            io.Reader
@@ -68,6 +69,7 @@ type Environment struct {
 }
 
 type Context struct {
+	local            localDependencies
 	OperationContext context.Context
 	Stdout           io.Writer
 	Stderr           io.Writer
@@ -153,6 +155,7 @@ func ExecuteWithEnvironment(args []string, stdout, stderr io.Writer, env Environ
 	}
 
 	ctx := &Context{
+		local:            env.local,
 		OperationContext: env.OperationContext,
 		Stdout:           stdout,
 		Stderr:           stderr,

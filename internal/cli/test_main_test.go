@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,10 +21,23 @@ func TestMain(m *testing.M) {
 	os.Setenv("TODOIST_CONFIG", filepath.Join(dir, "config.json"))
 	os.Setenv("TODOIST_TOKEN", "")
 	os.Setenv("TODOIST_PROFILE", "")
-	newCredentialStore = func(path string) credentials.Store {
-		return credentials.New(config.CredentialsPathFromConfig(path), &cliSecrets{inaccessible: true}, nil)
-	}
+
 	code := m.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)
+}
+
+func testCredentialStore(path string) credentials.Store {
+	return credentials.New(config.CredentialsPathFromConfig(path), &cliSecrets{inaccessible: true}, nil)
+}
+
+func executeTest(args []string, stdout, stderr io.Writer) int {
+	return executeTestWithEnvironment(args, stdout, stderr, Environment{})
+}
+
+func executeTestWithEnvironment(args []string, stdout, stderr io.Writer, env Environment) int {
+	if env.local.credentialStore == nil {
+		env.local.credentialStore = testCredentialStore
+	}
+	return ExecuteWithEnvironment(args, stdout, stderr, env)
 }

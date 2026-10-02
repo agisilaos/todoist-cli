@@ -105,7 +105,7 @@ func TestParseGlobalBooleanHelpValues(t *testing.T) {
 
 func TestTopLevelPlannerCommandIsDispatched(t *testing.T) {
 	var out bytes.Buffer
-	code := Execute([]string{"planner", "--json"}, &out, io.Discard)
+	code := executeTest([]string{"planner", "--json"}, &out, io.Discard)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d", exitOK, code)
 	}

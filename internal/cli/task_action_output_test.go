@@ -390,7 +390,7 @@ func TestTaskActionRedirectedExecute(t *testing.T) {
 	t.Setenv("TODOIST_BASE_URL", f.url)
 	t.Setenv("TODOIST_CONFIG", filepath.Join(t.TempDir(), "config.json"))
 	var out, stderr bytes.Buffer
-	code := Execute([]string{"task", "move", "--id", "task-123", "--project", "id:destination"}, &out, &stderr)
+	code := executeTest([]string{"task", "move", "--id", "task-123", "--project", "id:destination"}, &out, &stderr)
 	requests, state := f.snapshot()
 	if code != exitOK || out.String() != "moved task-123\n" || stderr.Len() != 0 || len(requests) != 1 || state["task-123"]["project_id"] != "destination" {
 		t.Fatalf("redirect contract: %d %q %q %v %#v", code, &out, &stderr, requests, state)

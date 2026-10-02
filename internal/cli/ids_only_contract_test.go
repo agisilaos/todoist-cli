@@ -41,7 +41,7 @@ func TestContractIDsOnlyParsingAndPagination(t *testing.T) {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 			args := append([]string{"--base-url", server.URL}, tc.args...)
-			code := Execute(args, &stdout, &stderr)
+			code := executeTest(args, &stdout, &stderr)
 			if code != 0 || stdout.String() != tc.want || stderr.String() != tc.notice {
 				t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 			}
@@ -106,7 +106,7 @@ func TestContractIDsOnlySupportedCommands(t *testing.T) {
 			t.Run(strings.Join(command, " "), func(t *testing.T) {
 				var stdout, stderr bytes.Buffer
 				args := append([]string{"--base-url", server.URL, "--ids-only"}, command...)
-				code := Execute(args, &stdout, &stderr)
+				code := executeTest(args, &stdout, &stderr)
 				if code != 0 || stdout.String() != tc.id+"\n" || stderr.Len() != 0 {
 					t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 				}
@@ -133,7 +133,7 @@ func TestContractIDsOnlyUsageErrors(t *testing.T) {
 			}
 			t.Run(strings.Join(args, " "), func(t *testing.T) {
 				var stdout, stderr bytes.Buffer
-				code := Execute(args, &stdout, &stderr)
+				code := executeTest(args, &stdout, &stderr)
 				if code != 2 || stdout.Len() != 0 {
 					t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 				}
@@ -162,18 +162,18 @@ func TestContractIDsOnlyDiscoverability(t *testing.T) {
 		if command != "" {
 			args = append([]string{command}, args...)
 		}
-		if code := Execute(args, &stdout, &stderr); code != 0 || !strings.Contains(stdout.String(), "--ids-only") {
+		if code := executeTest(args, &stdout, &stderr); code != 0 || !strings.Contains(stdout.String(), "--ids-only") {
 			t.Errorf("%s help missing --ids-only: code=%d stdout=%q stderr=%q", command, code, stdout.String(), stderr.String())
 		}
 	}
 	for _, shell := range []string{"bash", "zsh", "fish"} {
 		var stdout, stderr bytes.Buffer
-		if code := Execute([]string{"completion", shell}, &stdout, &stderr); code != 0 || !strings.Contains(stdout.String(), "ids-only") {
+		if code := executeTest([]string{"completion", shell}, &stdout, &stderr); code != 0 || !strings.Contains(stdout.String(), "ids-only") {
 			t.Errorf("%s completion missing ids-only: code=%d", shell, code)
 		}
 	}
 	var stdout, stderr bytes.Buffer
-	code := Execute([]string{"schema", "--name", "ids_only"}, &stdout, &stderr)
+	code := executeTest([]string{"schema", "--name", "ids_only"}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("schema: code=%d stderr=%q", code, stderr.String())
 	}
@@ -200,12 +200,12 @@ func TestContractIDsOnlyHelpAndVersion(t *testing.T) {
 		{"--ids-only", "--json", "--version"},
 	} {
 		var stdout, stderr bytes.Buffer
-		if code := Execute(args, &stdout, &stderr); code != 0 || stdout.Len() == 0 || stderr.Len() != 0 {
+		if code := executeTest(args, &stdout, &stderr); code != 0 || stdout.Len() == 0 || stderr.Len() != 0 {
 			t.Fatalf("args=%v code=%d stdout=%q stderr=%q", args, code, stdout.String(), stderr.String())
 		}
 	}
 	var stdout, stderr bytes.Buffer
-	if code := Execute([]string{"task", "list", "--ids-only", "--plain", "--help"}, &stdout, &stderr); code != 2 || stdout.Len() != 0 {
+	if code := executeTest([]string{"task", "list", "--ids-only", "--plain", "--help"}, &stdout, &stderr); code != 2 || stdout.Len() != 0 {
 		t.Fatalf("conflict must precede help: code=%d stdout=%q", code, stdout.String())
 	}
 	assertIDsError(t, stderr.Bytes())
@@ -222,7 +222,7 @@ func TestContractIDsOnlyRejectsHelpAsData(t *testing.T) {
 	for _, command := range [][]string{{"add", "help"}, {"planner", "help"}, {"view", "help"}} {
 		var stdout, stderr bytes.Buffer
 		args := append([]string{"--base-url", server.URL, "--ids-only"}, command...)
-		if code := Execute(args, &stdout, &stderr); code != 2 || stdout.Len() != 0 {
+		if code := executeTest(args, &stdout, &stderr); code != 2 || stdout.Len() != 0 {
 			t.Fatalf("args=%v code=%d stdout=%q stderr=%q", args, code, stdout.String(), stderr.String())
 		}
 		assertIDsError(t, stderr.Bytes())
@@ -252,7 +252,7 @@ func TestContractIDsOnlyGlobalDelimiter(t *testing.T) {
 func TestContractGlobalParsingPreservesFirstError(t *testing.T) {
 	for _, missing := range []string{"--timeout", "--config", "--profile", "--base-url"} {
 		var stdout, stderr bytes.Buffer
-		code := Execute([]string{"--timeout=bad", missing}, &stdout, &stderr)
+		code := executeTest([]string{"--timeout=bad", missing}, &stdout, &stderr)
 		if code != 2 || stdout.Len() != 0 || !strings.HasPrefix(stderr.String(), "invalid value for --timeout: bad\n") {
 			t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 		}
@@ -275,7 +275,7 @@ func TestContractIDsOnlyErrors(t *testing.T) {
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			code := Execute(args, &stdout, &stderr)
+			code := executeTest(args, &stdout, &stderr)
 			if code != 2 || stdout.Len() != 0 {
 				t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 			}
@@ -286,7 +286,7 @@ func TestContractIDsOnlyErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stdout, stderr bytes.Buffer
-	if code := Execute([]string{"task", "list", "--ids-only"}, &stdout, &stderr); code != 1 || stdout.Len() != 0 {
+	if code := executeTest([]string{"task", "list", "--ids-only"}, &stdout, &stderr); code != 1 || stdout.Len() != 0 {
 		t.Fatalf("code=%d stdout=%q", code, stdout.String())
 	}
 	assertIDsError(t, stderr.Bytes())
@@ -310,7 +310,7 @@ func TestContractIDsOnlyRuntimeErrors(t *testing.T) {
 			}))
 			defer server.Close()
 			var stdout, stderr bytes.Buffer
-			code := Execute([]string{"task", "list", "--all-projects", "--base-url", server.URL, "--ids-only", "--quiet-json"}, &stdout, &stderr)
+			code := executeTest([]string{"task", "list", "--all-projects", "--base-url", server.URL, "--ids-only", "--quiet-json"}, &stdout, &stderr)
 			if code != tc.want || stdout.Len() != 0 {
 				t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 			}
@@ -323,7 +323,7 @@ func TestContractIDsOnlyRuntimeErrors(t *testing.T) {
 	t.Setenv("TODOIST_TOKEN", "")
 	for _, command := range [][]string{{"task", "list"}, {"today"}, {"inbox"}} {
 		var stdout, stderr bytes.Buffer
-		code := Execute(append(command, "--ids-only"), &stdout, &stderr)
+		code := executeTest(append(command, "--ids-only"), &stdout, &stderr)
 		if code != 3 || stdout.Len() != 0 {
 			t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 		}

@@ -10,13 +10,13 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
-var newCredentialStore = func(path string) credentials.Store {
+func newCredentialStore(path string) credentials.Store {
 	return credentials.New(config.CredentialsPathFromConfig(path), credentials.NewNative(), nil)
 }
 
 func profileStore(ctx *Context) credentials.Store {
 	if ctx.Credentials == nil {
-		ctx.Credentials = newCredentialStore(ctx.ConfigPath)
+		ctx.Credentials = ctx.localDeps().credentialStore(ctx.ConfigPath)
 	}
 	return ctx.Credentials
 }

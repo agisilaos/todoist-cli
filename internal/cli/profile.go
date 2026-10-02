@@ -225,7 +225,7 @@ func profileCurrentCommand(ctx *Context, args []string) error {
 	return resultErr
 }
 
-var persistProfileSelection = func(ctx context.Context, path, profile string) error {
+func persistProfileSelection(ctx context.Context, path, profile string) error {
 	bounded, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	unlock, err := (credentials.Disk{}).Lock(bounded, filepath.Join(filepath.Dir(path), ".todoist-config.lock"))
@@ -253,7 +253,7 @@ func profileUseCommand(ctx *Context, args []string) error {
 		problem := profileIssue(err)
 		return &CodeError{Code: exitAuth, Err: &profileCommandError{Code: problem.Code, Message: problem.Message, Profile: name, Authorization: &report}}
 	}
-	if err := persistProfileSelection(operationContext(ctx), ctx.ConfigPath, name); err != nil {
+	if err := ctx.localDeps().persistProfileSelection(operationContext(ctx), ctx.ConfigPath, name); err != nil {
 		return &CodeError{Code: exitError, Err: err}
 	}
 	selected, source := resolveProfileSelection(ctx, ctx.Global.Profile, ctx.ProjectDefaultProfile, name)

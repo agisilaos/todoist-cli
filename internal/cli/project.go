@@ -50,8 +50,6 @@ func projectCommand(ctx *Context, args []string) error {
 	}
 }
 
-var openProjectBrowserFn = openOAuthBrowser
-
 func projectView(ctx *Context, args []string) error {
 	fs := newFlagSet("project view")
 	var id string
@@ -435,7 +433,7 @@ func projectBrowse(ctx *Context, args []string) error {
 	if ctx.Global.DryRun {
 		return writeDryRun(ctx, "project browse", map[string]any{"id": project.ID, "url": browseURL})
 	}
-	if err := openProjectBrowserFn(browseURL); err != nil {
+	if err := ctx.oauthDeps().openBrowser(browseURL); err != nil {
 		return fmt.Errorf("open browser: %w", err)
 	}
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {

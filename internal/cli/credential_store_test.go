@@ -49,21 +49,19 @@ func TestNativeStatusAndHelpNeverRetrieveSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 	native.inaccessible = true
-	old := newCredentialStore
-	newCredentialStore = func(string) credentials.Store { return store }
-	defer func() { newCredentialStore = old }()
+	env := profileStoreEnvironment(store)
 	for _, args := range [][]string{{"auth", "status", "--json"}, {"auth", "--help"}, {"--help"}} {
-		code, out, errOut := executeAuthorization(t, path, args...)
+		code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, args...)
 		if code != 0 || strings.Contains(out+errOut, "fixture-native-token") {
 			t.Fatal("metadata-only command failed or leaked a token")
 		}
 	}
-	code, _, errOut := executeAuthorization(t, path, "task", "list", "--json")
+	code, _, errOut := executeAuthorizationWithEnvironment(t, path, env, "task", "list", "--json")
 	if code != 3 || !strings.Contains(errOut, "CREDENTIAL_STORE_IO") || strings.Contains(errOut, "untrusted-secret") {
 		t.Fatal("native error contract failed")
 	}
 	t.Setenv("TODOIST_TOKEN", "environment-fixture")
-	code, out, _ := executeAuthorization(t, path, "auth", "status", "--json")
+	code, out, _ := executeAuthorizationWithEnvironment(t, path, env, "auth", "status", "--json")
 	if code != 0 || !strings.Contains(out, `"source": "env"`) {
 		t.Fatal("environment did not bypass native store")
 	}
@@ -78,54 +76,39 @@ func TestCredentialCLISelectionMigrationAndRecoveryCommands(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
 	native := &cliSecrets{values: map[string]string{}}
-	old := newCredentialStore
-	newCredentialStore = func(configPath string) credentials.Store {
+	env := Environment{local: localDependencies{credentialStore: func(configPath string) credentials.Store {
 		return credentials.New(config.CredentialsPathFromConfig(configPath), native, nil)
-	}
-	defer func() { newCredentialStore = old }()
-	input, err := os.CreateTemp(t.TempDir(), "stdin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer input.Close()
-	originalStdin := os.Stdin
-	os.Stdin = input
-	defer func() { os.Stdin = originalStdin }()
-	resetInput := func() {
-		input.Truncate(0)
-		input.Seek(0, 0)
-		input.WriteString("cli-synthetic-token\n")
-		input.Seek(0, 0)
-	}
+	}}}
+	resetInput := func() { env.Stdin = strings.NewReader("cli-synthetic-token\n") }
 	resetInput()
-	code, out, errOut := executeAuthorization(t, path, "auth", "login", "--token-stdin", "--json")
+	code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "auth", "login", "--token-stdin", "--json")
 	if code != 0 || !strings.Contains(out, `"backend": "keychain"`) || strings.Contains(out+errOut, "cli-synthetic-token") {
 		t.Fatal("new login did not use native storage safely")
 	}
 	resetInput()
-	code, _, errOut = executeAuthorization(t, path, "auth", "login", "--token-stdin", "--credential-store=file", "--json")
+	code, _, errOut = executeAuthorizationWithEnvironment(t, path, env, "auth", "login", "--token-stdin", "--credential-store=file", "--json")
 	if code != 2 || !strings.Contains(errOut, "CREDENTIAL_STORE_SELECTION_CONFLICT") {
 		t.Fatal("login silently changed backend")
 	}
-	code, out, _ = executeAuthorization(t, path, "auth", "migrate", "--credential-store=file", "--json")
+	code, out, _ = executeAuthorizationWithEnvironment(t, path, env, "auth", "migrate", "--credential-store=file", "--json")
 	if code != 0 || !strings.Contains(out, `"backend": "file"`) || len(native.values) != 0 {
 		t.Fatal("explicit migration failed")
 	}
-	code, _, _ = executeAuthorization(t, path, "auth", "repair", "--json")
+	code, _, _ = executeAuthorizationWithEnvironment(t, path, env, "auth", "repair", "--json")
 	if code != 0 {
 		t.Fatal("idempotent repair failed")
 	}
-	code, _, _ = executeAuthorization(t, path, "auth", "logout", "--json")
+	code, _, _ = executeAuthorizationWithEnvironment(t, path, env, "auth", "logout", "--json")
 	if code != 0 {
 		t.Fatal("logout failed")
 	}
-	code, out, _ = executeAuthorization(t, path, "auth", "status", "--json")
+	code, out, _ = executeAuthorizationWithEnvironment(t, path, env, "auth", "status", "--json")
 	if code != 0 || !strings.Contains(out, `"configured": false`) {
 		t.Fatal("logout left profile configured")
 	}
 	native.inaccessible = true
 	resetInput()
-	code, _, errOut = executeAuthorization(t, path, "auth", "login", "--token-stdin", "--json")
+	code, _, errOut = executeAuthorizationWithEnvironment(t, path, env, "auth", "login", "--token-stdin", "--json")
 	if code != 3 || !strings.Contains(errOut, "CREDENTIAL_STORE_LOCKED") {
 		t.Fatal("locked new login did not fail explicitly")
 	}

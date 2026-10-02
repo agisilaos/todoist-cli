@@ -86,7 +86,7 @@ func TestExecutePropagatesOperationCancellation(t *testing.T) {
 	operation, cancel := context.WithCancel(context.Background())
 	cancel()
 	var out, errOut bytes.Buffer
-	code := ExecuteWithEnvironment([]string{"--config", t.TempDir() + "/config.json", "--base-url", server.URL, "task", "view", "id:synthetic", "--json", "--no-input"}, &out, &errOut, Environment{
+	code := executeTestWithEnvironment([]string{"--config", t.TempDir() + "/config.json", "--base-url", server.URL, "task", "view", "id:synthetic", "--json", "--no-input"}, &out, &errOut, Environment{
 		OperationContext: operation,
 		Getenv: func(key string) string {
 			if key == "TODOIST_TOKEN" {

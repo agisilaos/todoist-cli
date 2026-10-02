@@ -2,8 +2,11 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -32,7 +35,7 @@ func TestExecuteInvocationInputsAreIndependent(t *testing.T) {
 				"TODOIST_CONFIG":   filepath.Join(t.TempDir(), "config.json"),
 			}
 			var out, errOut bytes.Buffer
-			code := ExecuteWithEnvironment([]string{"upcoming", "--no-input", "--ids-only"}, &out, &errOut, Environment{
+			code := executeTestWithEnvironment([]string{"upcoming", "--no-input", "--ids-only"}, &out, &errOut, Environment{
 				Now:    func() time.Time { return now },
 				Getenv: func(key string) string { return env[key] },
 			})
@@ -54,7 +57,7 @@ func TestExecuteUsesInjectedStdinForManualLogin(t *testing.T) {
 	defer server.Close()
 	var out, errOut bytes.Buffer
 	env := map[string]string{"TODOIST_CONFIG": filepath.Join(t.TempDir(), "config.json"), "TODOIST_BASE_URL": server.URL}
-	code := ExecuteWithEnvironment([]string{"auth", "login", "--token-stdin", "--print-env", "--no-input", "--json"}, &out, &errOut, Environment{
+	code := executeTestWithEnvironment([]string{"auth", "login", "--token-stdin", "--print-env", "--no-input", "--json"}, &out, &errOut, Environment{
 		Stdin:  strings.NewReader("synthetic-input\n"),
 		Getenv: func(key string) string { return env[key] },
 	})
@@ -79,5 +82,53 @@ func TestInvocationEnvironmentSelectsConfigAndProfile(t *testing.T) {
 	}
 	if ctx.TokenSource != "env" || currentAuthorization(ctx).Mode == nil || *currentAuthorization(ctx).Mode != "unknown" {
 		t.Fatal("injected environment token changed authorization semantics")
+	}
+}
+
+func TestInvocationLocalStoresAndPersistenceAreIndependent(t *testing.T) {
+	t.Parallel()
+	for _, profile := range []string{"first", "second"} {
+		t.Run(profile, func(t *testing.T) {
+			t.Parallel()
+			path := filepath.Join(t.TempDir(), "config.json")
+			store := credentials.New(config.CredentialsPathFromConfig(path), &cliSecrets{values: map[string]string{}}, nil)
+			if err := store.Save(context.Background(), profile, config.Credential{Token: "synthetic-" + profile}, "native"); err != nil {
+				t.Fatal(err)
+			}
+			factories, persists := 0, 0
+			env := Environment{Getenv: func(key string) string {
+				if key == "TODOIST_CONFIG" {
+					return path
+				}
+				return ""
+			}, local: localDependencies{
+				credentialStore: func(got string) credentials.Store {
+					factories++
+					if got != path {
+						t.Errorf("wrong config: %s", got)
+					}
+					return store
+				},
+				persistProfileSelection: func(_ context.Context, gotPath, gotProfile string) error {
+					persists++
+					if gotPath != path || gotProfile != profile {
+						t.Errorf("another invocation's persistence: %s %s", gotPath, gotProfile)
+					}
+					return nil
+				},
+			}}
+			var out, errOut bytes.Buffer
+			code := executeTestWithEnvironment([]string{"profile", "use", profile, "--json", "--no-input"}, &out, &errOut, env)
+			if code != 0 || factories != 1 || persists != 1 || !strings.Contains(out.String(), `"saved": true`) || errOut.Len() != 0 {
+				t.Fatalf("local adapters crossed: exit=%d factory=%d persist=%d output=%s stderr=%s", code, factories, persists, out.String(), errOut.String())
+			}
+		})
+	}
+}
+
+func TestExecuteDefaultEntrypointHelp(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := Execute([]string{"--help"}, &out, &errOut); code != 0 || out.Len() == 0 || errOut.Len() != 0 {
+		t.Fatalf("process-default entrypoint: %d %s %s", code, out.String(), errOut.String())
 	}
 }

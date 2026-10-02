@@ -54,7 +54,7 @@ func TestSettingsViewJSON(t *testing.T) {
 func TestSettingsUpdateDryRun(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"settings", "update", "--timezone", "UTC", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"settings", "update", "--timezone", "UTC", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}

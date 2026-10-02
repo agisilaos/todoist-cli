@@ -102,7 +102,7 @@ func TestTaskResourceV2CommandSurfaces(t *testing.T) {
 				args := append([]string{"--base-url", server.URL, "--no-input", mode, "--task-output-version", "2"}, tc.args...)
 				var stdout, stderr bytes.Buffer
 				args = append([]string{"--config", path}, args...)
-				code := ExecuteWithEnvironment(args, &stdout, &stderr, Environment{Now: func() time.Time { return time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC) }})
+				code := executeTestWithEnvironment(args, &stdout, &stderr, Environment{Now: func() time.Time { return time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC) }})
 				out, errOut := stdout.String(), stderr.String()
 				if code != 0 || errOut != "" {
 					t.Fatalf("exit %d stdout %s stderr %s", code, out, errOut)

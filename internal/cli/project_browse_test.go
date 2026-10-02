@@ -48,6 +48,7 @@ func TestProjectBrowseDryRun(t *testing.T) {
 }
 
 func TestProjectBrowseOpensBrowser(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/projects/p1":
@@ -59,15 +60,14 @@ func TestProjectBrowseOpensBrowser(t *testing.T) {
 	defer ts.Close()
 
 	var opened string
-	prev := openProjectBrowserFn
-	openProjectBrowserFn = func(u string) error {
+	openBrowser := func(u string) error {
 		opened = u
 		return nil
 	}
-	defer func() { openProjectBrowserFn = prev }()
 
 	var out bytes.Buffer
 	ctx := &Context{
+		oauth:  oauthDependencies{openBrowser: openBrowser},
 		Stdout: &out,
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeJSON,
@@ -87,6 +87,7 @@ func TestProjectBrowseOpensBrowser(t *testing.T) {
 }
 
 func TestProjectBrowseOpenError(t *testing.T) {
+	t.Parallel()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/projects/p1":
@@ -97,11 +98,10 @@ func TestProjectBrowseOpenError(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	prev := openProjectBrowserFn
-	openProjectBrowserFn = func(_ string) error { return errors.New("boom") }
-	defer func() { openProjectBrowserFn = prev }()
+	openBrowser := func(_ string) error { return errors.New("boom") }
 
 	ctx := &Context{
+		oauth:  oauthDependencies{openBrowser: openBrowser},
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Mode:   output.ModeHuman,

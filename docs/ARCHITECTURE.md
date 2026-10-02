@@ -60,7 +60,10 @@ CLI environment reads (including credential/profile overrides, OAuth settings,
 planner selection, and display/completion settings) use that lookup. Filesystem
 state, working directory, home-directory discovery, and child-process environments
 remain process-owned; callers should select scratch paths explicitly.
-OAuth adapters are held on each CLI context rather than mutable package globals.
+OAuth adapters (including device polling and browser opening), credential-store
+construction, and profile-selection persistence are held on each CLI context
+rather than mutable package globals. CLI tests supply synthetic native stores
+through their invocation environment instead of replacing a suite-wide factory.
 Date-sensitive command contracts pin their reference clock, while concurrent
 invocation tests exercise different credentials and UTC date windows.
 

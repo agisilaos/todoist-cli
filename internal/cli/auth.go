@@ -274,7 +274,7 @@ func authOAuthDeviceLogin(ctx *Context, cfg oauthConfig) (oauthToken, error) {
 	}
 	fmt.Fprintln(ctx.Stderr, "Waiting for approval...")
 	cfg.RequestTimeout = time.Duration(ctx.Config.TimeoutSeconds) * time.Second
-	token, err := pollOAuthDeviceToken(operationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec)
+	token, err := pollOAuthDeviceTokenWithWait(operationContext(ctx), cfg, deviceCode, intervalSec, expiresInSec, ctx.oauthDeps().waitForPoll)
 	if err != nil {
 		return oauthToken{}, err
 	}

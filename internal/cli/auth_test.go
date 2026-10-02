@@ -235,6 +235,7 @@ func newAuthTestContext(t *testing.T) *Context {
 	t.Helper()
 	tmp := t.TempDir()
 	return &Context{
+		local:      localDependencies{credentialStore: testCredentialStore},
 		Stdout:     &bytes.Buffer{},
 		Stderr:     &bytes.Buffer{},
 		Stdin:      strings.NewReader(""),

@@ -14,7 +14,7 @@ import (
 func TestContractPlannerAcceptsGlobalFlagsAfterCommand(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"planner", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"planner", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -28,7 +28,7 @@ func TestContractAddSupportsInterspersedFlags(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"add", "Buy milk", "--project", "Home", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"add", "Buy milk", "--project", "Home", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -46,7 +46,7 @@ func TestContractTaskDeleteSupportsInterspersedFlags(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "delete", "--yes", "--id", "123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "delete", "--yes", "--id", "123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -60,7 +60,7 @@ func TestContractTaskDeleteStripsIDPrefix(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "delete", "--yes", "--id", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "delete", "--yes", "--id", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -74,7 +74,7 @@ func TestContractTaskDeleteAcceptsTaskURLID(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "delete", "--yes", "--id", "https://app.todoist.com/app/task/call-mom-abc123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "delete", "--yes", "--id", "https://app.todoist.com/app/task/call-mom-abc123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -88,7 +88,7 @@ func TestContractTaskDeleteAliasRm(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "rm", "--yes", "--id", "123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "rm", "--yes", "--id", "123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -102,7 +102,7 @@ func TestContractProjectDeleteAliasRm(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"project", "rm", "--id", "p1", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"project", "rm", "--id", "p1", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -116,7 +116,7 @@ func TestContractProjectDeleteAcceptsProjectURLID(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"project", "rm", "--id", "https://app.todoist.com/app/project/home-2203306141", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"project", "rm", "--id", "https://app.todoist.com/app/project/home-2203306141", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -130,7 +130,7 @@ func TestContractProjectCreateAliasUsesAddFlow(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"project", "create", "--name", "Home", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"project", "create", "--name", "Home", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -143,7 +143,7 @@ func TestContractProjectCreateAliasUsesAddFlow(t *testing.T) {
 func TestContractSchemaWritesCleanStdout(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"schema", "--name", "task_item_ndjson"}, &stdout, &stderr)
+	code := executeTest([]string{"schema", "--name", "task_item_ndjson"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -160,7 +160,7 @@ func TestContractQuietJSONErrorsAreSingleLine(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "delete", "--id", "123", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "delete", "--id", "123", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -176,7 +176,7 @@ func TestContractQuietJSONErrorsAreSingleLine(t *testing.T) {
 func TestContractUnknownCommandJSONError(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"--json", "--quiet-json", "nope-command"}, &stdout, &stderr)
+	code := executeTest([]string{"--json", "--quiet-json", "nope-command"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -192,7 +192,7 @@ func TestContractUnknownCommandJSONError(t *testing.T) {
 func TestContractSubcommandHelpWithTrailingGlobalHelpFlag(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"auth", "login", "--oauth", "--help"}, &stdout, &stderr)
+	code := executeTest([]string{"auth", "login", "--oauth", "--help"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -208,7 +208,7 @@ func TestContractSubcommandHelpWithTrailingGlobalHelpFlag(t *testing.T) {
 func TestContractRootHelpWithoutCommand(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"--help"}, &stdout, &stderr)
+	code := executeTest([]string{"--help"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -251,7 +251,7 @@ func TestContractRootHelpWithoutCommand(t *testing.T) {
 func TestContractNestedHelpAuthLogin(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"auth", "help", "login"}, &stdout, &stderr)
+	code := executeTest([]string{"auth", "help", "login"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -308,7 +308,7 @@ func TestContractTaskCompleteBulkRequiresYes(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "complete", "--filter", "today", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "complete", "--filter", "today", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -322,7 +322,7 @@ func TestContractTaskCompleteStripsIDPrefix(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "complete", "--id", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "complete", "--id", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -334,7 +334,7 @@ func TestContractTaskCompleteStripsIDPrefix(t *testing.T) {
 func TestContractTaskHelpMentionsStrictOnAddCommand(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"help", "task"}, &stdout, &stderr)
+	code := executeTest([]string{"help", "task"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -348,7 +348,7 @@ func TestContractTaskMoveBulkRejectsIDCombination(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "move", "--id", "123", "--filter", "today", "--project", "Home", "--yes", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "move", "--id", "123", "--filter", "today", "--project", "Home", "--yes", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -362,7 +362,7 @@ func TestContractFilterAddDryRunJSON(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"filter", "add", "--name", "Today", "--query", "today", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"filter", "add", "--name", "Today", "--query", "today", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -377,7 +377,7 @@ func TestContractFilterUpdateRequiresFields(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"filter", "update", "Today", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"filter", "update", "Today", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -391,7 +391,7 @@ func TestContractCommentAddDryRunJSON(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"comment", "add", "--task", "123", "--content", "Need QA sign-off", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"comment", "add", "--task", "123", "--content", "Need QA sign-off", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -406,7 +406,7 @@ func TestContractCommentUpdateRequiresFields(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"comment", "update", "--id", "c1", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"comment", "update", "--id", "c1", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -420,7 +420,7 @@ func TestContractLabelAddDryRunJSON(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"label", "add", "--name", "urgent", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"label", "add", "--name", "urgent", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -434,7 +434,7 @@ func TestContractLabelUpdateRequiresFields(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"label", "update", "--id", "l1", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"label", "update", "--id", "l1", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -448,7 +448,7 @@ func TestContractSectionAddDryRunJSON(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"section", "add", "--name", "Backlog", "--project", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"section", "add", "--name", "Backlog", "--project", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -462,7 +462,7 @@ func TestContractSectionUpdateRequiresFields(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"section", "update", "--id", "s1", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"section", "update", "--id", "s1", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}
@@ -476,7 +476,7 @@ func TestContractInboxAddDryRunDoesNotRequireInboxLookup(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"inbox", "add", "--content", "offline smoke", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"inbox", "add", "--content", "offline smoke", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -490,7 +490,7 @@ func TestContractTaskAddAssigneeIDRefDryRun(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "add", "--content", "Write docs", "--assignee", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "add", "--content", "Write docs", "--assignee", "id:123", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -504,7 +504,7 @@ func TestContractTaskAddNaturalShorthandDryRun(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "add", "--content", "Buy milk #id:123 @errands p2 due:tomorrow", "--natural", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "add", "--content", "Buy milk #id:123 @errands p2 due:tomorrow", "--natural", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -519,7 +519,7 @@ func TestContractTaskUpdateNaturalShorthandDryRun(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "update", "--id", "123", "--content", "Call mom p1 due:today", "--natural", "--dry-run", "--json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "update", "--id", "123", "--content", "Call mom p1 due:today", "--natural", "--dry-run", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected exit %d, got %d (stderr=%q)", exitOK, code, stderr.String())
 	}
@@ -534,7 +534,7 @@ func TestContractTaskAddAssigneeNameRequiresProject(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Execute([]string{"task", "add", "--content", "Write docs", "--assignee", "Ada Lovelace", "--dry-run", "--json", "--quiet-json"}, &stdout, &stderr)
+	code := executeTest([]string{"task", "add", "--content", "Write docs", "--assignee", "Ada Lovelace", "--dry-run", "--json", "--quiet-json"}, &stdout, &stderr)
 	if code != exitUsage {
 		t.Fatalf("expected exit %d, got %d", exitUsage, code)
 	}

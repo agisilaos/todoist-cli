@@ -14,6 +14,7 @@ type oauthDependencies struct {
 	openBrowser      func(string) error
 	waitForCode      func(context.Context, oauthConfig, string, time.Duration) (string, error)
 	exchangeToken    func(context.Context, oauthConfig, string, string) (oauthToken, error)
+	waitForPoll      func(context.Context, time.Duration) error
 }
 
 func (ctx *Context) oauthDeps() oauthDependencies {
@@ -38,6 +39,9 @@ func (ctx *Context) oauthDeps() oauthDependencies {
 	}
 	if d.exchangeToken == nil {
 		d.exchangeToken = exchangeOAuthToken
+	}
+	if d.waitForPoll == nil {
+		d.waitForPoll = waitForOAuthPoll
 	}
 	return d
 }

@@ -461,6 +461,10 @@ func startOAuthDeviceFlow(ctx context.Context, cfg oauthConfig) (deviceCode, use
 }
 
 func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int) (oauthToken, error) {
+	return pollOAuthDeviceTokenWithWait(ctx, cfg, deviceCode, intervalSec, expiresInSec, waitForOAuthPoll)
+}
+
+func pollOAuthDeviceTokenWithWait(ctx context.Context, cfg oauthConfig, deviceCode string, intervalSec, expiresInSec int, wait func(context.Context, time.Duration) error) (oauthToken, error) {
 	if intervalSec <= 0 {
 		intervalSec = 5
 	}
@@ -498,7 +502,7 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 				if payload.Error == "slow_down" {
 					intervalSec += 5
 				}
-				if err := waitForOAuthPollFn(ctx, time.Duration(intervalSec)*time.Second); err != nil {
+				if err := wait(ctx, time.Duration(intervalSec)*time.Second); err != nil {
 					return oauthToken{}, oauthContextError(err)
 				}
 				continue
@@ -511,8 +515,6 @@ func pollOAuthDeviceToken(ctx context.Context, cfg oauthConfig, deviceCode strin
 		return oauthToken{}, oauthFailure("OAUTH_EXCHANGE_FAILED", fmt.Sprintf("OAuth device token polling failed: status %d. Nothing was saved; existing credentials are unchanged.", status))
 	}
 }
-
-var waitForOAuthPollFn = waitForOAuthPoll
 
 func waitForOAuthPoll(ctx context.Context, delay time.Duration) error {
 	timer := time.NewTimer(delay)

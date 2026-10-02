@@ -108,7 +108,7 @@ func TestAuthorizationOAuthScopesAcrossPKCEAndDevice(t *testing.T) {
 						callbackDone <- err
 					}()
 				}
-				code := Execute(args, &out, diagnostic)
+				code := executeTest(args, &out, diagnostic)
 				if code != tc.code {
 					t.Fatalf("login %d want %d: %s %s", code, tc.code, out.String(), diagnostic.String())
 				}

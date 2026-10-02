@@ -33,9 +33,13 @@ func authorizationFixture(t *testing.T, metadata string) string {
 }
 
 func executeAuthorization(t *testing.T, path string, args ...string) (int, string, string) {
+	return executeAuthorizationWithEnvironment(t, path, Environment{}, args...)
+}
+
+func executeAuthorizationWithEnvironment(t *testing.T, path string, env Environment, args ...string) (int, string, string) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	code := Execute(append([]string{"--config", path}, args...), &out, &errOut)
+	code := executeTestWithEnvironment(append([]string{"--config", path}, args...), &out, &errOut, env)
 	return code, out.String(), errOut.String()
 }
 
@@ -396,19 +400,8 @@ func TestAuthorizationManualReplacementRepairsMetadataAndLogoutRemovesIt(t *test
 	probe := newAuthTestContext(t)
 	authValidationServer(t, probe, 200, "manual-secret")
 	t.Setenv("TODOIST_BASE_URL", probe.Config.BaseURL)
-	input, err := os.CreateTemp(t.TempDir(), "stdin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer input.Close()
-	if _, err := input.WriteString("manual-secret\n"); err != nil {
-		t.Fatal(err)
-	}
-	input.Seek(0, 0)
-	oldStdin := os.Stdin
-	os.Stdin = input
-	defer func() { os.Stdin = oldStdin }()
-	code, out, errOut := executeAuthorization(t, path, "auth", "login", "--token-stdin", "--json")
+	env := Environment{Stdin: strings.NewReader("manual-secret\n")}
+	code, out, errOut := executeAuthorizationWithEnvironment(t, path, env, "auth", "login", "--token-stdin", "--json")
 	if code != 0 || strings.Contains(out+errOut, "manual-secret") {
 		t.Fatalf("replacement %d %s %s", code, out, errOut)
 	}
