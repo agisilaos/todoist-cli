@@ -60,7 +60,7 @@ func (c *Client) DeleteFilter(ctx context.Context, id string) (string, error) {
 	return requestID, err
 }
 
-func (c *Client) filterCommand(ctx context.Context, kind string, args map[string]any, tempID string) (reminderSyncResponse, string, error) {
+func (c *Client) filterCommand(ctx context.Context, kind string, args map[string]any, tempID string) (syncResponse, string, error) {
 	uuid := NewRequestID()
 	command := map[string]any{"type": kind, "uuid": uuid, "args": args}
 	if tempID != "" {
@@ -68,7 +68,7 @@ func (c *Client) filterCommand(ctx context.Context, kind string, args map[string
 	}
 	payload, err := json.Marshal([]map[string]any{command})
 	if err != nil {
-		return reminderSyncResponse{}, "", err
+		return syncResponse{}, "", err
 	}
 	resp, requestID, err := c.syncRequest(ctx, map[string]string{
 		"commands": string(payload), "sync_token": "*", "resource_types": `["filters"]`,
@@ -93,7 +93,7 @@ func (c *Client) filterCommand(ctx context.Context, kind string, args map[string
 	return resp, requestID, &APIError{Status: code, RequestID: requestID, Message: kind + ": " + string(details)}
 }
 
-func filterFromSync(resp reminderSyncResponse, id string) (Filter, error) {
+func filterFromSync(resp syncResponse, id string) (Filter, error) {
 	for _, item := range resp.Filters {
 		if item.ID == id && !item.IsDeleted {
 			return item.Filter, nil

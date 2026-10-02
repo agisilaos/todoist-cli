@@ -125,6 +125,24 @@ loop. The replay journal stores review pending markers and post-update snapshots
 alongside ordinary action records. Existing task API output models are unchanged;
 review reads its own snapshot projection. See [daily review](review-design.md).
 
+## HTTP and Sync transport
+
+JSON and Sync form requests share `internal/api.Client.doRequest` for dispatch,
+request-body replay, transient status/transport retries, and response reads. Every
+attempt still passes through the authorization boundary. REST mutation retries
+require an idempotency request ID. Sync reads are retry-safe; Sync mutations are
+retried only when every command carries its original non-empty UUID, as described
+in [Todoist's Sync command contract](https://developer.todoist.com/api/v1/).
+Request IDs and encoded command bodies remain identical across at most three
+attempts; cancellation and request deadlines bound retry waits.
+
+Workspaces, current-user lookup, filters, reminders, settings, and notifications
+use one Sync response type and decoder. Successful bodies are read completely,
+like REST responses, and read failures are returned before decoding. This removes
+silent 16 KiB/256 KiB truncation. Accepted mutations with optional advisory bodies
+retain their separate bounded best-effort handling; malformed Sync responses and
+provider command errors are returned without retry.
+
 ## Authorization boundary
 
 `internal/authorization` owns scope evidence, metadata validation, the safe authorization report, and permission errors. `internal/config` defines credential records and preserves optional raw metadata, including unsupported records in inactive profiles. `internal/credentials` owns profile persistence, atomic replacement, and recovery across file and native storage. The CLI resolves the credential source first, so an environment token never inherits a profile's scope evidence.

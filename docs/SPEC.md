@@ -617,3 +617,16 @@ when another write is uncertain. Existing authorization guards and dry runs rema
 Ordinary agent task writes persist pending evidence before dispatch, replace it
 atomically on acceptance, clear it for definite rejection, and block automatic
 replay on uncertainty. Review checkpoints remain mandatory.
+
+## Request retries
+
+Transient HTTP 429/5xx responses and transport failures receive at most two
+retries within the command's request timeout. Task writes are excluded under
+[ADR-0009](adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md),
+including native Sync task commands. REST reads and non-task mutations with an
+idempotency request ID are eligible. Sync resource reads and non-task commands that all
+carry stable UUIDs are eligible; the command body and request ID remain unchanged
+across attempts. Authentication/authorization failures, malformed successful
+responses, body read failures, and Sync command errors are not retried. Retries do
+not establish that an interrupted mutation was unapplied; use the documented
+recovery workflow for uncertain outcomes.
