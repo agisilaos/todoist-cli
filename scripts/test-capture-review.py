@@ -279,7 +279,9 @@ def main():
     with tempfile.TemporaryDirectory(prefix='todoist-workflow-build-') as directory:
         binary = args.binary.resolve() if args.binary else Path(directory) / 'todoist'
         if not args.binary:
-            subprocess.run(['go', 'build', '-o', str(binary), './cmd/todoist'], cwd=ROOT, check=True, timeout=180)
+            code, out, err = run(['go', 'build', '-o', str(binary), './cmd/todoist'],
+                                 ROOT, os.environ, timeout=180)
+            require(code == 0, f'build exit {code}:\n{out}{err}')
         exercise(binary, args.fault, args.verbose)
         if args.self_test:
             for fault, expected in [('reject-capture', 'command exit'),
