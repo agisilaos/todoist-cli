@@ -168,7 +168,7 @@ func TestApplyActionsReplayWriteFailureIsFatalInContinueMode(t *testing.T) {
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("apply error = %v, want wrapped %v", err, wantErr)
 	}
-	if !shouldAbortApply(applyErrorModeContinue, err) {
+	if !shouldAbortApply(ctx, applyErrorModeContinue, err) {
 		t.Fatal("replay write failure must abort continue mode")
 	}
 	if len(results) != 1 || results[0].Error == nil {
@@ -281,8 +281,8 @@ func TestShouldAbortApply(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := shouldAbortApply(test.mode, test.err); got != test.want {
-				t.Fatalf("shouldAbortApply(%q, %v) = %v, want %v", test.mode, test.err, got, test.want)
+			if got := shouldAbortApply(&Context{}, test.mode, test.err); got != test.want {
+				t.Fatalf("shouldAbortApply(ctx, %q, %v) = %v, want %v", test.mode, test.err, got, test.want)
 			}
 		})
 	}

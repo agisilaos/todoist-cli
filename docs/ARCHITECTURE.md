@@ -69,8 +69,11 @@ credential inspection, manual-token verification, and planner processes. Review
 and OAuth signal contexts derive from that parent. Task service adapters honor
 the supplied context and restore the enclosing invocation context afterward;
 lookup caches and request metadata remain shared within the invocation.
-Cancellation and expired deadlines stop bulk task operations and agent application
-even in continue mode. Successfully recorded actions remain recorded; cancellation
+Caller cancellation and expired operation deadlines stop bulk task operations and
+agent application even in continue mode. Task-write timeouts remain uncertain outcomes and stop
+further writes under ADR-0009; unrelated action timeouts remain individual
+failures in agent continue mode. Interrupted bulk commands emit the maintained
+batch target accounting before returning the error. Successfully recorded actions remain recorded; cancellation
 does not undo Todoist mutations or resolve an uncertain remote outcome.
 
 ## Service coverage

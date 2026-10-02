@@ -1025,7 +1025,7 @@ todoist agent status
 - `agent status` is safe on first run; it reports planner configuration and whether a last plan exists.
 - `--dry-run` with `agent apply` prints the plan without applying actions.
 - In `--dry-run`, no-action plans are allowed (useful for CI/pipeline contract checks).
-- `--on-error=continue` keeps applying after an individual action failure and reports statuses. Authorization denial, cancellation/timeouts, and replay-store load or record failures always stop application.
+- `--on-error=continue` keeps applying after an individual action failure and reports statuses. Individual non-task request timeouts count as action failures. Uncertain task writes (including request timeouts) stop application under [ADR-0009](docs/adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md). Authorization denial, caller cancellation or an expired operation deadline, and replay-store load or record failures always stop application.
 - Human apply/run output includes a summary block (ok/failed/skipped replay), destructive-action count, per-action-type counts, and final outcome.
 - `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
 - `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).
