@@ -3,7 +3,7 @@ Usage:
 
 Flags:
   --content <text>                  Task content
-  --description <text>              Task description
+  --description <text|->            Exact stdin text with -, including trailing newline
   --project <ref>                   Project
   --section <ref>                   Section
   --parent <id>                     Parent task
@@ -18,6 +18,8 @@ Flags:
   --deadline <YYYY-MM-DD>           Deadline date
   --assignee <ref>                  Assignee reference (id, me, name, email)
   --quick                           Quick add using inbox defaults
+  --reference[=true|false]           Add/remove one leading "* " title prefix
+  --order <n>                       Sibling order (signed int32, including zero)
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)
 
 Global flags:
@@ -27,7 +29,11 @@ Global flags:
   See 'todoist --help' for all global flags and output modes.
 
 Notes:
+  Use --content - for trimmed stdin, or --description - for exact stdin; never both.
+  Reference control refuses repeated prefixes and blank remaining titles.
+  Unavailable optional task data emits task_write_ack; inspect before retrying creation.
   Use --content - to read stdin. --quick delegates to Inbox defaults; use top-level add for --strict.
+  Duration requires --duration and --duration-unit together.
   Priority accepts 1-4 (4 is highest) or p1-p4 (p1 is highest). Labels are repeatable.
   Human capture prints returned task details and a view command, except with --quiet.
   Receipt priority matches p1-p4; machine output and numeric input retain API priorities.

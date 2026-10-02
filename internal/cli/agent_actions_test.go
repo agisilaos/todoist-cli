@@ -33,7 +33,7 @@ func TestApplyActionExecutionMatrix(t *testing.T) {
 	}{
 		{name: "task_add", action: Action{Type: "task_add", Content: "Do", ProjectID: "p1", SectionID: "s1", Priority: 4}, wantMethod: http.MethodPost, wantPath: "/tasks", wantBody: map[string]any{"content": "Do", "project_id": "p1", "section_id": "s1", "priority": 4}},
 		{name: "task_update", action: Action{Type: "task_update", TaskID: "t1", Content: "Rename"}, wantMethod: http.MethodPost, wantPath: "/tasks/t1", wantBody: map[string]any{"content": "Rename"}},
-		{name: "task_move", action: Action{Type: "task_move", TaskID: "t1", ProjectID: "p2", SectionID: "s2"}, wantMethod: http.MethodPost, wantPath: "/tasks/t1/move", wantBody: map[string]any{"project_id": "p2", "section_id": "s2"}},
+		{name: "task_move", action: Action{Type: "task_move", TaskID: "t1", ProjectID: "p2", SectionID: "s2"}, wantMethod: http.MethodPost, wantPath: "/tasks/t1/move", wantBody: map[string]any{"section_id": "s2"}},
 		{name: "task_complete", action: Action{Type: "task_complete", TaskID: "t1"}, wantMethod: http.MethodPost, wantPath: "/tasks/t1/close"},
 		{name: "task_reopen", action: Action{Type: "task_reopen", TaskID: "t1"}, wantMethod: http.MethodPost, wantPath: "/tasks/t1/reopen"},
 		{name: "task_delete", action: Action{Type: "task_delete", TaskID: "t1"}, wantMethod: http.MethodDelete, wantPath: "/tasks/t1"},

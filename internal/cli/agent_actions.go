@@ -14,7 +14,14 @@ func applyAction(ctx *Context, action Action) error {
 }
 
 func applyActionResponse(ctx *Context, action Action, response any) error {
-	req, err := appagent.BuildActionRequest(action, appagent.ActionDeps{
+	req, err := buildAgentActionRequest(ctx, action)
+	if err != nil {
+		return err
+	}
+	return dispatchAgentAction(ctx, req, response)
+}
+func buildAgentActionRequest(ctx *Context, action Action) (appagent.ActionRequest, error) {
+	return appagent.BuildActionRequest(action, appagent.ActionDeps{
 		BuildTaskCreatePayload: func(in apptasks.MutationInput) (map[string]any, error) {
 			return buildTaskCreatePayload(ctx, in)
 		},
@@ -31,17 +38,20 @@ func applyActionResponse(ctx *Context, action Action, response any) error {
 			return resolveProjectSelector(ctx, explicitID, reference)
 		},
 	})
-	if err != nil {
-		return err
-	}
+}
+func dispatchAgentAction(ctx *Context, req appagent.ActionRequest, response any) error {
+	var err error
+	var requestID string
 	reqCtx, cancel := requestContext(ctx)
 	defer cancel()
 	switch req.Method {
 	case http.MethodPost:
-		_, err = ctx.Client.Post(reqCtx, req.Path, nil, req.Body, response, true)
+		requestID, err = ctx.Client.Post(reqCtx, req.Path, nil, req.Body, response, true)
+		setRequestID(ctx, requestID)
 		return err
 	case http.MethodDelete:
-		_, err = ctx.Client.Delete(reqCtx, req.Path, nil)
+		requestID, err = ctx.Client.Delete(reqCtx, req.Path, nil)
+		setRequestID(ctx, requestID)
 		return err
 	default:
 		return &CodeError{Code: exitError, Err: fmt.Errorf("unsupported method: %s", req.Method)}

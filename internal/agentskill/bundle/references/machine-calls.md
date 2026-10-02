@@ -103,3 +103,43 @@ An ambiguous task reference still fails with exit 2 and empty stdout. The JSON
 ambiguity error's `details.matches` contains titles without candidate IDs, so
 recover by listing the intended scope with JSON, checking context and full IDs,
 then inspecting the chosen task and deliberately retrying with its exact ID.
+
+## Task editing and acceptance
+
+Use task update clear flags for due/deadline/labels/assignee/description removal;
+omitted fields remain unchanged. Empty description, reference=false, and order=0
+are explicit edits. Description stdin uses --description - and preserves exact
+UTF-8 text; never share stdin with content. Reference control adds/removes one
+leading "* ", refusing repeated prefixes and blank titles.
+
+Use task reschedule to preserve recurrence and time character; choose --due-date,
+--due-datetime for an existing fixed-zone time, or --due-local-datetime for an
+existing floating time. Missing or contradictory returned evidence refuses.
+Ordinary task update due edits and ordinary recurring completion retain their
+existing semantics. Use task complete --forever for native permanent completion.
+
+Use task move --clear-parent to detach into the current section/project;
+--clear-section keeps the current project. A child with an inherited section
+requires explicit parent detachment. Both clears make a project root. Known
+already-satisfied clears and reference-only updates can return task_unchanged
+without dispatching writes.
+
+Use task view --include-children for all direct active child pages. JSON and
+one-record NDJSON return task_expanded_view[_v2], with task, children, and
+children_complete:true. Expansion failure has empty stdout. Completeness means
+all pages fetched, without snapshot isolation. Sorting is opt-in, applies to the
+fetched selection (expanded views sort children), and supports due/deadline/
+priority/added/updated/completed/content/order/none with asc/desc. Missing values
+go last; ID ties ascend; omitted sorting keeps existing defaults.
+
+Accepted add/update/reschedule writes may return task_write_ack with
+result_available:false instead of a task resource. Select task_write_result[_v2]
+for JSON unions, task_write_record[_v2] for NDJSON unions. Do not parse every
+successful response as a task. --clear-due plus other fields runs Sync clear then
+REST update; a second-step failure returns task_partial_edit on stdout, an error
+on stderr, and nonzero exit. Inspect exact IDs before deciding further edits.
+Filtered move/complete batches use task_batch with accepted/rejected/uncertain/
+unattempted targets and dispatch counts. Preflight rejection dispatches zero;
+uncertainty stops remaining mutations. No task write is automatically retried or
+redirected. Dry runs dispatch zero mutations. These controls do not extend agent
+or review plan action schemas; call the public task commands when needed.

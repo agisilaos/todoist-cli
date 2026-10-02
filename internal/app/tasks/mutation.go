@@ -1,28 +1,36 @@
 package tasks
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 type MutationInput struct {
-	Content      string
-	Description  string
-	ProjectRef   string
-	ProjectID    string
-	SectionRef   string
-	SectionID    string
-	ParentID     string
-	Labels       []string
-	Priority     int
-	DueString    string
-	DueDate      string
-	DueDatetime  string
-	DueLang      string
-	Duration     int
-	DurationUnit string
-	Deadline     string
-	AssigneeRef  string
-	AssigneeID   string
-	AssigneeHint string
-	TaskID       string
+	DescriptionSet bool
+	ClearLabels    bool
+	ClearDeadline  bool
+	ClearAssignee  bool
+	Order          *int
+	Content        string
+	Description    string
+	ProjectRef     string
+	ProjectID      string
+	SectionRef     string
+	SectionID      string
+	ParentID       string
+	Labels         []string
+	Priority       int
+	DueString      string
+	DueDate        string
+	DueDatetime    string
+	DueLang        string
+	Duration       int
+	DurationUnit   string
+	Deadline       string
+	AssigneeRef    string
+	AssigneeID     string
+	AssigneeHint   string
+	TaskID         string
 }
 
 type SelectorResolver interface {
@@ -36,6 +44,9 @@ func BuildCreatePayload(in MutationInput, resolver SelectorResolver) (map[string
 	if err := applyMutationPayload(body, in, resolver); err != nil {
 		return nil, err
 	}
+	if in.Order != nil {
+		body["order"] = *in.Order
+	}
 	return body, nil
 }
 
@@ -44,10 +55,25 @@ func BuildUpdatePayload(in MutationInput, resolver SelectorResolver) (map[string
 	if err := applyMutationPayload(body, in, resolver); err != nil {
 		return nil, err
 	}
+	if in.Order != nil {
+		body["child_order"] = *in.Order
+	}
+	if in.ClearLabels {
+		body["labels"] = []string{}
+	}
+	if in.ClearDeadline {
+		body["deadline_date"] = nil
+	}
+	if in.ClearAssignee {
+		body["assignee_id"] = nil
+	}
 	return body, nil
 }
 
 func BuildMovePayload(projectID, projectRef, sectionID, sectionRef, parent string, resolver SelectorResolver) (map[string]any, error) {
+	if parent != "" && (projectID != "" || projectRef != "" || sectionID != "" || sectionRef != "") {
+		return nil, errors.New("--parent cannot be combined with project or section destinations")
+	}
 	body := map[string]any{}
 	resolvedProjectID, err := resolver.ResolveProjectSelector(projectID, projectRef)
 	if err != nil {
@@ -66,15 +92,16 @@ func BuildMovePayload(projectID, projectRef, sectionID, sectionRef, parent strin
 	}
 	if resolvedSectionID != "" {
 		body["section_id"] = resolvedSectionID
+		delete(body, "project_id")
 	}
 	if parent != "" {
-		body["parent_id"] = parent
+		body["parent_id"] = strings.TrimPrefix(parent, "id:")
 	}
 	return body, nil
 }
 
 func applyMutationPayload(body map[string]any, in MutationInput, resolver SelectorResolver) error {
-	if in.Description != "" {
+	if in.DescriptionSet || in.Description != "" {
 		body["description"] = in.Description
 	}
 	projectID, err := resolver.ResolveProjectSelector(in.ProjectID, in.ProjectRef)
@@ -98,7 +125,7 @@ func applyMutationPayload(body map[string]any, in MutationInput, resolver Select
 	}
 
 	if in.ParentID != "" {
-		body["parent_id"] = in.ParentID
+		body["parent_id"] = strings.TrimPrefix(in.ParentID, "id:")
 	}
 	if len(in.Labels) > 0 {
 		body["labels"] = in.Labels

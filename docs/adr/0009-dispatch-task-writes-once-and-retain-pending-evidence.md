@@ -1,0 +1,5 @@
+# Dispatch task writes once and retain pending evidence
+
+Dispatch each task write once and refuse redirects and automatic retries, including existing agent task actions. An uncertain transport/server or required-acknowledgement outcome cannot establish rejection, so repeating it can change Todoist twice; this deliberately trades automatic recovery for explicit inspection while preserving retries for unrelated resources. Ordinary agent task actions also persist pending evidence before dispatch and replace it with their applied record on acceptance, extending the existing review recovery policy without extending executable plan/action schemas.
+
+An exact required Sync command acknowledgement establishes acceptance independently of optional returned task data. Definite rejection clears pending evidence; uncertainty stops application even in continue mode and blocks blind rerun. The existing single-applying-process and replay-storage durability limits remain. See the [complete task-editing design](../task-editing-design.md).

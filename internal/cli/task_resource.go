@@ -46,11 +46,11 @@ func taskResourceCommand(args []string) bool {
 	case "today", "upcoming", "completed", "add":
 		return true
 	case "inbox":
-		return len(args) == 1 || args[1] == "add"
+		return len(args) == 1 || args[1] == "add" || strings.HasPrefix(args[1], "-")
 	case "task":
 		if len(args) > 1 {
 			switch args[1] {
-			case "list", "ls", "view", "show", "add", "update":
+			case "list", "ls", "view", "show", "add", "update", "reschedule":
 				return true
 			}
 		}

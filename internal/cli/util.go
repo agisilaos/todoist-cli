@@ -165,6 +165,10 @@ func writeError(ctx *Context, err error) {
 		return
 	}
 	requestID := ctx.RequestID
+	var taskErr *api.TaskWriteError
+	if errors.As(err, &taskErr) && taskErr.RequestID != "" {
+		requestID = taskErr.RequestID
+	}
 	if requestID == "" {
 		var apiErr *api.APIError
 		if errors.As(err, &apiErr) && apiErr.RequestID != "" {

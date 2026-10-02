@@ -44,6 +44,7 @@ var commandCatalog = []commandMetadata{
 	{path: "task update"},
 	{path: "task move"},
 	{path: "task complete"},
+	{path: "task reschedule"},
 	{path: "task reopen"},
 	{path: "task delete", aliases: "rm del"},
 	{path: "filter", group: true, summary: "Manage filters", section: "Organization", rootHelpOrder: 11},

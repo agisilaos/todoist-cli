@@ -1,0 +1,3 @@
+# Report partial combined due-clearing edits
+
+Use a documented Sync due clear followed by one REST update for the remaining fields when a combined edit spans their supported request shapes. A single undocumented REST null setter or inferred natural-language removal would hide uncertainty in wire semantics; sequential operations trade atomicity for documented support and require complete preflight plus explicit per-step partial-result reporting. Never roll back or repeat an accepted or uncertain step automatically. See the [combined-edit policy](../task-editing-design.md#mutation-operations-and-combined-edits).

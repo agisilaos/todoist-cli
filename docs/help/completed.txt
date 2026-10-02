@@ -1,5 +1,5 @@
 Usage:
-  todoist completed [--completed-by completion|due] [--since <date>] [--until <date>] [--project <id|name>] [--section <id|name>] [--filter <query>] [--json|--plain|--ndjson|--ids-only]
+  todoist completed [--completed-by completion|due] [--since <date>] [--until <date>] [--project <id|name>] [--section <id|name>] [--filter <query>] [--sort <key>] [--sort-order asc|desc] [--json|--plain|--ndjson|--ids-only]
 
 Notes:
   - Shortcut for: todoist task list --completed ...

@@ -30,7 +30,7 @@ func taskList(ctx *Context, args []string) error {
 	var until string
 	var wide bool
 	var preset string
-	var sortBy string
+	var sorting taskSortOptions
 	var truncateWidth int
 	var help bool
 	fs.StringVar(&filter, "filter", "", "Filter query")
@@ -49,7 +49,7 @@ func taskList(ctx *Context, args []string) error {
 	fs.StringVar(&until, "until", "", "End date (RFC3339 or YYYY-MM-DD)")
 	fs.BoolVar(&wide, "wide", false, "Wider table output")
 	fs.StringVar(&preset, "preset", "", "Shortcut filter: today, overdue, next7")
-	fs.StringVar(&sortBy, "sort", "", "Sort by: due, priority")
+	sorting.bind(fs)
 	fs.IntVar(&truncateWidth, "truncate-width", 0, "Override table width (human output)")
 	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -58,6 +58,9 @@ func taskList(ctx *Context, args []string) error {
 	if help {
 		printTaskHelp(ctx.Stdout)
 		return nil
+	}
+	if err := sorting.validate(); err != nil {
+		return err
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -81,18 +84,18 @@ func taskList(ctx *Context, args []string) error {
 		ctx.Config.TableWidth = truncateWidth
 	}
 	if plan.Mode == "completed" {
-		return taskListCompleted(ctx, plan.CompletedBy, plan.Filter, project, section, parent, plan.Since, plan.Until, cursor, limit, all, wide)
+		return taskListCompleted(ctx, plan.CompletedBy, plan.Filter, project, section, parent, plan.Since, plan.Until, cursor, limit, all, wide, sorting)
 	}
 	if plan.Mode == "filter" {
 		return taskListFiltered(ctx, plan.Filter, cursor, limit, all, wide, taskOverview{
 			Scope: "Filter: " + strconv.Quote(plan.Filter) + " · Active tasks",
 			Empty: "No active tasks returned for this filter.",
-		})
+		}, sorting)
 	}
-	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, sortBy)
+	return taskListActive(ctx, project, section, parent, label, ids, cursor, limit, all, allProjects, wide, sorting)
 }
 
-func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sortBy string) error {
+func taskListActive(ctx *Context, project, section, parent, label, ids, cursor string, limit int, all bool, allProjects bool, wide bool, sorting taskSortOptions) error {
 	query := url.Values{}
 	scope := activeTaskScope(project, section, parent, label, ids)
 	empty := "No active tasks returned for this selection."
@@ -146,28 +149,33 @@ func taskListActive(ctx *Context, project, section, parent, label, ids, cursor s
 	if err != nil {
 		return err
 	}
-	sortTasks(allTasks, sortBy)
+	if err := sorting.apply(allTasks); err != nil {
+		return err
+	}
 	return writeTaskOverview(ctx, allTasks, next, wide, taskOverview{Scope: scope, Empty: empty, Continued: cursor != ""})
 }
 
-func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool, view taskOverview) error {
+func taskListFiltered(ctx *Context, filter, cursor string, limit int, all bool, wide bool, view taskOverview, sorting taskSortOptions) error {
 	allTasks, next, err := listTasksByFilter(ctx, filter, cursor, limit, all)
 	if err != nil {
 		return err
 	}
-	// Keep original ordering from API for filter; no client sort to preserve meaning.
+	// Omitted sorting preserves the filter response order.
 	view.Continued = cursor != ""
+	if err := sorting.apply(allTasks); err != nil {
+		return err
+	}
 	return writeTaskOverview(ctx, allTasks, next, wide, view)
 }
 
-func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool) ([]api.Task, string, error) {
+func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool, strict ...bool) ([]api.Task, string, error) {
 	query := url.Values{}
 	query.Set("query", filter)
 	query.Set("limit", strconv.Itoa(limit))
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	tasks, next, err := fetchPaginated[api.Task](ctx, "/tasks/filter", query, all)
+	tasks, next, err := fetchPaginated[api.Task](ctx, "/tasks/filter", query, all, strict...)
 	if err == nil {
 		return tasks, next, nil
 	}
@@ -175,10 +183,10 @@ func listTasksByFilter(ctx *Context, filter, cursor string, limit int, all bool)
 		return nil, "", err
 	}
 	query.Set("query", apptasks.ToSearchFilter(filter))
-	return fetchPaginated[api.Task](ctx, "/tasks/filter", query, all)
+	return fetchPaginated[api.Task](ctx, "/tasks/filter", query, all, strict...)
 }
 
-func taskListCompleted(ctx *Context, completedBy, filter, project, section, parent, since, until, cursor string, limit int, all bool, wide bool) error {
+func taskListCompleted(ctx *Context, completedBy, filter, project, section, parent, since, until, cursor string, limit int, all bool, wide bool, sorting taskSortOptions) error {
 	path := "/tasks/completed/by_completion_date"
 	if completedBy == "due" {
 		path = "/tasks/completed/by_due_date"
@@ -220,6 +228,9 @@ func taskListCompleted(ctx *Context, completedBy, filter, project, section, pare
 	}
 	allTasks, next, err := fetchPaginated[api.Task](ctx, path, query, all)
 	if err != nil {
+		return err
+	}
+	if err := sorting.apply(allTasks); err != nil {
 		return err
 	}
 	return writeTaskList(ctx, allTasks, next, wide)

@@ -8,6 +8,8 @@ Flags:
   --section <ref>                   Section
   --parent <id>                     Parent
   --filter <query>                  Filter query for bulk move
+  --clear-parent                    Detach to current section, or project if sectionless
+  --clear-section                   Remove section, remaining in current project
   --yes                             Required for bulk move
 
 Global flags:
@@ -17,7 +19,13 @@ Global flags:
   See 'todoist --help' for all global flags and output modes.
 
 Notes:
-  Supply a destination. Use id:<id> for an exact task; use task list to resolve ambiguous references.
+  Supply a destination or hierarchy clear flags. Parent excludes project/section setters.
+  Project accompanying section scopes resolution; section is the sole destination.
+  Clearing an inherited section from a child requires explicit --clear-parent.
+  Clearing both makes a root task in its current project. Already-satisfied clears dispatch no write.
+  Filtered batches fully preflight every page and reject duplicate/ancestor overlaps.
+  Definite rejections continue; uncertainty stops. Inspect per-target accounting before retrying.
+  Use id:<id> for an exact task; use task list to resolve ambiguous references.
   Terminal feedback acknowledges the move and shows returned destination details when available.
   Missing details use labeled requested values; unavailable names retain IDs. No extra lookups.
   Single-task dry runs show task identity and requested destinations; no task is changed.

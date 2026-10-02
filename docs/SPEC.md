@@ -578,3 +578,41 @@ The complete accepted transaction, isolation, and verification contract is in [c
 Auth status and logout accept no positional arguments or command-specific flags other than help. Select profiles with `--profile`. Help is informational and never removes credentials; invalid arguments fail with usage exit 2 before mutation.
 
 Successful auth login and logout support `--ndjson`, emitting one JSON record with the same fields as `--json`. Tokens are excluded except for the explicit login `--print-env` export.
+
+## Complete task editing
+
+The accepted [task editing design](task-editing-design.md) defines input presence,
+wire operations, hierarchy clearing, recurrence/time preservation, direct active
+children, explicit sorting, and write acceptance/recovery. It qualifies existing
+ordering statements: omission preserves defaults, while explicit sorting applies
+to the fetched selection, including filtered/preset/completed lists, today,
+inbox, upcoming, completed, filter show, and expanded children.
+
+New public controls: task update clears due/deadline/labels/assignee/description;
+task move clears parent/section; task reschedule chooses date, fixed instant, or
+floating local datetime; task complete --forever uses native permanent completion;
+task add/update support reference titles and signed int32 sibling order, including
+zero. Description stdin is exact UTF-8 text. Ordinary due updates and recurring
+completion retain their existing behavior. No new agent/review action kinds.
+
+Legacy task output remains default; opt-in v2 allowlist, null/presence, numeric
+priority, IDs-only, and human-only full remain frozen. New schemas:
+`task_expanded_view`, `task_expanded_view_v2`, `task_write_ack`, `task_unchanged`,
+`task_partial_edit`, `task_batch`, `task_write_result`, `task_write_result_v2`,
+`task_write_record`, `task_write_record_v2`. JSON write results accept a task array
+or explicit result; NDJSON write records accept one task or explicit result.
+Expanded views emit one envelope in either mode. Ordinary single move/complete
+acknowledgements retain their existing id/status shape; hierarchy no-ops use
+`task_unchanged`; filtered actions use `task_batch`.
+
+Required Sync acknowledgements establish native operation acceptance. HTTP 200
+alone cannot. Task writes dispatch once, do not follow redirects, and preserve
+uncertain outcomes. Optional resource failure after acceptance is separate from
+write failure. Combined due clearing executes at most two ordered writes and
+reports a failed second step on stdout with nonzero exit/error on stderr. Batches
+emit explicit accounting even on preflight rejection (dispatched:false); a failed
+page fetch has empty stdout. Known no-ops remain accepted in batch accounting even
+when another write is uncertain. Existing authorization guards and dry runs remain.
+Ordinary agent task writes persist pending evidence before dispatch, replace it
+atomically on acceptance, clear it for definite rejection, and block automatic
+replay on uncertainty. Review checkpoints remain mandatory.

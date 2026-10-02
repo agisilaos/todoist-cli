@@ -53,7 +53,7 @@ points. For command changes, use the existing [command-change checklist](README.
 
 ## Service coverage
 
-- `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, and task mutation payload builders.
+- `internal/app/tasks`: list planning, single-task resolution, move/complete/delete guards, task mutation payload builders, returned due evidence and recurrence-preserving rescheduling, and hierarchy destination/selection rules. The CLI retains invocation-local ancestry fetching and caching.
 - `internal/app/projects`: add/update/move validation plus project URL planning for browse flows.
 - `internal/app/filters`: add/update/delete validation, payload construction, and filter reference resolution rules (exact/direct/fuzzy/ambiguous).
 - `internal/app/comments`: comment list/add/update validation and payload construction.

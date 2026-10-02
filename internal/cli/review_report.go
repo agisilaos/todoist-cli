@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/agisilaos/todoist-cli/internal/api"
 
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
@@ -74,7 +75,7 @@ func writeReviewReport(ctx *Context, plan Plan, results []applyResult, phase, pa
 				ok++
 			}
 			if replay != nil && replay.journal.Reviews[replay.taskKey(task.ID)].Pending && replay.journal.Reviews[replay.taskKey(task.ID)].PendingIndex == idx && outcome.Outcome != "applied" {
-				outcome.RemoteOutcomeUncertain = true
+				outcome.RemoteOutcomeUncertain = !(idx < len(results) && api.TaskWriteOutcome(results[idx].Error) == api.TaskWriteAccepted)
 			}
 			row.Actions = append(row.Actions, outcome)
 		}

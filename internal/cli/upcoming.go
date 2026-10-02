@@ -18,14 +18,14 @@ func upcomingCommand(ctx *Context, args []string) error {
 	var project string
 	var label string
 	var wide bool
-	var sortBy string
+	var sorting taskSortOptions
 	var truncateWidth int
 	var help bool
 	fs.IntVar(&days, "days", 0, "Days to include (default 7)")
 	fs.StringVar(&project, "project", "", "Project")
 	fs.StringVar(&label, "label", "", "Label")
 	fs.BoolVar(&wide, "wide", false, "Wider table output")
-	fs.StringVar(&sortBy, "sort", "due", "Sort by: due, priority")
+	sorting.bind(fs)
 	fs.IntVar(&truncateWidth, "truncate-width", 0, "Override table width (human output)")
 	bindHelpFlag(fs, &help)
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
@@ -54,10 +54,8 @@ func upcomingCommand(ctx *Context, args []string) error {
 	if days <= 0 {
 		return &CodeError{Code: exitUsage, Err: errors.New("upcoming days must be a positive integer")}
 	}
-	switch sortBy {
-	case "due", "priority":
-	default:
-		return &CodeError{Code: exitUsage, Err: errors.New("upcoming --sort must be one of: due, priority")}
+	if err := sorting.validate(); err != nil {
+		return err
 	}
 	if err := ensureClient(ctx); err != nil {
 		return err
@@ -69,7 +67,11 @@ func upcomingCommand(ctx *Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	sortTasks(tasks, sortBy)
+	if sorting.key == "" {
+		sortTasks(tasks, "due")
+	} else if err := sorting.apply(tasks); err != nil {
+		return err
+	}
 	start := now.Format("2006-01-02")
 	end := now.AddDate(0, 0, days-1).Format("2006-01-02")
 	return writeTaskOverview(ctx, tasks, "", wide, taskOverview{
@@ -124,5 +126,5 @@ func filterUpcomingTasks(tasks []api.Task, now time.Time, days int) []api.Task {
 }
 
 func printUpcomingHelp(out interface{ Write([]byte) (int, error) }) {
-	fmt.Fprint(out, "Usage:\n  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide] [--ids-only]\n\nNotes:\n  - Shows N days including today (default 7: today and the next 6 days, UTC).\n  - Excludes overdue tasks and tasks without a due date.\n  - Human output shows the UTC window, scope, coverage, and three-line titles.\n  - Overview P1 is highest; --wide retains the detailed table (API priorities: 4 highest).\n  - Use task view id:<id> for full text and secondary details.\n\nExamples:\n  todoist upcoming\n  todoist upcoming 14 --project Learning\n  todoist upcoming --label reading --sort priority\n")
+	fmt.Fprint(out, "Usage:\n  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|deadline|priority|added|updated|completed|content|order|none] [--sort-order asc|desc] [--wide] [--ids-only]\n\nNotes:\n  - Shows N days including today (default 7: today and the next 6 days, UTC).\n  - Excludes overdue tasks and tasks without a due date.\n  - Human output shows the UTC window, scope, coverage, and three-line titles.\n  - Overview P1 is highest; --wide retains the detailed table (API priorities: 4 highest).\n  - Use task view id:<id> for full text and secondary details.\n\nExamples:\n  todoist upcoming\n  todoist upcoming 14 --project Learning\n  todoist upcoming --label reading --sort priority\n")
 }

@@ -21,3 +21,7 @@ possibly successful mutation. See [daily review](../review-design.md).
 This extends the ordinary-plan journal-write policy above without changing the
 applied-action success requirement, single-applying-process assumption, retention,
 or durability limits. Replay skips still perform no journal writes.
+
+## Ordinary agent task actions
+
+[ADR-0009](0009-dispatch-task-writes-once-and-retain-pending-evidence.md) extends pending-write evidence to existing ordinary-plan task actions. It supersedes the unrecorded task-write interruption gap described above: pending evidence is stored before dispatch, cleared on definite rejection, and replaced with the applied record on acceptance. Other ordinary-plan resource actions retain their existing recording policy. Executable plan/action schemas and the applied-action success requirement remain unchanged.

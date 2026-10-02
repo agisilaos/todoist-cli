@@ -74,3 +74,33 @@ action, and replay record. No CONTEXT.md or ADR change is proposed: ADR-0002 and
 ADR-0004 already define the recovery and explicit-storage decisions. Published
 changelog sections stay untouched, and repository policy forbids an unreleased
 section; the PR carries the change evidence for the release orchestrator.
+
+## Task writes and editing
+
+Task writes dispatch once without retries or redirects. Transport failures,
+HTTP 408/5xx, redirects, and malformed/missing required Sync acknowledgements
+leave the outcome uncertain. Preserve the request ID; inspect exact task state
+through read commands before any further mutation. Native Sync errors with
+valid per-command rejection evidence are definite rejection; HTTP 200 alone is
+insufficient acceptance.
+
+A task_write_ack with result_available:false means accepted mutation with
+unavailable optional resource data. Inspect state; do not treat it as rejection
+or retry merely to obtain a task resource. A task_partial_edit means due clearing
+was accepted but the subsequent fields were rejected/uncertain/not dispatched.
+Stdout contains both step outcomes; stderr and nonzero exit signal incomplete
+work. No automatic rollback or resubmission occurs.
+
+Filtered move/complete batches preflight all pages and hierarchy before writing.
+Preflight rejection dispatches zero and returns task_batch accounting when the
+selection is available; failed selection fetch has empty stdout. Definite write
+rejections continue; uncertainty stops remaining mutation targets. Known no-ops
+remain accepted/dispatched:false. Reconcile uncertain targets separately from
+rejected/unattempted targets. Dry runs dispatch zero writes.
+
+Ordinary agent task actions now retain pending evidence before dispatch and
+block replay of the current plan when a pending key exists, even with --on-error
+continue. Acceptance atomically replaces pending with applied; definite
+rejection clears pending. Preserve plan/journal/diagnostics and manually reconcile
+state. Review plans retain their required checkpoints. An accepted write with
+unavailable required checkpoint still stops and retains pending evidence.

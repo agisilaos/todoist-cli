@@ -407,13 +407,14 @@ todoist auth repair
 List and modify tasks (IDs or names accepted where noted).
 
 ```
-todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort due|priority] [--truncate-width <cols>] [--wide] [--all-projects]
+todoist task list [--filter <query>] [--preset today|overdue|next7] [--project <id|name>] [--section <id|name>] [--label <name>] [--completed] [--completed-by completion|due] [--since <date>] [--until <date>] [--sort <key>] [--sort-order asc|desc] [--truncate-width <cols>] [--wide] [--all-projects]
 todoist task add --content <text> [flags]
-todoist task view <ref> [--full]
+todoist task view <ref> [--full] [--include-children]
 todoist task update <ref> [flags]
+todoist task reschedule <ref> (--due-date <date> | --due-datetime <RFC3339> | --due-local-datetime <local>)
 todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
 todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [--parent <id>] --yes
-todoist task complete <ref>
+todoist task complete <ref> [--forever]
 todoist task complete --filter <query> --yes
 todoist task reopen <ref>
 todoist task delete <ref> --yes
@@ -464,7 +465,8 @@ List presentation and selection options:
 --wide    Detailed table (API priority numbering; broad terminal recommended)
 --all-projects    List tasks from all projects (default is Inbox)
 --preset today|overdue|next7    Shortcut filters (ignored if --filter set)
---sort due|priority             Client-side sort for active tasks
+--sort due|deadline|priority|added|updated|completed|content|order|none
+--sort-order asc|desc           Direction for an explicit sort across the fetched task selection
 --truncate-width <cols>         Override human output width
 ```
 
@@ -478,7 +480,65 @@ Examples:
 - `todoist task view id:123456 --full`
 - `todoist task complete "Pay rent"`
 
-#### Task detail
+##### Editing tasks and preserving recurrence
+
+```bash
+todoist task update id:123456 --clear-labels --clear-assignee --clear-deadline
+printf 'Exact notes\n' | todoist task update --id 123456 --description -
+todoist task move id:123456 --clear-parent --clear-section
+todoist task reschedule id:123456 --due-date 2026-10-15
+todoist task update --id 123456 --reference=true --order 0
+todoist task view id:123456 --include-children --sort order --json --task-output-version 2
+todoist task complete id:123456 --forever
+```
+
+Omitted fields remain unchanged. Empty description, `--reference=false`, and
+`--order 0` are explicit edits. Use `--clear-due`, `--clear-deadline`,
+`--clear-labels`, `--clear-assignee`, or `--clear-description` for removal.
+Description stdin preserves UTF-8 text exactly; content stdin is trimmed. Only
+one may read stdin. Setters and their clear flags conflict before API reads.
+
+Ordinary due editing stays in `task update`; ordinary completion advances a
+recurring occurrence. `task reschedule` preserves recurrence and the existing
+calendar date, floating wall time, or fixed-zone character. A date target keeps
+an existing clock; `--due-local-datetime` changes floating wall time;
+`--due-datetime` selects an exact instant for a fixed-zone task. Unknown or
+contradictory returned evidence and ambiguous DST date replacements refuse the
+edit. `task complete --forever` permanently completes recurrence and subtasks.
+
+Clearing a parent keeps the current inherited section, or the current project
+when sectionless. Clearing a section keeps the current project; children in an
+inherited section also require `--clear-parent`. Both clears make a project root.
+A project with a section scopes section resolution; the section is the move
+destination. Parent destinations exclude project/section setters.
+
+`--reference[=true|false]` adds/removes one leading `* ` and refuses repeated
+prefixes or a blank remaining title. `--order` accepts signed int32 values,
+including zero. `--include-children` fetches every direct active child page and
+emits a distinct `task_expanded_view`/`task_expanded_view_v2` envelope. Failed
+expansion emits no parent or incomplete collection. Completeness means every
+page was fetched, without a snapshot guarantee.
+
+Task collections accept `--sort due|deadline|priority|added|updated|completed|content|order|none`
+and `--sort-order asc|desc`. Omission keeps existing ordering. Due/deadline use
+calendar comparisons; timestamps use instants; order uses numeric sibling order.
+Default directions are ascending for due/deadline/content/order, descending for
+priority/timestamps. Missing values stay last in either direction; ID breaks
+ties ascending. Sorting covers the fetched selection; `--all` spans fetched
+pages where supported. `none` retains fetched order and disallows direction.
+
+Task writes dispatch once without automatic retries or redirects. Accepted
+writes with unavailable optional task data emit `task_write_ack` with
+`result_available:false`; inspect exact state before resubmitting. Combining
+`--clear-due` with other fields uses Sync clear followed by REST update. A failed
+second step emits `task_partial_edit` and a nonzero exit; no rollback or retry.
+Filtered completion/move batches preflight all pages, require existing
+confirmation, reject duplicate/ancestor overlaps, continue definite rejections,
+and stop at uncertainty. `task_batch` reports every target and dispatch count.
+See [task editing contracts](docs/task-editing-design.md), focused help, and
+`todoist schema` for output variants and recovery.
+
+## Task detail
 
 Copy a full ID from an overview and inspect that exact task:
 
@@ -794,7 +854,7 @@ todoist completed [--completed-by completion|due] [--since <date>] [--until <dat
 List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks.
 
 ```
-todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide]
+todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort <key>] [--sort-order asc|desc] [--wide]
 ```
 
 ### Projects
@@ -1028,7 +1088,7 @@ todoist schema [--name task_list|task_item_ndjson|profile_list|profile_current|p
 
 Task schemas: `task_item` and `task_item_ndjson` describe legacy objects;
 `task_list` describes legacy arrays. With `--task-output-version 2`, use
-`task_item_v2` for JSON views and NDJSON records, and `task_list_v2` for JSON arrays.
+`task_item_v2` for ordinary JSON views and NDJSON records, and `task_list_v2` for JSON arrays. Expanded views use `task_expanded_view` or `task_expanded_view_v2`; add/update/reschedule result unions also admit `task_write_ack` when optional returned task data is unavailable.
 
 ## Shell Completions
 
@@ -1141,7 +1201,7 @@ context would require a separate compatibility decision.
 - TTY active-task lists use the [everyday overview](#everyday-overview). Other resource lists, completed history, and saved `filter show` retain their tables. Task creation uses the [capture receipt](#capture-feedback-and-corrections), except with `--quiet`.
 - Non-TTY defaults to `--plain` (tab-separated, no headers), with the existing
   [task-detail exceptions](#task-detail).
-- `--json` outputs raw JSON arrays/objects (no envelope). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
+- `--json` ordinarily outputs raw resource arrays/objects. Expanded task views and accepted-write fallbacks use the separate contracts described in [task editing](#editing-tasks-and-preserving-recurrence). JSON and NDJSON lists report remaining pages on stderr with `--cursor` or `--offset` continuation hints; use `--all` where supported to fetch every page.
 - `--ndjson` outputs one JSON object per line for resource lists. Single-task views, mutation acknowledgements, dry runs, auth results, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--task-output-version 2` selects the [faithful task-resource contract](docs/task-data-fidelity.md)
   with `--json` or `--ndjson`. Omission defaults to legacy version 1. Explicit

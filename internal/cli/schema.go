@@ -15,6 +15,16 @@ type schemaDef struct {
 }
 
 var schemas = []schemaDef{
+	{Name: "task_write_ack", Description: "Accepted add/update/reschedule without optional task resource data", Schema: taskWriteAckSchema()},
+	{Name: "task_unchanged", Description: "Known no-op update/move; zero writes dispatched", Schema: taskUnchangedSchema()},
+	{Name: "task_partial_edit", Description: "Two-step edit with accepted due clear and incomplete remaining edit; nonzero exit", Schema: taskPartialEditSchema()},
+	{Name: "task_batch", Description: "Filtered completion/move accounting; nonzero exit unless every target accepted", Schema: taskBatchSchema()},
+	{Name: "task_expanded_view", Description: "Legacy parent/direct active children; all pages buffered", Schema: expandedTaskSchema(1)},
+	{Name: "task_expanded_view_v2", Description: "Faithful parent/direct active children; separate envelope from task_item_v2", Schema: expandedTaskSchema(2)},
+	{Name: "task_write_result", Description: "JSON add/update/reschedule resource or explicit acknowledgement/partial result", Schema: taskEditResultSchema(1, false)},
+	{Name: "task_write_result_v2", Description: "JSON v2 add/update/reschedule resource or explicit acknowledgement/partial result", Schema: taskEditResultSchema(2, false)},
+	{Name: "task_write_record", Description: "NDJSON add/update/reschedule task or acknowledgement/partial result", Schema: taskEditResultSchema(1, true)},
+	{Name: "task_write_record_v2", Description: "NDJSON v2 add/update/reschedule task or acknowledgement/partial result", Schema: taskEditResultSchema(2, true)},
 	{Name: "skill_result", Description: "Install, update, and uninstall result for a bundled agent skill", Schema: skillResultSchema()},
 	{Name: "skill_list", Description: "Agent skill installation inventory; inspect each item's status", Schema: skillListSchema()},
 	{Name: "review_report", Description: "Final report for review and application of review plans", Schema: reviewReportSchema()},

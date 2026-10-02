@@ -3,8 +3,10 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/agisilaos/todoist-cli/internal/api"
 	"github.com/agisilaos/todoist-cli/internal/authorization"
 )
 
@@ -32,7 +34,37 @@ func applyActionsWithMode(ctx *Context, confirmToken string, actions []Action, o
 	if err != nil {
 		return nil, &replayStoreError{err: fmt.Errorf("load replay journal: %w", err)}
 	}
-	return applyActionsWithReplayStore(ctx, confirmToken, actions, onError, store)
+	for index, action := range actions {
+		key := makeReplayKey(confirmToken, index, action)
+		if store.HasPendingTaskWrite(key) {
+			return nil, &replayStoreError{err: errors.New("uncertain task write pending; inspect exact task state and manually reconcile before a new plan")}
+		}
+	}
+	return applyActionsWithPreparation(ctx, confirmToken, actions, onError, store, func(index int, action Action) (preparedAction, error) {
+		attempt := preparedAction{perform: func() error { return applyAction(ctx, action) }, recordApplied: store.RecordApplied}
+		if !strings.HasPrefix(action.Type, "task_") {
+			return attempt, nil
+		}
+		request, err := buildAgentActionRequest(ctx, action)
+		if err != nil {
+			return attempt, err
+		}
+		key := makeReplayKey(confirmToken, index, action)
+		if err := store.BeginTaskWrite(key, action.TaskID); err != nil {
+			return attempt, &replayStoreError{err: fmt.Errorf("persist pending task write before dispatch: %w", err)}
+		}
+		attempt.perform = func() error { return dispatchAgentAction(ctx, request, nil) }
+		attempt.failed = func(err error) error {
+			outcome := api.TaskWriteOutcome(err)
+			if outcome == api.TaskWriteRejected || outcome == api.TaskWriteNotDispatched {
+				if clearErr := store.ClearPendingTaskWrite(key); clearErr != nil {
+					return &replayStoreError{err: fmt.Errorf("clear rejected pending task write: %w", clearErr)}
+				}
+			}
+			return err
+		}
+		return attempt, nil
+	})
 }
 
 // preparedAction binds dispatch and outcome recording to one action. Review
@@ -93,7 +125,7 @@ func applyActionsWithPreparation(ctx *Context, confirmToken string, actions []Ac
 			nowFn = ctx.Now
 		}
 		if err := attempt.recordApplied(replayKey, nowFn()); err != nil {
-			recordErr := &replayStoreError{err: fmt.Errorf("todoist action succeeded but replay recording failed; rerunning may duplicate it: %w", err)}
+			recordErr := &replayStoreError{err: fmt.Errorf("todoist action succeeded but replay recording failed; rerunning may duplicate it: %w", &api.TaskWriteError{Outcome: api.TaskWriteAccepted, RequestID: ctx.RequestID, Err: err})}
 			results = append(results, applyResult{Action: action, Error: recordErr})
 			emitActionFailure(ctx, idx, action, recordErr, map[string]any{
 				"stage":            "replay_record",
@@ -130,5 +162,5 @@ func shouldAbortApply(onError applyErrorMode, err error) bool {
 	}
 	var replayErr *replayStoreError
 	var authorizationErr *authorization.Error
-	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr)
+	return errors.As(err, &replayErr) || errors.As(err, &authorizationErr) || api.TaskWriteOutcome(err) == api.TaskWriteUncertain || api.TaskWriteOutcome(err) == api.TaskWriteAccepted
 }

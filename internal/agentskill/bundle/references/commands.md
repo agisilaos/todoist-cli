@@ -422,7 +422,7 @@ Global flags:
 
 ```text
 Usage:
-  todoist completed [--completed-by completion|due] [--since <date>] [--until <date>] [--project <id|name>] [--section <id|name>] [--filter <query>] [--json|--plain|--ndjson|--ids-only]
+  todoist completed [--completed-by completion|due] [--since <date>] [--until <date>] [--project <id|name>] [--section <id|name>] [--filter <query>] [--sort <key>] [--sort-order asc|desc] [--json|--plain|--ndjson|--ids-only]
 ```
 
 ## todoist completion
@@ -601,10 +601,12 @@ Aliases: ls
 
 ```text
 Usage:
-  todoist filter show <id|name>
+  todoist filter show <id|name> [--sort <key>]
 
 Flags:
-  No command-specific flags.
+  --sort <key>                     due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>           Direction for an explicit sort
+
 
 Global flags:
   -h, --help             Show help without running the command
@@ -638,7 +640,7 @@ Global flags:
 
 ```text
 Usage:
-  todoist inbox [--ids-only]
+  todoist inbox [--ids-only] [--sort <key>] [--sort-order asc|desc]
   todoist inbox add --content <text> [flags]
 
 Flags:
@@ -1600,7 +1602,8 @@ Usage:
   todoist task update <ref> [flags]
   todoist task move <ref> [--project <id|name>] [--section <id|name>] [--parent <id>]
   todoist task move --filter <query> [--project <id|name>] [--section <id|name>] [--parent <id>] --yes
-  todoist task complete <ref>
+  todoist task reschedule <ref> (--due-date DATE | --due-datetime RFC3339 | --due-local-datetime LOCAL)
+  todoist task complete <ref> [--forever]
   todoist task complete --filter <query> --yes
   todoist task reopen <ref>
   todoist task delete <ref> --yes
@@ -1608,7 +1611,7 @@ Usage:
 Task flags:
   --content <text>           Task content ("-" reads stdin)
   --quick                    Quick add using inbox defaults
-  --description <text>       Task description
+  --description <text|->     Exact description stdin with -
   --project <id|name>        Project reference
   --section <id|name>        Section reference
   --parent <id>              Parent task ID
@@ -1623,6 +1626,20 @@ Task flags:
   --deadline <YYYY-MM-DD>    Deadline date
   --assignee <ref>           Assignee reference (id, me, name, email)
   --natural                  Parse quick-add style tokens in content (#project @label p1..p4 due:...)
+  --clear-due                Update: remove due date and recurrence
+  --clear-deadline            Update: remove deadline
+  --clear-labels              Update: remove all labels
+  --clear-assignee            Update: remove assignment
+  --clear-description         Update: remove description
+  --clear-parent              Move: detach to current section/project
+  --clear-section             Move: clear section in current project
+  --reference[=true|false]     Add/update: single "* " title prefix
+  --order <n>                 Add/update: signed int32 sibling order
+  --include-children          View: every page of direct active children
+  --sort <key>                Collections: due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>      Explicit sort direction
+  --forever                  Complete: permanently finish recurrence and subtasks
+  --due-local-datetime <local> Reschedule: floating YYYY-MM-DDTHH:MM:SS
   --yes                      Required for task deletion and bulk move/complete
 ```
 
@@ -1634,7 +1651,7 @@ Usage:
 
 Flags:
   --content <text>                  Task content
-  --description <text>              Task description
+  --description <text|->            Exact stdin text with -, including trailing newline
   --project <ref>                   Project
   --section <ref>                   Section
   --parent <id>                     Parent task
@@ -1649,6 +1666,8 @@ Flags:
   --deadline <YYYY-MM-DD>           Deadline date
   --assignee <ref>                  Assignee reference (id, me, name, email)
   --quick                           Quick add using inbox defaults
+  --reference[=true|false]           Add/remove one leading "* " title prefix
+  --order <n>                       Sibling order (signed int32, including zero)
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)
 
 Global flags:
@@ -1669,6 +1688,7 @@ Usage:
 Flags:
   --id <id>                         Task ID
   --filter <query>                  Filter query for bulk complete
+  --forever                         Native permanent completion, including subtasks
   --yes                             Required for bulk complete
 
 Global flags:
@@ -1721,8 +1741,10 @@ Flags:
   --until <date>                    End date (RFC3339 or YYYY-MM-DD)
   --wide                            Detailed table (API priorities)
   --preset <today|overdue|next7>    Shortcut filter: today, overdue, next7
-  --sort <due|priority>             Sort by: due, priority
   --truncate-width <cols>           Override human output width
+  --sort <key>                     due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>           Direction for an explicit sort
+
 
 Global flags:
   -h, --help             Show help without running the command
@@ -1746,6 +1768,8 @@ Flags:
   --section <ref>                   Section
   --parent <id>                     Parent
   --filter <query>                  Filter query for bulk move
+  --clear-parent                    Detach to current section, or project if sectionless
+  --clear-section                   Remove section, remaining in current project
   --yes                             Required for bulk move
 
 Global flags:
@@ -1772,6 +1796,25 @@ Global flags:
   See 'todoist --help' for all global flags and output modes.
 ```
 
+## todoist task reschedule
+
+```text
+Usage:
+  todoist task reschedule <ref> (--due-date <date> | --due-datetime <RFC3339> | --due-local-datetime <local>)
+
+Flags:
+  --id <id>                         Exact task ID instead of a positional reference
+  --due-date <YYYY-MM-DD>            Replace date retaining existing clock and time character
+  --due-datetime <RFC3339>           Exact instant for existing fixed-zone due time
+  --due-local-datetime <local>       YYYY-MM-DDTHH:MM:SS for existing floating due time
+
+Global flags:
+  -h, --help             Show help without running the command
+  -n, --dry-run          Preview without mutations
+  --no-input            Disable prompts
+  See 'todoist --help' for all global flags and output modes.
+```
+
 ## todoist task update
 
 ```text
@@ -1780,9 +1823,14 @@ Usage:
   todoist task update --id <id> [flags]
 
 Flags:
+  --clear-due                       Clear due and recurrence
+  --clear-deadline                  Clear deadline
+  --clear-labels                    Clear all labels
+  --clear-assignee                  Clear assignment
+  --clear-description               Clear description
   --id <id>                         Task ID
   --content <text>                  Task content
-  --description <text>              Task description
+  --description <text|->            Exact stdin text with -, including trailing newline
   --label <name>                    Label (repeatable)
   --priority <1-4>                  Priority (accepts p1..p4)
   --due <text>                      Due string
@@ -1794,6 +1842,8 @@ Flags:
   --deadline <YYYY-MM-DD>           Deadline date
   --assignee <ref>                  Assignee reference (id, me, name, email)
   --project <ref>                   Project (used for assignee name/email resolution)
+  --reference[=true|false]           Add/remove one leading "* " title prefix
+  --order <n>                       Sibling order (signed int32, including zero)
   --natural                         Parse quick-add style tokens in content (#project @label p1..p4 due:...)
 
 Global flags:
@@ -1812,7 +1862,11 @@ Usage:
 
 Flags:
   --id <id>                         Task ID
+  --include-children                Fetch every page of direct active children
   --full                            Add exact destination IDs and inspection metadata
+  --sort <key>                     due|deadline|priority|added|updated|completed|content|order|none
+  --sort-order <asc|desc>           Direction for an explicit sort
+
 
 Global flags:
   -h, --help             Show help without running the command
@@ -1826,14 +1880,14 @@ Aliases: show
 
 ```text
 Usage:
-  todoist today [--ids-only]
+  todoist today [--ids-only] [--sort <key>] [--sort-order asc|desc]
 ```
 
 ## todoist upcoming
 
 ```text
 Usage:
-  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|priority] [--wide] [--ids-only]
+  todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort due|deadline|priority|added|updated|completed|content|order|none] [--sort-order asc|desc] [--wide] [--ids-only]
 ```
 
 ## todoist view

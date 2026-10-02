@@ -29,8 +29,9 @@ func newTaskActionFixture(t *testing.T) (*taskActionFixture, *Context, *bytes.Bu
 	t.Helper()
 	f := &taskActionFixture{tasks: map[string]map[string]any{}}
 	for _, id := range []string{"task-123", "task-456"} {
-		f.tasks[id] = map[string]any{"id": id, "content": "Prepare launch checklist", "project_id": "source", "section_id": "old-section", "parent_id": "old-parent", "checked": false, "due": nil}
+		f.tasks[id] = map[string]any{"id": id, "content": "Prepare launch checklist", "project_id": "source", "section_id": "old-section", "parent_id": nil, "checked": false, "due": nil}
 	}
+	f.tasks["new-parent"] = map[string]any{"id": "new-parent", "content": "Parent", "parent_id": nil, "project_id": "destination", "section_id": nil}
 	ctx, out := captureTestContext(t, f.serve)
 	f.url = ctx.Client.BaseURL
 	return f, ctx, out
@@ -57,7 +58,7 @@ func (f *taskActionFixture) serve(w http.ResponseWriter, r *http.Request) {
 			if f.mode == "bulk" {
 				rows = append(rows, f.tasks["task-456"])
 			}
-			write(map[string]any{"results": rows})
+			write(map[string]any{"results": rows, "next_cursor": nil})
 		default:
 			if task := f.tasks[strings.TrimPrefix(r.URL.Path, "/tasks/")]; task != nil {
 				write(task)
@@ -215,22 +216,22 @@ func TestTaskActionMoveUnknownFactsRetainAcceptedState(t *testing.T) {
 		name, response, mode string
 		want, absent         string
 	}{
-		{"empty", "", "", "Requested project: destination (name unavailable)", "Project:"},
+		{"empty", "", "", "Requested section: new-section (name unavailable)", "Project:"},
 		{"malformed", "{broken", "", "Destination details unavailable.", "Project:"},
-		{"mismatch", `{"id":"other","project_id":"wrong"}`, "", "Requested project: destination", "wrong"},
+		{"mismatch", `{"id":"other","project_id":"wrong"}`, "", "Requested section: new-section", "wrong"},
 		{"partial", `{"id":"task-123","content":"Saved title","section_id":"returned-section"}`, "partial", "Section: returned-section (name unavailable)", "Section: old-section"},
-		{"null", `{"project_id":"destination","section_id":null,"parent_id":null}`, "none", "Section: None\nParent task: None", "Destination details unavailable"},
+		{"null", `{"project_id":"destination","section_id":null,"parent_id":null}`, "none", "Section: None", "Destination details unavailable"},
 		{"wrong types", `{"content":42,"project_id":false,"section_id":5,"parent_id":{}}`, "", "Requested section: new-section", "Section: None"},
 		{"truncated", "", "truncated", "Destination details unavailable.", "Project:"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f, ctx, out := newTaskActionFixture(t)
 			f.response, f.mode = &tc.response, tc.mode
-			if err := taskMove(ctx, []string{"--id", "task-123", "--project", "id:destination", "--section", "id:new-section", "--parent", "new-parent"}); err != nil {
+			if err := taskMove(ctx, []string{"--id", "task-123", "--project", "id:destination", "--section", "id:new-section"}); err != nil {
 				t.Fatal(err)
 			}
 			requests, state := f.snapshot()
-			var section, parent any = "new-section", "new-parent"
+			var section, parent any = "new-section", nil
 			if tc.mode == "partial" {
 				section = "returned-section"
 			}
@@ -270,11 +271,11 @@ func TestTaskActionFailuresAndBulkPreserveOutcome(t *testing.T) {
 					t.Fatalf("failure state lost: %#v", state)
 				}
 				if mode == "bulk" {
-					want := "bulk complete done: completed=1 failed=1 total=2\n"
+					want := "task complete batch: accepted=1 rejected=1 uncertain=0 unattempted=0 dispatched=2 unchanged=0\n"
 					if action == "move" {
-						want = "bulk move complete: moved=1 failed=1 total=2\n"
+						want = "task move batch: accepted=1 rejected=1 uncertain=0 unattempted=0 dispatched=2 unchanged=0\n"
 					}
-					if err != nil || out.String() != want || len(requests) != 3 || state["task-456"]["checked"] != false || state["task-456"]["project_id"] != "source" {
+					if err == nil || !strings.HasPrefix(out.String(), want) || len(requests) != 3 || state["task-456"]["checked"] != false || state["task-456"]["project_id"] != "source" {
 						t.Fatalf("bulk changed: %v %v %#v %s", err, requests, state, out)
 					}
 				} else {
@@ -377,7 +378,7 @@ func TestTaskActionCompatibilityAndDryRuns(t *testing.T) {
 		if state["task-123"]["checked"] != false || state["task-123"]["project_id"] != "source" || !strings.Contains(out.String(), "no task changed.") || !strings.Contains(out.String(), "ID: task-123") || !strings.Contains(out.String(), "Authorization:") {
 			t.Fatalf("human preview: %#v %s", state, out)
 		}
-		if action == "move" && !strings.Contains(out.String(), "Requested project: Home\nRequested section: Backlog") {
+		if action == "move" && !strings.Contains(out.String(), "Requested section: Backlog") {
 			t.Fatal(out)
 		}
 	}
@@ -412,7 +413,11 @@ func TestTaskActionIDOnlyAndDestinationShapes(t *testing.T) {
 				t.Fatal(err)
 			}
 			requests, state := f.snapshot()
-			if len(requests) != 1 || !strings.Contains(out.String(), tc.want) || strings.Contains(out.String(), "before") {
+			expectedRequests := 1
+			if tc.flag == "--parent" {
+				expectedRequests = 3
+			}
+			if len(requests) != expectedRequests || !strings.Contains(out.String(), tc.want) || strings.Contains(out.String(), "before") {
 				t.Fatalf("invented context: %v %s", requests, out)
 			}
 			if tc.action == "complete" && state["task-123"]["checked"] != true || tc.flag == "--section" && state["task-123"]["section_id"] != "new-section" || tc.flag == "--parent" && state["task-123"]["parent_id"] != "new-parent" {

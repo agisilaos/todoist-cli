@@ -104,9 +104,45 @@ _Avoid_: Task query, filter
 The date or time scheduled for a task, which may follow a recurring rule. It is distinct from the task's deadline.
 _Avoid_: Deadline, completion date
 
+**Time character**:
+Whether a task's due information specifies a calendar date, a floating wall time, or an instant tied to a fixed timezone. Rescheduling retains this distinction.
+_Avoid_: Date format, timezone setting
+
+**Floating due time**:
+A scheduled wall-clock date and time that is not tied to a fixed timezone.
+_Avoid_: UTC time, fixed-zone due time
+
+**Fixed-zone due time**:
+A scheduled instant associated with a timezone that also governs future recurring occurrences.
+_Avoid_: Floating due time, offset alone
+
 **Deadline**:
 The final calendar date by which a task is intended to be finished, independent of its scheduled due date or recurrence.
 _Avoid_: Due date, due time
+
+**Rescheduling**:
+Changing a task's scheduled date or time while preserving its recurrence and its date-only, floating, or fixed-zone character.
+_Avoid_: Due replacement, recurring completion
+
+**Recurring completion**:
+Completing one occurrence of a recurring task while allowing Todoist to schedule its next occurrence.
+_Avoid_: Permanent completion, rescheduling
+
+**Permanent completion**:
+Finishing a task, including a recurring task, without scheduling another occurrence.
+_Avoid_: Recurring completion, clearing recurrence
+
+**Direct active child**:
+An active task whose immediate parent is the task being inspected. Descendants below that child and completed children are separate collections.
+_Avoid_: Descendant, all subtasks
+
+**Expanded task view**:
+A task together with the complete fetched selection of its direct active children. Pagination exhaustion establishes collection completeness without guaranteeing a concurrent snapshot.
+_Avoid_: Task resource, descendant tree
+
+**Task-write acceptance**:
+Evidence that Todoist accepted a task mutation, independent of whether its resulting task resource is available. An uncertain outcome does not establish acceptance or rejection.
+_Avoid_: Returned task, HTTP success alone
 
 **Duration**:
 The amount of time allocated to a task, expressed in minutes or days.

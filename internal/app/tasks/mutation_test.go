@@ -58,11 +58,11 @@ func TestBuildCreatePayload(t *testing.T) {
 }
 
 func TestBuildMovePayload(t *testing.T) {
-	body, err := BuildMovePayload("p2", "", "s2", "", "t0", stubSelectorResolver{})
+	body, err := BuildMovePayload("p2", "", "s2", "", "", stubSelectorResolver{})
 	if err != nil {
 		t.Fatalf("BuildMovePayload: %v", err)
 	}
-	if body["project_id"] != "p2" || body["section_id"] != "s2" || body["parent_id"] != "t0" {
+	if len(body) != 1 || body["section_id"] != "s2" {
 		t.Fatalf("unexpected body: %#v", body)
 	}
 }
