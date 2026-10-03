@@ -68,8 +68,8 @@ func fetchPaginated[T any](ctx *Context, path string, query url.Values, all bool
 		if !all || next == "" {
 			break
 		}
-		if validate && seen[next] {
-			return nil, "", errors.New("task pagination cursor cycle")
+		if seen[next] {
+			return nil, "", errors.New("pagination cursor cycle")
 		}
 		seen[next] = true
 		q.Set("cursor", next)

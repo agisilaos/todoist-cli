@@ -640,3 +640,7 @@ Authentication/authorization failures, malformed successful
 responses, body read failures, and Sync command errors are not retried. Retries do
 not establish that an interrupted mutation was unapplied; use the documented
 recovery workflow for uncertain outcomes.
+
+When fetching all pages, repeated pagination cursors fail the command without
+printing partial results. This applies to every resource, including a repeat of
+a supplied starting cursor. Single-page requests still return continuation cursors.
