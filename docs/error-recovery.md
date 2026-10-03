@@ -77,6 +77,11 @@ section; the PR carries the change evidence for the release orchestrator.
 
 ## Task writes and editing
 
+`task delete` (including `task rm` and `task del`) requires a nonblank `--id`
+or reference before credential lookup. A missing target exits 2 with a concise
+human example and leaf-help pointer; explicit machine modes omit those hints.
+Supply a target and `--yes`, including for a dry run.
+
 Task writes dispatch once without retries or redirects. Transport failures,
 HTTP 408/5xx, redirects, and malformed/missing required Sync acknowledgements
 leave the outcome uncertain. Preserve the request ID; inspect exact task state

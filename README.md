@@ -1340,6 +1340,11 @@ API 401 responses, unavailable requested credential storage, and command usage
 errors. Explicit machine flags retain their existing payloads, messages, streams,
 and exit codes; `--no-input` alone still permits human diagnostics.
 
+`task delete` (also `task rm` / `task del`) checks for a nonblank ID or reference
+before looking up credentials. A missing target exits 2 and human output gives
+a short example and `task delete --help` pointer. Supply `--yes` with the target,
+including for a dry run.
+
 Retain your original `--config`, `--profile`, and `--base-url` selections when
 following examples. `TODOIST_TOKEN` overrides stored credentials; logging in does
 not replace it. Replace that environment value deliberately, or unset it when
