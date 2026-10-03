@@ -289,3 +289,47 @@ func TestTaskViewMissingReferenceRecovery(t *testing.T) {
 		t.Fatalf("unexpected state: %v %v", files, err)
 	}
 }
+
+func TestTaskDeleteMissingTargetBeforeCredentials(t *testing.T) {
+	for _, token := range []string{"", "synthetic"} {
+		t.Run(token, func(t *testing.T) {
+			t.Setenv("TODOIST_TOKEN", token)
+			t.Setenv("TODOIST_PROFILE", "")
+			path := filepath.Join(t.TempDir(), "config.json")
+			for _, action := range []string{"delete", "rm", "del"} {
+				for _, extra := range [][]string{nil, {"--yes"}, {"--dry-run", "--yes"}, {"--id", " "}} {
+					args := append([]string{"task", action, "--no-input"}, extra...)
+					code, out, stderr := executeAuthorization(t, path, args...)
+					want := "error: task delete requires --id or a reference\nExample: todoist task delete --id <id> --yes (replace <id> with a task ID)\nSee: todoist task delete --help\n"
+					if code != exitUsage || out != "" || stderr != want {
+						t.Fatalf("args=%v exit=%d stdout=%q stderr=%q", args, code, out, stderr)
+					}
+				}
+			}
+			files, err := os.ReadDir(filepath.Dir(path))
+			if err != nil || len(files) != 0 {
+				t.Fatalf("unexpected state: %v %v", files, err)
+			}
+		})
+	}
+}
+
+func TestTaskDeleteMissingTargetMachineRecovery(t *testing.T) {
+	t.Setenv("TODOIST_TOKEN", "")
+	t.Setenv("TODOIST_PROFILE", "")
+	path := filepath.Join(t.TempDir(), "config.json")
+	for _, mode := range []string{"--json", "--ndjson", "--plain", "--quiet-json"} {
+		code, out, stderr := executeAuthorization(t, path, "task", "delete", "--no-input", mode)
+		if code != exitUsage || out != "" {
+			t.Fatalf("%s: exit=%d stdout=%q stderr=%q", mode, code, out, stderr)
+		}
+		if mode == "--json" {
+			var value map[string]any
+			if json.Unmarshal([]byte(stderr), &value) != nil || len(value) != 2 || value["error"] != errMissingTaskDeleteRef.Error() {
+				t.Fatalf("%s error envelope: %s", mode, stderr)
+			}
+		} else if stderr != "error: "+errMissingTaskDeleteRef.Error()+"\n" {
+			t.Fatalf("%s text contract: %q", mode, stderr)
+		}
+	}
+}

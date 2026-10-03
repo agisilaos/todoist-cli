@@ -12,10 +12,11 @@ import (
 
 // Identity supports human advice without changing existing machine error text.
 var (
-	errMissingTaskViewRef  = errors.New("task view requires id or text reference")
-	errMissingToken        = errors.New("missing auth token; run 'todoist auth login' or set TODOIST_TOKEN")
-	errInvalidManualToken  = errors.New("Invalid API token format. Paste only the API token from Todoist settings, without spaces, quotes, or a Bearer prefix. Nothing was saved; run `todoist auth login` to retry.")
-	errRejectedManualToken = errors.New("API token was not accepted by Todoist. Copy your API token from Todoist settings and run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")
+	errMissingTaskDeleteRef = errors.New("task delete requires --id or a reference")
+	errMissingTaskViewRef   = errors.New("task view requires id or text reference")
+	errMissingToken         = errors.New("missing auth token; run 'todoist auth login' or set TODOIST_TOKEN")
+	errInvalidManualToken   = errors.New("Invalid API token format. Paste only the API token from Todoist settings, without spaces, quotes, or a Bearer prefix. Nothing was saved; run `todoist auth login` to retry.")
+	errRejectedManualToken  = errors.New("API token was not accepted by Todoist. Copy your API token from Todoist settings and run `todoist auth login` again. Nothing was saved; existing credentials are unchanged.")
 )
 
 const credentialSelectionHint = "Keep the same --config, --profile and --base-url selections. TODOIST_TOKEN overrides stored credentials; login does not replace that environment value."
@@ -76,6 +77,9 @@ func writeRecoveryHints(ctx *Context, err error) {
 	case errors.As(err, &usage) && usage.Code == exitUsage && ctx.HelpPath != "":
 		if errors.Is(err, errMissingTaskViewRef) {
 			fmt.Fprintln(ctx.Stderr, "Example: todoist task view id:<id> (replace <id> with a task ID)")
+		}
+		if errors.Is(err, errMissingTaskDeleteRef) {
+			fmt.Fprintln(ctx.Stderr, "Example: todoist task delete --id <id> --yes (replace <id> with a task ID)")
 		}
 		fmt.Fprintf(ctx.Stderr, "See: todoist %s --help\n", ctx.HelpPath)
 	}

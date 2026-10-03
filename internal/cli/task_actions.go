@@ -112,16 +112,15 @@ func taskDelete(ctx *Context, args []string) error {
 	if len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
+	if strings.TrimSpace(id) == "" && strings.TrimSpace(ref) == "" {
+		return &CodeError{Code: exitUsage, Err: errMissingTaskDeleteRef}
+	}
 	if err := ensureClient(ctx); err != nil {
 		return err
 	}
 	svc := apptasks.Service{Resolver: cliTaskResolver{ctx: ctx}}
 	resolvedID, err := svc.ResolveTaskTarget(operationContext(ctx), apptasks.ResolveTaskTargetInput{ID: id, Ref: ref})
 	if err != nil {
-		if strings.TrimSpace(id) == "" && strings.TrimSpace(ref) == "" {
-			printTaskHelp(ctx.Stderr)
-			return &CodeError{Code: exitUsage, Err: errors.New("task delete requires --id or a reference")}
-		}
 		printTaskHelp(ctx.Stderr)
 		return asUsageIfGeneric(err)
 	}
