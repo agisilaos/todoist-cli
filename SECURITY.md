@@ -43,6 +43,14 @@ scope evidence. OAuth diagnostics exclude untrusted provider bodies and callback
 error text. No shared client secret or copied third-party client ID is bundled;
 short-lived or refresh-bearing grants are rejected until durable refresh exists.
 
+## Project configuration trust
+
+Automatically discovered `.todoist.json` files cannot select the API endpoint or
+planner executable. `base_url` and `planner_cmd` are accepted only from explicitly
+selected/user configuration or explicit command/environment overrides. Treat
+those explicit inputs as trusted: endpoints receive credentials and planners run
+as the current user. Harmless project defaults retain their existing precedence.
+
 ## Isolated native tests
 
 Ordinary CLI tests inject native adapters and use temporary configurations. The

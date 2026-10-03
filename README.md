@@ -217,6 +217,12 @@ Precedence (high → low):
 3. Project config (`.todoist.json`)
 4. User config (`~/.config/todoist/config.json`)
 
+Automatically discovered `.todoist.json` files cannot override `base_url` or
+`planner_cmd`; those fields are ignored there. Move existing project values to
+your user config, select a trusted file explicitly with `--config` or
+`TODOIST_CONFIG`, or use the corresponding explicit flags/environment variables.
+Other project defaults retain their precedence.
+
 Environment variables:
 
 - `TODOIST_TOKEN`

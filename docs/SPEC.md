@@ -548,6 +548,12 @@ introduced. See [errors and recovery](error-recovery.md) for the bounded invento
 
 ## Config
 
+Automatically discovered `.todoist.json` files cannot override `base_url` or
+`planner_cmd`; those fields are ignored there. Move existing project values to
+your user config, select a trusted file explicitly with `--config` or
+`TODOIST_CONFIG`, or use the corresponding explicit flags/environment variables.
+Other project defaults retain their precedence.
+
 Precedence: flags > env > project config > user config.
 
 Config file: `~/.config/todoist/config.json`
