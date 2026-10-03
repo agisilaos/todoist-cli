@@ -397,6 +397,9 @@ func loadConfig(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("load config %s: %w", projectConfigPath, err)
 	}
+	// Discovered checkout files cannot choose credential destinations or programs.
+	projectCfg.BaseURL = ""
+	projectCfg.PlannerCmd = ""
 	cfg := config.MergeConfig(userCfg, projectCfg)
 	applyEnvString(ctx, "TODOIST_BASE_URL", &cfg.BaseURL)
 	if ctx.Global.BaseURL != "" {
