@@ -94,7 +94,7 @@ func SaveConfig(path string, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("encode config: %w", err)
 	}
-	return os.WriteFile(path, data, 0o600)
+	return (SelectionDisk{}).Write(path, data)
 }
 
 func MergeConfig(base Config, override Config) Config {
