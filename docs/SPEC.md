@@ -548,6 +548,11 @@ introduced. See [errors and recovery](error-recovery.md) for the bounded invento
 
 ## Config
 
+Saving the planner command stages the configuration in a private file before
+replacement. A failed staging write leaves the previous configuration readable.
+If directory synchronization fails after replacement, inspect the saved planner
+command before retrying; the new value may already be present.
+
 Automatically discovered `.todoist.json` files cannot override `base_url` or
 `planner_cmd`; those fields are ignored there. Move existing project values to
 your user config, select a trusted file explicitly with `--config` or
