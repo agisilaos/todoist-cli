@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -49,9 +50,6 @@ func executeAgentPlan(ctx *Context, command string, opts agentExecutionOptions) 
 			}
 			return runPlanner(ctx, opts.Planner, instruction, opts.ExpectedVersion, ctxOpts)
 		},
-		ValidatePlan: func(plan Plan, expectedVersion int, allowEmptyActions bool) error {
-			return validatePlan(plan, expectedVersion, allowEmptyActions)
-		},
 		EnforcePolicy: func(plan Plan) error {
 			policy, err := loadAgentPolicy(ctx, opts.PolicyPath)
 			if err != nil {
@@ -61,6 +59,10 @@ func executeAgentPlan(ctx *Context, command string, opts agentExecutionOptions) 
 		},
 	})
 	if err != nil {
+		var validation *appagent.PlanValidationError
+		if errors.As(err, &validation) {
+			err = &CodeError{Code: exitUsage, Err: validation.Err}
+		}
 		if command == "agent apply" {
 			if codeErr, ok := err.(*CodeError); ok && codeErr.Code == exitUsage {
 				printAgentHelp(ctx.Stderr)

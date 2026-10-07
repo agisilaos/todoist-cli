@@ -123,7 +123,9 @@ Section deletion owns its confirmation and dry-run checks in `internal/cli`.
 
 `internal/cli/agent_execution.go` owns the shared preparation and application
 workflow for `agent apply` and `agent run`. Their adapters retain command parsing;
-the shared workflow preserves apply's usage-help rendering and run's optional
+plan preparation always validates through `internal/agent` before policy and
+confirmation, classifying validation separately from loader/planner errors.
+The shared workflow preserves apply's usage-help rendering and run's optional
 plan export before preview or application. Replay and review keep their existing
 success and persistence contracts.
 

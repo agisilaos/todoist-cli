@@ -19,9 +19,15 @@ type PrepareInput struct {
 type PrepareDeps struct {
 	LoadPlan      func(path string) (coreagent.Plan, error)
 	Plan          func(instruction string) (coreagent.Plan, error)
-	ValidatePlan  func(plan coreagent.Plan, expectedVersion int, allowEmptyActions bool) error
 	EnforcePolicy func(plan coreagent.Plan) error
 }
+
+// PlanValidationError identifies owned validation failures without reclassifying
+// errors from plan loading, external planning, or policy evaluation.
+type PlanValidationError struct{ Err error }
+
+func (e *PlanValidationError) Error() string { return e.Err.Error() }
+func (e *PlanValidationError) Unwrap() error { return e.Err }
 
 func PreparePlan(in PrepareInput, deps PrepareDeps) (coreagent.Plan, error) {
 	var plan coreagent.Plan
@@ -43,10 +49,8 @@ func PreparePlan(in PrepareInput, deps PrepareDeps) (coreagent.Plan, error) {
 	if err != nil {
 		return coreagent.Plan{}, err
 	}
-	if deps.ValidatePlan != nil {
-		if err := deps.ValidatePlan(plan, in.ExpectedVersion, in.DryRun); err != nil {
-			return coreagent.Plan{}, err
-		}
+	if err := coreagent.ValidatePlan(plan, in.ExpectedVersion, in.DryRun); err != nil {
+		return coreagent.Plan{}, &PlanValidationError{Err: err}
 	}
 	if deps.EnforcePolicy != nil {
 		if err := deps.EnforcePolicy(plan); err != nil {
