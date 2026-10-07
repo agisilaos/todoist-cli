@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	appagent "github.com/agisilaos/todoist-cli/internal/app/agent"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -117,83 +116,14 @@ func agentApply(ctx *Context, args []string) error {
 	if onError != "fail" && onError != "continue" {
 		return &CodeError{Code: exitUsage, Err: errors.New("invalid --on-error; must be fail or continue")}
 	}
-	emitProgress(ctx, "agent_apply_start", map[string]any{
-		"command": "agent apply",
+	return executeAgentPlan(ctx, "agent apply", agentExecutionOptions{
+		PlanPath: planPath, Instruction: strings.Join(fs.Args(), " "),
+		Confirm: confirm, Planner: planner, PolicyPath: policyPath,
+		OnError: onError, ExpectedVersion: expectedVersion,
+		Force: ctx.Global.Force, DryRun: ctx.Global.DryRun,
+		ContextProjects: contextProjects, ContextLabels: contextLabels,
+		ContextCompleted: contextCompleted,
 	})
-	instruction := strings.Join(fs.Args(), " ")
-	plan, err := appagent.PreparePlan(appagent.PrepareInput{
-		PlanPath:        planPath,
-		Instruction:     instruction,
-		Confirm:         confirm,
-		ExpectedVersion: expectedVersion,
-		Force:           ctx.Global.Force,
-		DryRun:          ctx.Global.DryRun,
-	}, appagent.PrepareDeps{
-		LoadPlan: func(path string) (Plan, error) {
-			return readPlanFile(path, ctx.Stdin)
-		},
-		Plan: func(instruction string) (Plan, error) {
-			ctxOpts, err := parseContextOptions(ctx, contextProjects, contextLabels, contextCompleted)
-			if err != nil {
-				return Plan{}, err
-			}
-			return runPlanner(ctx, planner, instruction, expectedVersion, ctxOpts)
-		},
-		ValidatePlan: func(plan Plan, expectedVersion int, allowEmptyActions bool) error {
-			return validatePlan(plan, expectedVersion, allowEmptyActions)
-		},
-		EnforcePolicy: func(plan Plan) error {
-			policy, err := loadAgentPolicy(ctx, policyPath)
-			if err != nil {
-				return err
-			}
-			return enforceAgentPolicy(plan, policy)
-		},
-	})
-	if err != nil {
-		if codeErr, ok := err.(*CodeError); ok && codeErr.Code == exitUsage {
-			printAgentHelp(ctx.Stderr)
-		}
-		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	source := "planner"
-	if strings.TrimSpace(planPath) != "" {
-		source = "plan_file"
-	}
-	emitAgentPlanLoaded(ctx, "agent apply", len(plan.Actions), source)
-	if ctx.Global.DryRun {
-		emitAgentApplySummary(ctx, "agent apply", nil, true, nil)
-		emitProgress(ctx, "agent_apply_complete", map[string]any{"dry_run": true, "action_count": len(plan.Actions)})
-		return writePlanPreview(ctx, plan, true)
-	}
-	if err := ensureClient(ctx); err != nil {
-		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	if plan.Review != nil {
-		return applyReviewAndReport(ctx, plan, planPath, onError, "agent apply")
-	}
-
-	applyMode := applyErrorMode(onError)
-	results, err := applyActionsWithMode(ctx, plan.ConfirmToken, plan.Actions, applyMode)
-	if shouldAbortApply(ctx, applyMode, err) {
-		emitAgentApplySummary(ctx, "agent apply", results, false, err)
-		emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-		return err
-	}
-	_, _, replayed := summarizeApplyResults(results)
-	if replayed != len(results) {
-		plan.AppliedAt = ctx.Now().UTC().Format(time.RFC3339)
-		if err := writePlanFile(lastPlanPath(ctx), plan); err != nil {
-			emitAgentApplySummary(ctx, "agent apply", results, false, err)
-			emitProgress(ctx, "agent_apply_error", map[string]any{"error": err.Error()})
-			return err
-		}
-	}
-	emitAgentApplySummary(ctx, "agent apply", results, false, err)
-	emitProgress(ctx, "agent_apply_complete", map[string]any{"action_count": len(plan.Actions)})
-	return writePlanApplyResult(ctx, plan, results, err)
 }
 
 func agentStatus(ctx *Context) error {

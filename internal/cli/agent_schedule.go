@@ -99,7 +99,7 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 		}
 		policyPath = absolute
 	}
-	runArgs := buildAgentRunArgs(agentRunOptions{
+	runArgs := buildAgentRunArgs(agentExecutionOptions{
 		PlanPath:         planPath,
 		PolicyPath:       policyPath,
 		Instruction:      instruction,
@@ -142,7 +142,7 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 	return nil
 }
 
-func buildAgentRunArgs(opts agentRunOptions) []string {
+func buildAgentRunArgs(opts agentExecutionOptions) []string {
 	args := []string{"agent", "run"}
 	if opts.PolicyPath != "" {
 		args = append(args, "--policy", opts.PolicyPath)

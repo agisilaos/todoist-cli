@@ -121,6 +121,12 @@ its request metadata. Machine-output pagination notices remain on stderr.
 
 Section deletion owns its confirmation and dry-run checks in `internal/cli`.
 
+`internal/cli/agent_execution.go` owns the shared preparation and application
+workflow for `agent apply` and `agent run`. Their adapters retain command parsing;
+the shared workflow preserves apply's usage-help rendering and run's optional
+plan export before preview or application. Replay and review keep their existing
+success and persistence contracts.
+
 Agent request planning composes the shared task payload builders directly. Only
 selector resolution is injected for task payloads; choosing a payload builder is
 not a separate seam. Project-parent resolution retains its distinct reference
