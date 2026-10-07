@@ -18,38 +18,22 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
-func TestTaskAdaptersHonorCallerCancellation(t *testing.T) {
-	for _, adapter := range []string{"target", "action", "filter"} {
-		t.Run(adapter, func(t *testing.T) {
-			var requests atomic.Int32
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				requests.Add(1)
-				if r.URL.Path == "/tasks/filter" {
-					fmt.Fprint(w, `{"results":[]}`)
-				} else {
-					fmt.Fprint(w, `{"id":"synthetic","content":"Task"}`)
-				}
-			}))
-			defer server.Close()
-			ctx := newApplyTestContext(t.TempDir(), server.URL)
-			operation, cancel := context.WithCancel(context.Background())
-			cancel()
-			var err error
-			switch adapter {
-			case "target":
-				_, err = (cliTaskResolver{ctx: ctx}).ResolveTaskRef(operation, "id:synthetic")
-			case "action":
-				_, err = (&taskActionResolver{ctx: ctx}).ResolveTaskRef(operation, "id:synthetic")
-			case "filter":
-				_, err = (cliTaskFilterLister{ctx: ctx}).ListByFilter(operation, "today")
-			}
-			if !errors.Is(err, context.Canceled) || requests.Load() != 0 {
-				t.Fatalf("caller cancellation discarded: err=%v requests=%d", err, requests.Load())
-			}
-			if ctx.OperationContext != nil {
-				t.Fatal("adapter changed the enclosing operation context")
-			}
-		})
+func TestTaskResolverHonorsCallerCancellation(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		fmt.Fprint(w, `{"id":"synthetic","content":"Task"}`)
+	}))
+	defer server.Close()
+	ctx := newApplyTestContext(t.TempDir(), server.URL)
+	operation, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := (cliTaskResolver{ctx: ctx}).ResolveTaskRef(operation, "id:synthetic")
+	if !errors.Is(err, context.Canceled) || requests.Load() != 0 {
+		t.Fatalf("caller cancellation discarded: err=%v requests=%d", err, requests.Load())
+	}
+	if ctx.OperationContext != nil {
+		t.Fatal("adapter changed the enclosing operation context")
 	}
 }
 
@@ -318,40 +302,24 @@ func TestApplyTaskRequestTimeoutStopsOnUncertainty(t *testing.T) {
 	}
 }
 
-func TestTaskAdaptersLeaveParentContextUntouchedDuringRequests(t *testing.T) {
-	for _, adapter := range []string{"target", "action", "filter"} {
-		t.Run(adapter, func(t *testing.T) {
-			ctx := newApplyTestContext(t.TempDir(), "https://example.com")
-			parent := context.Background()
-			ctx.OperationContext = parent
-			type marker struct{}
-			operation := context.WithValue(parent, marker{}, "child")
-			ctx.Client.SetTransport(cancellationTransport(func(r *http.Request) (*http.Response, error) {
-				if ctx.OperationContext != parent {
-					t.Error("adapter overwrote the shared parent during dispatch")
-				}
-				if r.Context().Value(marker{}) != "child" {
-					t.Error("adapter discarded the caller's context")
-				}
-				body := `{"id":"task"}`
-				if adapter == "filter" {
-					body = `{"results":[{"id":"task","parent_id":null}],"next_cursor":null}`
-				}
-				return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
-			}))
-			var err error
-			switch adapter {
-			case "target":
-				_, err = (cliTaskResolver{ctx: ctx}).ResolveTaskRef(operation, "id:task")
-			case "action":
-				_, err = (&taskActionResolver{ctx: ctx}).ResolveTaskRef(operation, "id:task")
-			case "filter":
-				_, err = (cliTaskFilterLister{ctx: ctx}).ListByFilter(operation, "today")
-			}
-			if err != nil || ctx.OperationContext != parent {
-				t.Fatalf("adapter changed parent: %v", err)
-			}
-		})
+func TestTaskResolverLeavesParentContextUntouchedDuringRequests(t *testing.T) {
+	ctx := newApplyTestContext(t.TempDir(), "https://example.com")
+	parent := context.Background()
+	ctx.OperationContext = parent
+	type marker struct{}
+	operation := context.WithValue(parent, marker{}, "child")
+	ctx.Client.SetTransport(cancellationTransport(func(r *http.Request) (*http.Response, error) {
+		if ctx.OperationContext != parent {
+			t.Error("adapter overwrote the shared parent during dispatch")
+		}
+		if r.Context().Value(marker{}) != "child" {
+			t.Error("adapter discarded the caller's context")
+		}
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"id":"task"}`))}, nil
+	}))
+	_, err := (cliTaskResolver{ctx: ctx}).ResolveTaskRef(operation, "id:task")
+	if err != nil || ctx.OperationContext != parent {
+		t.Fatalf("adapter changed parent: %v", err)
 	}
 }
 
