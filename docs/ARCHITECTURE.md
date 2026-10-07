@@ -121,6 +121,11 @@ its request metadata. Machine-output pagination notices remain on stderr.
 
 Section deletion owns its confirmation and dry-run checks in `internal/cli`.
 
+Agent request planning composes the shared task payload builders directly. Only
+selector resolution is injected for task payloads; choosing a payload builder is
+not a separate seam. Project-parent resolution retains its distinct reference
+normalization from explicit-ID project selection.
+
 Agent status rendering, apply, and replay persistence remain in `internal/cli`;
 the app layer prepares plans and plans requests. See the [replay-recording decision](adr/0002-treat-replay-recording-as-part-of-action-success.md)
 for the success boundary and persistence limitations.

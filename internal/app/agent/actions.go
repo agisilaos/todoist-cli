@@ -18,9 +18,7 @@ type ActionRequest struct {
 }
 
 type ActionDeps struct {
-	BuildTaskCreatePayload func(in apptasks.MutationInput) (map[string]any, error)
-	BuildTaskUpdatePayload func(in apptasks.MutationInput) (map[string]any, error)
-	BuildTaskMovePayload   func(projectID, projectRef, sectionID, sectionRef, parent string) (map[string]any, error)
+	TaskSelectors          apptasks.SelectorResolver
 	ResolveProjectID       func(reference string) (string, error)
 	ResolveProjectSelector func(explicitID, reference string) (string, error)
 }
@@ -28,10 +26,10 @@ type ActionDeps struct {
 func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest, error) {
 	switch action.Type {
 	case "task_add":
-		if deps.BuildTaskCreatePayload == nil {
-			return ActionRequest{}, errors.New("task create payload builder is not configured")
+		if deps.TaskSelectors == nil {
+			return ActionRequest{}, errors.New("task selector resolver is not configured")
 		}
-		body, err := deps.BuildTaskCreatePayload(apptasks.MutationInput{
+		body, err := apptasks.BuildCreatePayload(apptasks.MutationInput{
 			Content:      action.Content,
 			Description:  action.Description,
 			ProjectRef:   action.Project,
@@ -49,7 +47,7 @@ func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest
 			DurationUnit: action.DurationUnit,
 			Deadline:     action.Deadline,
 			AssigneeID:   action.Assignee,
-		})
+		}, deps.TaskSelectors)
 		if err != nil {
 			return ActionRequest{}, err
 		}
@@ -58,10 +56,10 @@ func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest
 		if action.TaskID == "" {
 			return ActionRequest{}, errors.New("task_update requires task_id")
 		}
-		if deps.BuildTaskUpdatePayload == nil {
-			return ActionRequest{}, errors.New("task update payload builder is not configured")
+		if deps.TaskSelectors == nil {
+			return ActionRequest{}, errors.New("task selector resolver is not configured")
 		}
-		body, err := deps.BuildTaskUpdatePayload(apptasks.MutationInput{
+		body, err := apptasks.BuildUpdatePayload(apptasks.MutationInput{
 			Description:  action.Description,
 			Labels:       action.Labels,
 			Priority:     action.Priority,
@@ -74,7 +72,7 @@ func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest
 			Deadline:     action.Deadline,
 			AssigneeID:   action.Assignee,
 			TaskID:       action.TaskID,
-		})
+		}, deps.TaskSelectors)
 		if err != nil {
 			return ActionRequest{}, err
 		}
@@ -86,10 +84,10 @@ func BuildActionRequest(action coreagent.Action, deps ActionDeps) (ActionRequest
 		if action.TaskID == "" {
 			return ActionRequest{}, errors.New("task_move requires task_id")
 		}
-		if deps.BuildTaskMovePayload == nil {
-			return ActionRequest{}, errors.New("task move payload builder is not configured")
+		if deps.TaskSelectors == nil {
+			return ActionRequest{}, errors.New("task selector resolver is not configured")
 		}
-		body, err := deps.BuildTaskMovePayload(action.ProjectID, action.Project, action.SectionID, action.Section, action.Parent)
+		body, err := apptasks.BuildMovePayload(action.ProjectID, action.Project, action.SectionID, action.Section, action.Parent, deps.TaskSelectors)
 		if err != nil {
 			return ActionRequest{}, err
 		}

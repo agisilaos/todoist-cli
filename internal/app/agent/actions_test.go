@@ -1,18 +1,16 @@
 package agent
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
 	coreagent "github.com/agisilaos/todoist-cli/internal/agent"
-	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 )
 
 func TestBuildActionRequestTaskAdd(t *testing.T) {
 	req, err := BuildActionRequest(coreagent.Action{Type: "task_add", Content: "Do"}, ActionDeps{
-		BuildTaskCreatePayload: func(in apptasks.MutationInput) (map[string]any, error) {
-			return map[string]any{"content": in.Content}, nil
-		},
+		TaskSelectors: actionSelectors{},
 	})
 	if err != nil {
 		t.Fatalf("BuildActionRequest: %v", err)
@@ -38,5 +36,27 @@ func TestBuildActionRequestCommentUpdate(t *testing.T) {
 	}
 	if req.Path != "/comments/c1" || req.Body["content"] != "edited" {
 		t.Fatalf("unexpected request: %#v", req)
+	}
+}
+
+type actionSelectors struct{ err error }
+
+func (s actionSelectors) ResolveProjectSelector(id, ref string) (string, error) { return id, s.err }
+func (s actionSelectors) ResolveSectionSelector(id, ref, project string) (string, error) {
+	return id, s.err
+}
+func (s actionSelectors) ResolveAssigneeSelector(id, ref, project, task string) (string, error) {
+	return id, s.err
+}
+
+func TestBuildActionRequestTaskMutationResolverFailures(t *testing.T) {
+	want := errors.New("selector lookup failed")
+	for _, kind := range []string{"task_add", "task_update", "task_move"} {
+		t.Run(kind, func(t *testing.T) {
+			_, err := BuildActionRequest(coreagent.Action{Type: kind, TaskID: "t1", Content: "Do", ProjectID: "p1"}, ActionDeps{TaskSelectors: actionSelectors{err: want}})
+			if !errors.Is(err, want) {
+				t.Fatalf("resolver failure lost: %v", err)
+			}
+		})
 	}
 }

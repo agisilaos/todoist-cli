@@ -6,7 +6,6 @@ import (
 
 	coreagent "github.com/agisilaos/todoist-cli/internal/agent"
 	appagent "github.com/agisilaos/todoist-cli/internal/app/agent"
-	apptasks "github.com/agisilaos/todoist-cli/internal/app/tasks"
 )
 
 func applyAction(ctx *Context, action Action) error {
@@ -22,15 +21,7 @@ func applyActionResponse(ctx *Context, action Action, response any) error {
 }
 func buildAgentActionRequest(ctx *Context, action Action) (appagent.ActionRequest, error) {
 	return appagent.BuildActionRequest(action, appagent.ActionDeps{
-		BuildTaskCreatePayload: func(in apptasks.MutationInput) (map[string]any, error) {
-			return buildTaskCreatePayload(ctx, in)
-		},
-		BuildTaskUpdatePayload: func(in apptasks.MutationInput) (map[string]any, error) {
-			return buildTaskUpdatePayload(ctx, in)
-		},
-		BuildTaskMovePayload: func(projectID, projectRef, sectionID, sectionRef, parent string) (map[string]any, error) {
-			return buildTaskMovePayload(ctx, projectID, projectRef, sectionID, sectionRef, parent)
-		},
+		TaskSelectors: cliTaskSelectorResolver{ctx: ctx},
 		ResolveProjectID: func(reference string) (string, error) {
 			return resolveProjectID(ctx, reference)
 		},
