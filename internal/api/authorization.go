@@ -19,6 +19,9 @@ func (c *Client) dispatch(req *http.Request, path string) (*http.Response, error
 	if err := c.authorizeRequest(req, path); err != nil {
 		return nil, err
 	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
 	resp, err := c.http.Do(req)
 	var denied *authorization.Error
 	if errors.As(err, &denied) {
@@ -48,7 +51,7 @@ func (c *Client) checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 10 {
 		return errors.New("stopped after 10 redirects")
 	}
-	base, err := url.Parse(c.BaseURL)
+	base, err := url.Parse(c.baseURL)
 	if err != nil {
 		return err
 	}

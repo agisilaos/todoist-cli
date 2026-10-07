@@ -23,7 +23,7 @@ func captureTestContext(t *testing.T, handler http.HandlerFunc) (*Context, *byte
 	t.Cleanup(ts.Close)
 	out := &bytes.Buffer{}
 	return &Context{Stdout: out, Stderr: &bytes.Buffer{}, Stdin: strings.NewReader(""), Mode: output.ModeHuman,
-		Token: "fixture", Config: config.Config{TimeoutSeconds: 1},
+		Token: "fixture", Config: config.Config{BaseURL: ts.URL, TimeoutSeconds: 1},
 		Client: api.NewClient(ts.URL, "fixture", time.Second, authorization.Resolve(nil, "env", true))}, out
 }
 

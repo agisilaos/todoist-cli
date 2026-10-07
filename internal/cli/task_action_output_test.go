@@ -33,7 +33,7 @@ func newTaskActionFixture(t *testing.T) (*taskActionFixture, *Context, *bytes.Bu
 	}
 	f.tasks["new-parent"] = map[string]any{"id": "new-parent", "content": "Parent", "parent_id": nil, "project_id": "destination", "section_id": nil}
 	ctx, out := captureTestContext(t, f.serve)
-	f.url = ctx.Client.BaseURL
+	f.url = ctx.Config.BaseURL
 	return f, ctx, out
 }
 

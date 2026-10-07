@@ -52,7 +52,7 @@ func taskWritePath(method, path string) bool {
 	return method != http.MethodGet && (path == "/tasks" || strings.HasPrefix(path, "/tasks/"))
 }
 func (c *Client) taskWriteRequest(req *http.Request) bool {
-	base, err := url.Parse(c.BaseURL)
+	base, err := url.Parse(c.baseURL)
 	if err != nil {
 		return false
 	}
@@ -117,9 +117,6 @@ func (c *Client) TaskCommand(ctx context.Context, kind string, args map[string]a
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X-Request-Id", requestID)
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
 	resp, err := c.dispatch(req, "/sync")
 	if err != nil {
 		return nil, requestID, err

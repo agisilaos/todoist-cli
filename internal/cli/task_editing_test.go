@@ -499,7 +499,7 @@ func TestHierarchyRefreshRefusesChangedRootAndMalformedPlacement(t *testing.T) {
 func TestInboxSortedMachineModesAndExpandedIDsOnlyGuard(t *testing.T) {
 	f, ctx, _ := editingTestContext(t)
 	t.Setenv("TODOIST_TOKEN", "synthetic")
-	t.Setenv("TODOIST_BASE_URL", ctx.Client.BaseURL)
+	t.Setenv("TODOIST_BASE_URL", ctx.Config.BaseURL)
 	t.Setenv("TODOIST_CONFIG", filepath.Join(t.TempDir(), "config.json"))
 	for _, flags := range [][]string{{"--ids-only"}, {"--json", "--task-output-version", "2"}, {"--ndjson", "--task-output-version", "2"}} {
 		var out, stderr bytes.Buffer
@@ -580,7 +580,7 @@ func TestTaskEditingKnownNoopAllowedReadOnly(t *testing.T) {
 	f, ctx, _ := editingTestContext(t)
 	path := authorizationFixture(t, readOnlyMetadata)
 	for _, args := range [][]string{{"task", "update", "--id", "t", "--reference=false"}, {"task", "move", "--id", "t", "--clear-parent"}} {
-		code, out, stderr := executeAuthorization(t, path, append([]string{"--base-url", ctx.Client.BaseURL, "--json"}, args...)...)
+		code, out, stderr := executeAuthorization(t, path, append([]string{"--base-url", ctx.Config.BaseURL, "--json"}, args...)...)
 		if code != exitOK || len(f.writes()) != 0 || !strings.Contains(out, `"status": "unchanged"`) || stderr != "" {
 			t.Fatal(code, out, stderr)
 		}

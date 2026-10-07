@@ -17,8 +17,8 @@ import (
 )
 
 type Client struct {
-	BaseURL       string
-	Token         string
+	baseURL       string
+	token         string
 	http          *http.Client
 	authorization authorization.Report
 }
@@ -55,8 +55,8 @@ func NewClient(baseURL, token string, timeout time.Duration, report authorizatio
 	}
 	c := &Client{
 		authorization: report,
-		BaseURL:       strings.TrimRight(baseURL, "/"),
-		Token:         token,
+		baseURL:       strings.TrimRight(baseURL, "/"),
+		token:         token,
 		http: &http.Client{
 			Timeout: timeout,
 		},
@@ -153,10 +153,6 @@ func (c *Client) doRequest(template *http.Request, path string, out any, retrySa
 			}
 			req.Body = body
 		}
-		if c.Token != "" {
-			req.Header.Set("Authorization", "Bearer "+c.Token)
-		}
-
 		taskWrite = taskWrite || c.taskWriteRequest(req)
 		resp, err := c.dispatch(req, path)
 		if err != nil {
@@ -226,7 +222,7 @@ func (c *Client) doRequest(template *http.Request, path string, out any, retrySa
 }
 
 func (c *Client) buildURL(path string, query url.Values) (string, error) {
-	u, err := url.Parse(c.BaseURL + path)
+	u, err := url.Parse(c.baseURL + path)
 	if err != nil {
 		return "", err
 	}

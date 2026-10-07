@@ -107,8 +107,8 @@ func TestDecodeProjectFromMoveResponseSupportsDirectProjectShape(t *testing.T) {
 func TestMoveProjectToWorkspaceEscapesBaseURL(t *testing.T) {
 	base := "https://example.com/api"
 	client := NewClient(base, "token", time.Second, authorization.Resolve(nil, "credentials", true))
-	u, err := url.Parse(client.BaseURL)
+	u, err := url.Parse(client.baseURL)
 	if err != nil || u.Host == "" {
-		t.Fatalf("unexpected base url: %q err=%v", client.BaseURL, err)
+		t.Fatalf("unexpected base url: %q err=%v", client.baseURL, err)
 	}
 }
