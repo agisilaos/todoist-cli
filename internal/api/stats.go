@@ -79,15 +79,19 @@ func (c *Client) UpdateGoals(ctx context.Context, in UpdateGoalsInput) (string, 
 	if len(args) == 0 {
 		return "", fmt.Errorf("no goals to update")
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "update_goals",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": args,
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "update_goals", requestID, "todoist stats")
+	}
 	return requestID, err
 }
 

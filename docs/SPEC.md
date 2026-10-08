@@ -241,6 +241,7 @@ todoist settings themes
 Notes:
 - `settings view` uses human-friendly labels for time/date/day/theme values.
 - Start-page refs (`project?id=...`, `label?id=...`, `filter?id=...`) are resolved to display names on a best-effort basis.
+- Settings, goals, vacation and notification mutations require a successful acknowledgement for every submitted Sync command. A failed invitation accept/reject command does not trigger mark-read. Partial acceptance or missing acknowledgements require inspecting current state before retrying.
 
 ### View command
 
@@ -637,10 +638,11 @@ retries within the command's request timeout. Task writes are excluded under
 including native Sync task commands. REST reads and non-task mutations with an
 idempotency request ID are eligible. Sync resource reads and non-task commands that all
 carry stable UUIDs are eligible; the command body and request ID remain unchanged
-across attempts. UUID deduplication does not establish response replay: filter and
-reminder mutations require their command acknowledgement, and creates require a
-server ID mapping. Missing evidence returns an error and requires inspecting the
-resource before retrying; temporary reminder IDs are never reported as server IDs.
+across attempts. UUID deduplication does not establish response replay: filter,
+reminder, settings, goals and notification mutations require each command's
+acknowledgement, and creates require a server ID mapping. Missing evidence returns
+an error and requires inspecting the resource before retrying; temporary reminder
+IDs are never reported as server IDs.
 Authentication/authorization failures, malformed successful
 responses, body read failures, and Sync command errors are not retried. Retries do
 not establish that an interrupted mutation was unapplied; use the documented

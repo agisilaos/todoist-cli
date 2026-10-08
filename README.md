@@ -990,6 +990,8 @@ todoist settings themes
 
 `settings view` prints human-friendly labels (for example `24h`, `DD-MM-YYYY`, theme names) and resolves `start_page` references like `project?id=<id>` to names when possible.
 
+Settings, goals/vacation and notification changes require a successful Sync acknowledgement for every command. A failed invitation command stops before marking it read. Inspect remote state before retrying a partially accepted or unacknowledged update.
+
 ### View
 
 Open Todoist web URLs with equivalent CLI commands.

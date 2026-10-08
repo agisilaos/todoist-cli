@@ -133,8 +133,16 @@ func (c *Client) UpdateUserSettings(ctx context.Context, in UpdateUserSettingsIn
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
-	return requestID, err
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err != nil {
+		return requestID, err
+	}
+	for _, command := range commands {
+		if err := checkSyncCommand(resp, command["uuid"].(string), command["type"].(string), requestID, "todoist settings"); err != nil {
+			return requestID, err
+		}
+	}
+	return requestID, nil
 }
 
 func firstNonZero(values ...int) int {

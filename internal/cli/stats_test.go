@@ -112,7 +112,7 @@ func TestStatsVacationUpdatesGoals(t *testing.T) {
 		if !strings.Contains(commands, `"type":"update_goals"`) || !strings.Contains(commands, `"vacation_mode":1`) {
 			t.Fatalf("unexpected sync payload: %s", commands)
 		}
-		_, _ = w.Write([]byte(`{}`))
+		_, _ = w.Write(successfulSyncResponse(t, commands))
 	}))
 	defer ts.Close()
 

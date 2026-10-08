@@ -73,7 +73,7 @@ func TestUpdateUserSettingsBuildsCommands(t *testing.T) {
 		}
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       io.NopCloser(bytes.NewBufferString(`{}`)),
+			Body:       io.NopCloser(bytes.NewReader(successfulSyncResponse(t, commands))),
 			Header:     http.Header{"Content-Type": []string{"application/json"}},
 		}, nil
 	})}

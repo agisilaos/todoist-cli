@@ -178,7 +178,7 @@ func TestNotificationAcceptMarksRead(t *testing.T) {
 				t.Fatalf("expected live_notifications_mark_read command, got %s", commands)
 			}
 		}
-		_, _ = w.Write([]byte(`{}`))
+		_, _ = w.Write(successfulSyncResponse(t, commands))
 	}))
 	defer ts.Close()
 

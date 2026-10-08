@@ -149,7 +149,9 @@ use one Sync response type and decoder. Successful bodies are read completely,
 like REST responses, and read failures are returned before decoding. This removes
 silent 16 KiB/256 KiB truncation. Accepted mutations with optional advisory bodies
 retain their separate bounded best-effort handling; malformed Sync responses and
-provider command errors are returned without retry.
+provider command errors are returned without retry. Every settings, goals and
+notification mutation checks its submitted command UUID acknowledgement, including
+both commands when one settings update changes user and notification settings.
 
 ## Authorization boundary
 
