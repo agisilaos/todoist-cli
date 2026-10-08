@@ -306,6 +306,7 @@ Planner context notes:
 
 - Planner request context includes `projects`, `sections`, `labels`, `active_tasks` (capped), and optional `completed_tasks`.
 - Project and label restrictions apply to both active and completed tasks.
+- Label IDs and fuzzy matches use the resolved name when selecting planner tasks.
 - Setting the planner updates only `planner_cmd` in user configuration, preserving unrelated and unknown fields without persisting project or environment overrides.
 - Planner inspection reports the effective environment/configuration command.
 

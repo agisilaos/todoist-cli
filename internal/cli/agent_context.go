@@ -58,6 +58,12 @@ func buildPlannerContext(ctx *Context, opts plannerContextOptions) (PlannerConte
 	if err != nil {
 		return PlannerContext{}, err
 	}
+	var labelNames []string
+	if len(opts.LabelFilters) > 0 {
+		for _, label := range filteredLabels {
+			labelNames = append(labelNames, label.Name)
+		}
+	}
 
 	var completed []api.Task
 	if opts.CompletedDays > 0 {
@@ -71,14 +77,14 @@ func buildPlannerContext(ctx *Context, opts plannerContextOptions) (PlannerConte
 	if err != nil {
 		return PlannerContext{}, err
 	}
-	filteredActiveTasks := filterActiveTasksForContext(activeTasks, projectIDs, opts.LabelFilters)
+	filteredActiveTasks := filterActiveTasksForContext(activeTasks, projectIDs, labelNames)
 
 	return PlannerContext{
 		Projects:       toAnySlice(filteredProjects),
 		Sections:       toAnySlice(filteredSections),
 		Labels:         toAnySlice(filteredLabels),
 		ActiveTasks:    toAnySlice(filteredActiveTasks),
-		CompletedTasks: toAnySlice(filterTasksForContext(completed, projectIDs, opts.LabelFilters)),
+		CompletedTasks: toAnySlice(filterTasksForContext(completed, projectIDs, labelNames)),
 	}, nil
 }
 

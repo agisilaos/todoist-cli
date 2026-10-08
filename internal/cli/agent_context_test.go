@@ -109,6 +109,27 @@ func captureAgentPlannerRequest(t *testing.T, flags ...string) PlannerRequest {
 	return request
 }
 
+func TestAgentPlannerResolvedLabelScopesTasks(t *testing.T) {
+	for _, label := range []string{"urgent", "urgen", "label-urgent"} {
+		t.Run(label, func(t *testing.T) {
+			request := captureAgentPlannerRequest(t, "--context-label", label, "--fuzzy", "--context-completed", "7d")
+			if len(request.Context.Labels) != 1 || request.Context.Labels[0].(map[string]any)["name"] != "urgent" {
+				t.Fatalf("label did not resolve to urgent: %+v", request.Context.Labels)
+			}
+			if len(request.Context.ActiveTasks) != 1 || request.Context.ActiveTasks[0].(map[string]any)["id"] != "active-urgent" {
+				t.Errorf("resolved label lost matching active task: %+v", request.Context.ActiveTasks)
+			}
+			var completed []string
+			for _, task := range request.Context.CompletedTasks {
+				completed = append(completed, task.(map[string]any)["id"].(string))
+			}
+			if !reflect.DeepEqual(completed, []string{"work-urgent", "home-urgent"}) {
+				t.Errorf("resolved label lost matching completed tasks: %v", completed)
+			}
+		})
+	}
+}
+
 func TestFilterProjectIDsUnknown(t *testing.T) {
 	ctx := &Context{}
 	projects := []api.Project{{ID: "1", Name: "Work"}}

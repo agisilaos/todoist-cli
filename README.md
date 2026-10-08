@@ -1048,6 +1048,7 @@ todoist agent status
 - `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`). It preserves `--dry-run` and `--force` plus profile/configuration selections; authorization is resolved when the generated command runs. Shell/XML metacharacters are escaped. Cron output escapes `%` and rejects arguments containing line breaks.
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
 - Project and label selections restrict both active and completed tasks.
+- Resolved label IDs and fuzzy matches select the same planner tasks as the exact label name.
 - Planner context now includes active tasks (capped) in addition to projects/sections/labels/completed tasks.
 - `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).
 - `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default). If the requested log file cannot be opened, the command fails before dispatching actions.
