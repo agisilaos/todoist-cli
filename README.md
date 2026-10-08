@@ -345,6 +345,7 @@ Flag parsing notes:
 
 - Global flags can appear before or after commands/subcommands.
 - Subcommand flags can be mixed with positional refs/content (for example `todoist add "Buy milk" --project Home --dry-run`).
+- After a command's `--` delimiter, operands remain literal, including names such as `--priority` or `--help`.
 - Common aliases: `ls`=`list`, `rm`/`del`=`delete` (`task`, `project`, `section`, `label`, `comment`), and `show`=`view` (`task`).
 - Prefer `--json` or `--ndjson` for scripts/agents.
 

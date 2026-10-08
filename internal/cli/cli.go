@@ -232,7 +232,13 @@ func parseGlobalFlags(args []string, stderr io.Writer) (GlobalOptions, []string,
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "--" {
-			rest = append(rest, args[i+1:]...)
+			// Before a root/subcommand, the delimiter stops global parsing.
+			// After a leaf, preserve it for that command's operand parser.
+			if delimiterPrecedesSubcommand(rest) {
+				rest = append(rest, args[i+1:]...)
+			} else {
+				rest = append(rest, args[i:]...)
+			}
 			break
 		}
 		switch {

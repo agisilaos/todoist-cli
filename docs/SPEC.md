@@ -509,6 +509,7 @@ the existing nonhuman path. No general presentation framework is introduced.
 - Explicit `--help`/`-h` requests show command usage before validating mutation arguments or contacting the API.
 - Existing informational precedence applies: version wins over output conflicts, conflicts precede help, and root/command help remains available with `--ids-only` (an exception to ID-only stdout).
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
+- A command's `--` delimiter preserves all subsequent operands literally, including option-shaped content. A delimiter before a root command or subcommand retains the existing global-only meaning.
 - Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
 

@@ -425,7 +425,9 @@ func normalizeInterspersedArgs(fs *flag.FlagSet, args []string) ([]string, error
 		i++
 		flagArgs = append(flagArgs, args[i])
 	}
-	return append(flagArgs, positional...), nil
+	// FlagSet must not reinterpret option-shaped positional operands after
+	// the interspersed scan has already classified them.
+	return append(append(flagArgs, "--"), positional...), nil
 }
 
 func splitFlagName(arg string) (string, bool) {

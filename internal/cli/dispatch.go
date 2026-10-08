@@ -6,6 +6,23 @@ import (
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
+// delimiterPrecedesSubcommand keeps the routing boundary separate from leaf
+// operand parsing. This belongs with executable routes, not discovery metadata.
+func delimiterPrecedesSubcommand(args []string) bool {
+	if len(args) == 0 {
+		return true
+	}
+	switch args[0] {
+	case "help":
+		return delimiterPrecedesSubcommand(args[1:])
+	case "auth", "profile", "task", "project", "filter", "workspace", "section", "label", "comment", "reminder", "notification", "stats", "settings", "skill", "completion", "inbox":
+		return len(args) == 1
+	case "agent":
+		return len(args) == 1 || len(args) == 2 && args[1] == "schedule"
+	}
+	return false
+}
+
 func dispatch(ctx *Context, args []string) int {
 	ctx.HelpPath, _ = resolveHelpPath(args)
 	cmd := args[0]
