@@ -15,30 +15,48 @@ func ParseBeforeMinutes(value string) (int, error) {
 		return 0, errors.New("duration is required")
 	}
 	if allDigits(raw) {
-		mins, _ := strconv.Atoi(raw)
-		if mins <= 0 {
+		mins, err := strconv.Atoi(raw)
+		if err != nil || mins <= 0 {
 			return 0, errors.New("duration must be positive")
 		}
 		return mins, nil
 	}
-	re := regexp.MustCompile(`(\d+)\s*([hms]|hr|hrs|hour|hours|min|mins|minute|minutes)`)
-	matches := re.FindAllStringSubmatch(raw, -1)
-	if len(matches) == 0 {
-		return 0, fmt.Errorf("invalid duration: %s", value)
-	}
-	total := 0
-	for _, m := range matches {
-		n, _ := strconv.Atoi(m[1])
+	re := regexp.MustCompile(`^(\d+)\s*(hours?|hrs?|h|minutes?|mins?|m|s)`)
+	maxMinutes := int(^uint(0) >> 1)
+	total, seconds := 0, 0
+	for raw != "" {
+		m := re.FindStringSubmatch(raw)
+		if m == nil {
+			return 0, fmt.Errorf("invalid duration: %s", value)
+		}
+		n, err := strconv.Atoi(m[1])
+		if err != nil {
+			return 0, fmt.Errorf("duration is too large: %s", value)
+		}
 		switch m[2] {
 		case "h", "hr", "hrs", "hour", "hours":
-			total += n * 60
-		case "m", "min", "mins", "minute", "minutes":
-			total += n
-		case "s":
-			if n > 0 {
-				total += 1
+			if n > maxMinutes/60 {
+				return 0, fmt.Errorf("duration is too large: %s", value)
 			}
+			n *= 60
+		case "m", "min", "mins", "minute", "minutes":
+		case "s":
+			seconds += n % 60
+			n = n/60 + seconds/60
+			seconds %= 60
 		}
+		if n > maxMinutes-total {
+			return 0, fmt.Errorf("duration is too large: %s", value)
+		}
+		total += n
+		raw = strings.TrimSpace(raw[len(m[0]):])
+	}
+	// Todoist offsets use whole minutes. Round the complete duration up once.
+	if seconds > 0 {
+		if total == maxMinutes {
+			return 0, fmt.Errorf("duration is too large: %s", value)
+		}
+		total++
 	}
 	if total <= 0 {
 		return 0, fmt.Errorf("invalid duration: %s", value)

@@ -204,6 +204,10 @@ todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime
 todoist reminder delete (<id> | --id <id>) [--yes]
 ```
 
+Relative offsets accept positive whole-number minutes or whole-number duration
+terms such as `1h30m` and `120s`. Seconds are summed and rounded up once to minutes;
+negative, fractional, malformed and overflowing values are rejected.
+
 ### Notification commands
 
 ```

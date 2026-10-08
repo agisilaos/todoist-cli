@@ -944,6 +944,11 @@ todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime
 todoist reminder delete (<id> | --id <id>) [--yes]
 ```
 
+`--before` accepts positive integer minutes or whole-number duration terms such
+as `1h30m` and `120s`. The total seconds round up to a whole minute; `120s` is two
+minutes and `30s30s` is one. Negative, fractional, overflowing, or partially
+recognized input is rejected.
+
 ### Notifications
 
 Manage live notifications (Sync API).

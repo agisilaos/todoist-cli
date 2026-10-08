@@ -708,7 +708,9 @@ var leafHelpPages = map[string]commandHelp{
   --before <duration>               Reminder offset before due (e.g. 30m, 1h)
   --at <datetime>                   Reminder datetime (RFC3339 or YYYY-MM-DD HH:MM)`,
 		examples: `  todoist reminder add --task id:123456 --before 30m`,
-		notes:    `  Choose --before or --at. Relative reminders use the task's due time; absolute times accept RFC3339 or YYYY-MM-DD HH:MM.`,
+		notes: `  Choose --before or --at. Relative reminders use the task's due time; absolute times accept RFC3339 or YYYY-MM-DD HH:MM.
+  --before accepts whole-number duration terms (1h30m, 120s) or positive integer minutes.
+  Total seconds round up to a whole minute; negative, fractional, or partially recognized input is rejected.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},
@@ -718,7 +720,9 @@ var leafHelpPages = map[string]commandHelp{
   --before <duration>               Reminder offset before due (e.g. 30m, 1h)
   --at <datetime>                   Reminder datetime (RFC3339 or YYYY-MM-DD HH:MM)`,
 		examples: `  todoist reminder update --id 678 --before 1h`,
-		notes:    `  Find reminder IDs with reminder list; choose --before or --at.`,
+		notes: `  Find reminder IDs with reminder list; choose --before or --at.
+  --before accepts whole-number duration terms (1h30m, 120s) or positive integer minutes.
+  Total seconds round up to a whole minute; negative, fractional, or partially recognized input is rejected.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},
