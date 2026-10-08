@@ -103,6 +103,38 @@ class InventoryTests(unittest.TestCase):
         self.assertNotEqual(expected, REFERENCE.render_reference(changed))
 
 
+class ApplicationExampleTests(unittest.TestCase):
+    def test_confirmation_is_required_for_application_examples(self):
+        pages = list(inventory().pages.values())
+        pages[0] = REFERENCE.HelpPage((), ROOT_HELP + "  -f, --force          Skip confirmation\n  --dry-run            Preview\n")
+        flags = "Flags:\n  --instruction <text>  Instruction\n  --confirm <token>     Confirmation\n  --plan <file>         Plan\n  --weekly <day time>   Schedule\n"
+        for command in [("agent", "run"), ("agent", "apply"), ("agent", "schedule"), ("agent", "schedule", "print")]:
+            pages.append(REFERENCE.HelpPage(command, flags))
+        commands = REFERENCE.CommandInventory(pages)
+        for args in [
+            ["agent", "run", "--instruction", "Triage inbox"],
+            ["agent", "apply", "--plan", "plan.json", "--dry-run"],
+            ["agent", "schedule", "print", "--weekly", "sat 09:00", "--instruction", "Triage"],
+            ["agent", "run", "--instruction", "--force"],
+            ["agent", "run", "--instruction", "Triage", "--confirm="],
+            ["agent", "run", "--instruction", "Triage", "--force=false"],
+            ["agent", "run", "--instruction", "Triage", "--", "--force"],
+            ["agent", "run", "--instruction", "Triage", "--help=false"],
+        ]:
+            with self.subTest(args=args), self.assertRaisesRegex(ValueError, "requires --confirm or --force"):
+                commands.validate(args)
+        for args in [
+            ["--force", "agent", "run", "--instruction", "Triage", "--dry-run"],
+            ["agent", "apply", "--plan", "plan.json", "--confirm", "token"],
+            ["agent", "apply", "--plan", "plan.json", "--confirm=$CONFIRM_TOKEN"],
+            ["agent", "schedule", "print", "--weekly", "sat 09:00", "-f", "--dry-run"],
+            ["agent", "run", "--help"],
+            ["help", "agent", "run"],
+        ]:
+            with self.subTest(args=args):
+                commands.validate(args)
+
+
 class ExampleTests(unittest.TestCase):
     def test_bundle_examples_detect_commands_flags_and_quoting_without_execution(self):
         with tempfile.TemporaryDirectory(prefix="skill examples ") as scratch:
@@ -153,6 +185,66 @@ todoist task list --project 'unterminated
             manifest.write_text("bad.txt\ttask delete -- --help\n")
             with self.assertRaisesRegex(ValueError, "expected command names"):
                 REFERENCE.manifest_commands(root)
+
+    def test_application_examples_are_checked_across_public_sources(self):
+        with tempfile.TemporaryDirectory(prefix="application examples ") as scratch:
+            root = Path(scratch)
+            (root / "scripts").mkdir()
+            (root / "docs").mkdir()
+            bundle = root / "internal/agentskill/bundle"
+            (bundle / "references").mkdir(parents=True)
+            good = 'todoist agent run --instruction "Triage inbox" --force --dry-run'
+            bad = 'todoist agent run --instruction "Triage inbox" --dry-run'
+            flags = "Flags:\n  --instruction <text>  Instruction\n  --confirm <token>     Confirmation\n"
+            pages = {"": ROOT_HELP + "  -f, --force          Confirmation\n  --dry-run            Preview\n",
+                     "agent": "Usage:\n  todoist agent run\n",
+                     "agent run": "Usage:\n  todoist agent run [flags]\n\n" + flags,
+                     "agent examples": "Usage:\n  todoist agent examples\n"}
+            (root / "scripts/help-snapshots.txt").write_text("".join(
+                f"{name or 'root'}.txt\t{name + ' ' if name else ''}--help\n" for name in pages))
+            executable = root / "fake todoist"
+
+            def setup(broken=None):
+                # Formal usage and prose mentions are not runnable examples.
+                (root / "README.md").write_text('Use `todoist agent run`.\n```text\ntodoist agent run [flags]\n```\n'
+                                               + "```bash\n" + (bad if broken == "README" else good) + "\n```\n")
+                (root / "docs/SPEC.md").write_text("```sh\n" + (bad if broken == "SPEC" else good) + "\n```\n")
+                (bundle / "SKILL.md").write_text("```sh\n" + (bad if broken == "bundle" else good) + "\n```\n")
+                helps = {**pages, "agent": pages["agent"] + "\nExamples:\n  " + (bad if broken == "help" else good) + "\n"}
+                emitted = "Examples:\n  " + (bad if broken == "emitted" else good) + "\n"
+                executable.write_text("#!/usr/bin/env python3\nimport os, sys\n"
+                                      "assert not any(key.startswith('TODOIST_') for key in os.environ)\n"
+                                      "assert sys.argv[1] == '--config'\n"
+                                      "args = sys.argv[3:]\n"
+                                      f"pages = {helps!r}\n"
+                                      "if args[-1] == '--help':\n"
+                                      "    print(pages[' '.join(args[:-1])], end='')\n"
+                                      "else:\n"
+                                      "    assert args == ['agent', 'examples'], 'executed a documentation example'\n"
+                                      f"    print({emitted!r}, end='')\n")
+                executable.chmod(0o755)
+
+            setup()
+            command = [sys.executable, str(Path(REFERENCE.__file__)), "--root", str(root), "--bin", str(executable)]
+            environment = {**os.environ, "TODOIST_TOKEN": "synthetic-secret"}
+            written = subprocess.run([*command, "--write"], text=True, capture_output=True, env=environment)
+            self.assertEqual(written.returncode, 0, written.stderr)
+            original = (bundle / "references/commands.md").read_bytes()
+            for surface, location in [("README", "README.md:6"), ("SPEC", "docs/SPEC.md:2"),
+                                      ("help", "todoist agent --help:5"),
+                                      ("emitted", "todoist agent examples:2"),
+                                      ("bundle", "internal/agentskill/bundle/SKILL.md:2")]:
+                with self.subTest(surface=surface):
+                    setup(surface)
+                    checked = subprocess.run(command, text=True, capture_output=True, env=environment)
+                    self.assertEqual(checked.returncode, 1, checked.stdout + checked.stderr)
+                    self.assertIn(location, checked.stderr)
+                    self.assertIn("requires --confirm or --force", checked.stderr)
+                    self.assertNotIn("synthetic-secret", checked.stdout + checked.stderr)
+                    self.assertEqual((bundle / "references/commands.md").read_bytes(), original)
+            setup()
+            checked = subprocess.run(command, text=True, capture_output=True, env=environment)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
 
     def test_live_generation_drift_and_example_errors(self):
         with tempfile.TemporaryDirectory(prefix="skill live help ") as scratch:

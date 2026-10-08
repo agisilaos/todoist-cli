@@ -476,8 +476,8 @@ func printAgentHelp(out interface{ Write([]byte) (int, error) }) {
 Examples:
   todoist agent plan "Move overdue tasks to Catch Up" --out plan.json
   todoist agent apply --plan plan.json --confirm 6f2b
-  todoist agent run --instruction "Triage inbox"
-  todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today"
+  todoist agent run --instruction "Triage inbox" --force --dry-run
+  todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --force --dry-run
 
 Context flags:
   --context-project <name>   Limit planner context to project(s) (repeatable)
