@@ -229,7 +229,7 @@ func detectShell(ctx *Context) string {
 func completionActivationHint(shell, path string) string {
 	switch canonicalCompletionShell(shell) {
 	case "bash":
-		return fmt.Sprintf("Activate now: source %s", path)
+		return fmt.Sprintf("Activate now: source %s", shellEscape(path))
 	case "zsh":
 		// Register a function so custom filenames work and the script only runs
 		// inside zsh's completion context. Resolve relative paths before the
@@ -239,7 +239,10 @@ func completionActivationHint(shell, path string) string {
 		}
 		return fmt.Sprintf("Activate now: autoload -Uz compinit && compinit && { _todoist() { source %s; }; compdef _todoist todoist; }", shellEscape(path))
 	case "fish":
-		return fmt.Sprintf("Activate now: source %s", path)
+		// Fish interprets backslashes before quotes and backslashes even inside
+		// single quotes, so use its quoting rules instead of POSIX shell syntax.
+		quoted := strings.NewReplacer("\\", "\\\\", "'", "\\'").Replace(path)
+		return fmt.Sprintf("Activate now: source '%s'", quoted)
 	case "powershell":
 		return "Activate now: " + powerShellSourceCommand(path)
 	default:

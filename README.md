@@ -345,6 +345,7 @@ Flag parsing notes:
 
 - Global flags can appear before or after commands/subcommands.
 - Subcommand flags can be mixed with positional refs/content (for example `todoist add "Buy milk" --project Home --dry-run`).
+- After a command's `--` delimiter, operands remain literal, including names such as `--priority` or `--help`.
 - Common aliases: `ls`=`list`, `rm`/`del`=`delete` (`task`, `project`, `section`, `label`, `comment`), and `show`=`view` (`task`).
 - Prefer `--json` or `--ndjson` for scripts/agents.
 
@@ -787,7 +788,7 @@ existing acknowledgements and previews. Bulk output remains unchanged.
 
 ### Today
 
-Quick list of tasks due today and overdue across projects, including Inbox. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts global flags only; use `task list` for custom filters or limits.
+Quick list of tasks due today and overdue across projects, including Inbox. Uses the selected credential profile in every output mode and reports an authentication error when no credential is available. Accepts task sorting and global flags; use `task list` for custom filters or limits.
 
 Today fetches every matching page, requesting up to 200 tasks per page. The page
 size does not limit the number of tasks shown.
@@ -857,7 +858,7 @@ todoist completed [--completed-by completion|due] [--since <date>] [--until <dat
 
 ### Upcoming
 
-List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks.
+List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks. Default ordering is by due date and time, including timed due dates.
 
 ```
 todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort <key>] [--sort-order asc|desc] [--wide]
@@ -944,6 +945,11 @@ todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime
 todoist reminder delete (<id> | --id <id>) [--yes]
 ```
 
+`--before` accepts positive integer minutes or whole-number duration terms such
+as `1h30m` and `120s`. The total seconds round up to a whole minute; `120s` is two
+minutes and `30s30s` is one. Negative, fractional, overflowing, or partially
+recognized input is rejected.
+
 ### Notifications
 
 Manage live notifications (Sync API).
@@ -990,6 +996,8 @@ todoist settings themes
 
 `settings view` prints human-friendly labels (for example `24h`, `DD-MM-YYYY`, theme names) and resolves `start_page` references like `project?id=<id>` to names when possible.
 
+Settings, goals/vacation and notification changes require a successful Sync acknowledgement for every command. A failed invitation command stops before marking it read. Inspect remote state before retrying a partially accepted or unacknowledged update.
+
 ### View
 
 Open Todoist web URLs with equivalent CLI commands.
@@ -1033,19 +1041,25 @@ todoist agent status
 - In `--dry-run`, no-action plans are allowed (useful for CI/pipeline contract checks).
 - `--on-error=continue` keeps applying after an individual action failure and reports statuses. Individual non-task request timeouts count as action failures. Uncertain task writes (including request timeouts) stop application under [ADR-0009](docs/adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md). Authorization denial, caller cancellation or an expired operation deadline, and replay-store load or record failures always stop application.
 - Human apply/run output includes a summary block (ok/failed/skipped replay), destructive-action count, per-action-type counts, and final outcome.
+- Recoverable action preparation failures are reported in `--on-error=continue` results before later actions proceed. The failed action is not dispatched.
 - `--plan-version` enforces expected plan.version (default 1). Unknown versions are rejected.
 - `agent planner` shows/sets the planner command (uses config/planner_cmd or TODOIST_PLANNER_CMD).
+- Setting the planner changes only `planner_cmd` in the user configuration, preserving unrelated and unknown fields without saving project or environment overrides.
 - `agent run` combines plan + apply for automation (cron/launchd).
-- `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`). It preserves `--dry-run` and `--force` plus profile/configuration selections; authorization is resolved when the generated command runs. Shell/XML metacharacters are escaped. Cron output escapes `%` and rejects arguments containing line breaks.
+- Planner timeouts and caller cancellation stop the owned Unix shell process group. Waiting for inherited output streams is bounded, including when the shell exits before its children.
+- `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`). It preserves `--dry-run` and `--force` plus profile/configuration selections; authorization is resolved when the generated command runs. File paths for configuration, policy and plans are made absolute so they survive a scheduler's working directory. Shell/XML metacharacters are escaped. Cron output escapes `%` and rejects arguments containing line breaks.
+- launchd and cron both retain the requested weekday.
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
+- Project and label selections restrict both active and completed tasks.
+- Resolved label IDs and fuzzy matches select the same planner tasks as the exact label name.
 - Planner context now includes active tasks (capped) in addition to projects/sections/labels/completed tasks.
 - `--policy <file>` enforces action-policy rules (`allow_action_types`, `deny_action_types`, `max_destructive_actions`).
 - `--progress-jsonl[=path]` emits JSONL progress events for `agent run/apply` (stderr by default). If the requested log file cannot be opened, the command fails before dispatching actions.
   Key lifecycle events include `agent_plan_loaded`, `agent_action_validated`, `agent_action_dispatched`,
   `agent_action_succeeded`/`agent_action_failed`, and `agent_apply_summary`.
 - Agent apply/run keeps a replay journal (`agent_replay.json`) and skips already-applied actions from the same plan token. An action is reported as successful only after its Todoist mutation and replay record both succeed.
-- Each successful Todoist mutation replaces the replay journal before success is emitted. For ordinary plans, skipped and failed actions do not write it. Review plans also persist pending evidence before execution and clear it after definite rejection; replay skips still do not write. Recording cost grows with the journal, which is intentionally not pruned because replay keys have no safe expiry policy.
-- For ordinary plans, interruption after Todoist accepts a mutation but before its replay record is installed can leave that mutation unrecorded, so rerunning may duplicate it. Review plans retain pending evidence and block retry of that plan. Inspect Todoist and reconcile the outcome before starting a fresh review.
+- Ordinary task actions and review actions persist pending evidence before dispatch, clear it after definite rejection, and replace it with an applied-action record on acceptance. Review actions also retain required task checkpoints. Replay skips do not write the journal. Ordinary non-task actions write it only after successful mutations. Recording cost grows with the journal, which is intentionally not pruned because replay keys have no safe expiry policy.
+- Interrupted or uncertain task writes retain pending evidence and block retry of that plan. For ordinary non-task actions, interruption after Todoist accepts a mutation but before its replay record is installed can still leave an unrecorded mutation that a rerun duplicates. Inspect Todoist and reconcile the outcome before creating a fresh plan or review.
 - Replay recording assumes one applying CLI process at a time. Same-directory replacement avoids writing partially encoded JSON into the journal, but replacement visibility follows the underlying OS and filesystem; it does not coordinate concurrent writers or promise survival from an OS or storage power loss.
 
 Planner contract checklist:
@@ -1054,23 +1068,28 @@ Planner contract checklist:
 - Optional: include `reason` per action for richer human review output.
 - Use stable action fields (IDs or names as documented).
 
-Scheduling example (macOS launchd):
+The examples below use `--force --dry-run` to satisfy confirmation while
+previewing without CLI-dispatched Todoist mutations. For reviewed application,
+save a plan and pass its matching `--confirm` token. Unattended application of
+freshly generated plans requires deliberate `--force` use without `--dry-run`;
+use `--policy` to constrain permitted actions.
+
+Scheduling preview (macOS launchd; inspect the file before installing):
 
 ```bash
-todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" > ~/Library/LaunchAgents/com.todoist.agent.weekly.plist
-launchctl load ~/Library/LaunchAgents/com.todoist.agent.weekly.plist
+todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --force --dry-run > weekly-preview.plist
 ```
 
-Cron example:
+Cron preview example:
 
 ```bash
-todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --cron
+todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --force --dry-run --cron
 ```
 
-Context scoping example:
+Context scoping preview:
 
 ```bash
-todoist agent run --instruction "Pick 3 articles for today" --context-project "Learning" --context-label article --context-completed 7d
+todoist agent run --instruction "Pick 3 articles for today" --context-project "Learning" --context-label article --context-completed 7d --force --dry-run
 ```
 
 ### Doctor
@@ -1123,7 +1142,7 @@ todoist completion uninstall zsh
 todoist completion uninstall powershell
 ```
 
-`completion install` prints a shell-specific activation command. Bash and fish use `source`; PowerShell uses `. '<path>'`. For zsh, the command initializes `compinit` and registers a completion function that loads the installed file when Tab is pressed, including custom `--path` filenames. Run the printed command to activate completion now; add it to `.zshrc` for future zsh sessions. Do not source the zsh completion file directly.
+`completion install` prints a shell-specific activation command with quoted paths, including paths containing spaces or shell metacharacters. Bash and fish use `source`; PowerShell uses `. '<path>'`. For zsh, the command initializes `compinit` and registers a completion function that loads the installed file when Tab is pressed, including custom `--path` filenames. Run the printed command to activate completion now; add it to `.zshrc` for future zsh sessions. Do not source the zsh completion file directly.
 
 PowerShell completion supports PowerShell 7 on macOS and Linux. Its default path is `$XDG_DATA_HOME/todoist/completions/todoist.ps1`, falling back to `~/.local/share/todoist/completions/todoist.ps1`. Installation never edits `$PROFILE`; run the printed dot-source command for the current session and add that command to your chosen `$PROFILE` for future sessions.
 
@@ -1219,6 +1238,9 @@ context would require a separate compatibility decision.
 - `--accessible` (or `TODOIST_ACCESSIBLE=1`) retains the existing due/priority markers in task tables and plain output. Active-task overviews always have explicit text labels, with or without this flag.
 - Human width uses `--truncate-width` where supported, then `TODOIST_TABLE_WIDTH` or configured `table_width`, then `COLUMNS`, then 120 columns. Existing `--wide` selects the detailed table for active lists and expands other task tables; it is intended for a broad terminal.
 - Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
+- Explicit filter IDs and URLs never match a different filter's name.
+- Assignee email matches take precedence over display names; duplicate display names require disambiguation.
+- Filter names follow the same opt-in fuzzy matching rule, including the `--no-fuzzy` override.
 
 ### Everyday overview
 
@@ -1226,8 +1248,15 @@ Start with `todoist today` for overdue and due-today work across projects.
 `inbox` and bare `task list` remain Inbox selections; the all-project view also
 includes undated tasks. The layout never groups or reorders tasks: existing API
 ordering and supported client sorting remain in effect. Filters and presets keep
-API ordering (`--sort` does not apply to them); `--preset today` selects only
+API ordering by default; explicit `--sort` applies client sorting. `--preset today` selects only
 `today`, while the top-level `today` command selects `overdue | today`.
+
+For active `task list`, `--filter` or `--preset` cannot be combined with
+`--project`, `--section`, `--parent`, `--label`, or `--id`. Express the full
+selection in the Todoist filter, or use the separate selectors without a filter.
+Conflicting selectors are rejected rather than silently dropped.
+
+Single-task commands reject a positional reference combined with `--id`.
 
 Illustrative human output from `todoist task list --all-projects --all`, using
 synthetic tasks and a UTC reference date of 2026-09-29:
@@ -1288,6 +1317,8 @@ payloads, fetching behavior, and stdout/stderr contracts. No overview labels or
 empty messages are added to machine output.
 
 Plain output columns:
+
+- `filter list`: `id`, `name`, `query`, `color`, `favorite` (`yes` or empty).
 
 - `task list`: `id, content, project_id, section_id, labels, due, priority, completed`
 - `project list`: `id, name, parent_id, is_archived, is_shared`

@@ -98,7 +98,7 @@ func TestParseGlobalBooleanHelpValues(t *testing.T) {
 		}
 	}
 	opts, rest, err := parseGlobalFlags([]string{"task", "view", "--", "--help=true"}, nil)
-	if err != nil || opts.Help || !reflect.DeepEqual(rest, []string{"task", "view", "--help=true"}) {
+	if err != nil || opts.Help || !reflect.DeepEqual(rest, []string{"task", "view", "--", "--help=true"}) {
 		t.Errorf("help after terminator consumed: %+v %v %v", opts, rest, err)
 	}
 }

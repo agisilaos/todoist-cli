@@ -9,9 +9,10 @@ Read-only means remote reads without Todoist mutations. Local-only commands may 
 | Bare invocation, `help [command]`, command help flags, `--version`, `help examples` | Local-only |
 | `profile list`, `profile current`, `profile use`, `profile remove` | Local-only; metadata inspection, user-default selection, or explicit credential removal; no identity lookup or Todoist request |
 | `auth status`, `auth logout` | Local-only; logout removes a stored profile and does not revoke the remote token |
-| `auth login`, `auth login --token-stdin` | Local credential replacement; OAuth variants also perform a remote authorization exchange |
+| `auth login`, `auth login --token-stdin` | Manual login verifies the candidate token with a read-only `GET /projects?limit=1` before local credential replacement or `--print-env` export. OAuth variants perform a remote authorization exchange before persistence or export |
+| `auth migrate`, `auth repair` | Local-only credential-store migration and recovery; may change native secret storage and local files, without Todoist requests |
 | `task list/ls`, `task view/show` | Read-only |
-| `task add/update/move/complete/reopen/delete/rm/del` | Remotely mutating, including bulk operations; dry-run previews supported |
+| `task add/update/reschedule/move/complete/reopen/delete/rm/del` | Remotely mutating, including bulk operations; dry-run previews supported |
 | Top-level `add`, `inbox add` | Remotely mutating; dry-run previews supported |
 | `review` | Selection/planning are read-only; optional local plan persistence. Confirmed pending actions mutate. Dry-run/read-only sessions stop at preview |
 | Bare `inbox`, `today`, `upcoming`, `completed` | Read-only |

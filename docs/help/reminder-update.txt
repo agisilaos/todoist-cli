@@ -14,6 +14,8 @@ Global flags:
 
 Notes:
   Find reminder IDs with reminder list; choose --before or --at.
+  --before accepts whole-number duration terms (1h30m, 120s) or positive integer minutes.
+  Total seconds round up to a whole minute; negative, fractional, or partially recognized input is rejected.
 
 Examples:
   todoist reminder update --id 678 --before 1h

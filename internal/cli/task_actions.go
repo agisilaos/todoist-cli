@@ -112,6 +112,9 @@ func taskDelete(ctx *Context, args []string) error {
 	if len(fs.Args()) > 0 {
 		ref = strings.Join(fs.Args(), " ")
 	}
+	if id != "" && len(fs.Args()) > 0 {
+		return &CodeError{Code: exitUsage, Err: errors.New("--id cannot be combined with a positional task reference")}
+	}
 	if strings.TrimSpace(id) == "" && strings.TrimSpace(ref) == "" {
 		return &CodeError{Code: exitUsage, Err: errMissingTaskDeleteRef}
 	}

@@ -75,7 +75,7 @@ func TestSettingsUpdateCallsSync(t *testing.T) {
 		if !strings.Contains(commands, `"type":"user_update"`) || !strings.Contains(commands, `"timezone":"UTC"`) {
 			t.Fatalf("unexpected commands payload: %s", commands)
 		}
-		_, _ = w.Write([]byte(`{}`))
+		_, _ = w.Write(successfulSyncResponse(t, commands))
 	}))
 	defer ts.Close()
 

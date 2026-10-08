@@ -89,6 +89,9 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return "", &CodeError{Code: exitUsage, Err: err}
 	}
+	if id != "" && len(fs.Args()) > 0 {
+		return "", &CodeError{Code: exitUsage, Err: errors.New("--id cannot be combined with a positional task reference")}
+	}
 	if id != "" {
 		normalized, directID, err := apprefs.NormalizeEntityRef(id, "task")
 		if err != nil {
@@ -422,7 +425,9 @@ func normalizeInterspersedArgs(fs *flag.FlagSet, args []string) ([]string, error
 		i++
 		flagArgs = append(flagArgs, args[i])
 	}
-	return append(flagArgs, positional...), nil
+	// FlagSet must not reinterpret option-shaped positional operands after
+	// the interspersed scan has already classified them.
+	return append(append(flagArgs, "--"), positional...), nil
 }
 
 func splitFlagName(arg string) (string, bool) {

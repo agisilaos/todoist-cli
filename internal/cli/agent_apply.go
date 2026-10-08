@@ -105,7 +105,12 @@ func applyActionsWithPreparation(ctx *Context, confirmToken string, actions []Ac
 			var err error
 			attempt, err = prepare(idx, action)
 			if err != nil {
-				return results, err
+				if shouldAbortApply(ctx, onError, err) {
+					return results, err
+				}
+				results = append(results, applyResult{Action: action, Error: err})
+				emitActionFailure(ctx, idx, action, err, map[string]any{"stage": "prepare"})
+				continue
 			}
 		}
 		emitProgress(ctx, "agent_action_dispatched", map[string]any{"index": idx, "action_type": action.Type})

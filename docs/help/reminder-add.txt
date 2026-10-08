@@ -14,6 +14,8 @@ Global flags:
 
 Notes:
   Choose --before or --at. Relative reminders use the task's due time; absolute times accept RFC3339 or YYYY-MM-DD HH:MM.
+  --before accepts whole-number duration terms (1h30m, 120s) or positive integer minutes.
+  Total seconds round up to a whole minute; negative, fractional, or partially recognized input is rejected.
 
 Examples:
   todoist reminder add --task id:123456 --before 30m

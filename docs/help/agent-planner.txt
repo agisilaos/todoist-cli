@@ -11,7 +11,8 @@ Global flags:
   See 'todoist --help' for all global flags and output modes.
 
 Notes:
-  Without --set, reports the configured planner. --set requires --cmd and saves local configuration.
+  Without --set, reports the effective planner, including TODOIST_PLANNER_CMD.
+  --set requires --cmd and saves only planner_cmd in the user configuration, preserving other fields and defaults.
   The top-level planner command is equivalent. Planner programs are trusted and not sandboxed.
 
 Examples:

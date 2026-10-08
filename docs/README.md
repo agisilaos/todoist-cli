@@ -92,7 +92,11 @@ authoritative in the existing command handlers.
 
 When adding or changing a command:
 
-1. Implement its execution and parsing in the existing handler.
+1. Implement its execution and parsing in the existing handler. When adding or
+   changing command groups, update `delimiterPrecedesSubcommand` in `dispatch.go`
+   and cover delimiters before child commands and after leaf commands in
+   `delimiter_regression_test.go`. This routing boundary is maintained separately
+   from discovery metadata.
 2. Add its canonical path and aliases to `commandCatalog`. A group has `group: true`;
    a root command also needs its summary, section, and help order. Root listings,
    help lookup, and existing shell inventory slots derive from this entry.

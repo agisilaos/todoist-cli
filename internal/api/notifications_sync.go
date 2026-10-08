@@ -79,15 +79,19 @@ func (c *Client) MarkNotificationsRead(ctx context.Context, ids []string) (strin
 	if len(filtered) == 0 {
 		return "", fmt.Errorf("at least one notification id is required")
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "live_notifications_mark_read",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{"ids": filtered},
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "live_notifications_mark_read", requestID, "todoist notification list")
+	}
 	return requestID, err
 }
 
@@ -102,28 +106,36 @@ func (c *Client) MarkNotificationsUnread(ctx context.Context, ids []string) (str
 	if len(filtered) == 0 {
 		return "", fmt.Errorf("at least one notification id is required")
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "live_notifications_mark_unread",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{"ids": filtered},
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "live_notifications_mark_unread", requestID, "todoist notification list")
+	}
 	return requestID, err
 }
 
 func (c *Client) MarkAllNotificationsRead(ctx context.Context) (string, error) {
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "live_notifications_mark_read_all",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{},
 	}})
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "live_notifications_mark_read_all", requestID, "todoist notification list")
+	}
 	return requestID, err
 }
 
@@ -137,9 +149,10 @@ func (c *Client) AcceptInvitation(ctx context.Context, invitationID, invitationS
 	if n, err := strconv.ParseInt(invitationID, 10, 64); err == nil {
 		invitationArg = n
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "accept_invitation",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{
 			"invitation_id":     invitationArg,
 			"invitation_secret": invitationSecret,
@@ -148,7 +161,10 @@ func (c *Client) AcceptInvitation(ctx context.Context, invitationID, invitationS
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "accept_invitation", requestID, "todoist notification list")
+	}
 	return requestID, err
 }
 
@@ -162,9 +178,10 @@ func (c *Client) RejectInvitation(ctx context.Context, invitationID, invitationS
 	if n, err := strconv.ParseInt(invitationID, 10, 64); err == nil {
 		invitationArg = n
 	}
+	uuid := NewRequestID()
 	payload, err := json.Marshal([]map[string]any{{
 		"type": "reject_invitation",
-		"uuid": NewRequestID(),
+		"uuid": uuid,
 		"args": map[string]any{
 			"invitation_id":     invitationArg,
 			"invitation_secret": invitationSecret,
@@ -173,7 +190,10 @@ func (c *Client) RejectInvitation(ctx context.Context, invitationID, invitationS
 	if err != nil {
 		return "", err
 	}
-	_, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	resp, requestID, err := c.syncRequest(ctx, map[string]string{"commands": string(payload)})
+	if err == nil {
+		err = checkSyncCommand(resp, uuid, "reject_invitation", requestID, "todoist notification list")
+	}
 	return requestID, err
 }
 

@@ -113,7 +113,7 @@ func ResolveReference(in ResolveReferenceInput) (ResolveReferenceResult, error) 
 		return ResolveReferenceResult{}, errors.New("filter reference is required")
 	}
 	for _, candidate := range in.References {
-		if strings.EqualFold(candidate.ID, ref) || strings.EqualFold(candidate.Name, ref) {
+		if candidate.ID == ref || !directID && strings.EqualFold(candidate.Name, ref) {
 			return ResolveReferenceResult{
 				ResolvedID: candidate.ID,
 				Normalized: ref,

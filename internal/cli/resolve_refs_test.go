@@ -26,6 +26,7 @@ func TestResolveFilterRefAmbiguous(t *testing.T) {
 		Token:  "token",
 		Client: api.NewClient(ts.URL, "token", time.Second, authorization.Resolve(nil, "credentials", true)),
 		Config: config.Config{TimeoutSeconds: 2},
+		Fuzzy:  true,
 	}
 	_, err := resolveFilterRef(ctx, "tod")
 	if err == nil {

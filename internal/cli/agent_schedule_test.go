@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -119,5 +120,96 @@ func TestCronLine(t *testing.T) {
 	want := "0 9 * * 6 /usr/local/bin/todoist agent run --instruction hello"
 	if line != want {
 		t.Fatalf("unexpected cron line: %q", line)
+	}
+}
+
+func TestAgentSchedulePreservesRequestedWeekday(t *testing.T) {
+	// Both launchd.plist(5) and crontab(5) number Sunday as 0, Saturday as 6.
+	for _, tc := range []struct {
+		day     string
+		weekday int
+	}{{"sun", 0}, {"mon", 1}, {"tue", 2}, {"wed", 3}, {"thu", 4}, {"fri", 5}, {"sat", 6}} {
+		for _, cron := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/cron=%t", tc.day, cron), func(t *testing.T) {
+				args := []string{"--config", filepath.Join(t.TempDir(), "config.json"), "agent", "schedule", "print", "--weekly", tc.day + " 09:30", "--instruction", "Review", "--bin", "todoist"}
+				if cron {
+					args = append(args, "--cron")
+				}
+				var out, diagnostic bytes.Buffer
+				code := executeTestWithEnvironment(args, &out, &diagnostic, Environment{Getenv: func(string) string { return "" }})
+				if code != 0 {
+					t.Fatalf("schedule exited %d: %s", code, diagnostic.String())
+				}
+				if cron {
+					if !strings.HasPrefix(out.String(), fmt.Sprintf("30 9 * * %d ", tc.weekday)) {
+						t.Fatalf("cron weekday changed: %s", out.String())
+					}
+					return
+				}
+				var plist struct {
+					Interval []int `xml:"dict>dict>integer"`
+				}
+				if err := xml.Unmarshal(out.Bytes(), &plist); err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(plist.Interval, []int{tc.weekday, 9, 30}) {
+					t.Fatalf("launchd interval = %v; requested %s 09:30 requires weekday %d", plist.Interval, tc.day, tc.weekday)
+				}
+			})
+		}
+	}
+}
+
+func TestAgentScheduleLoadsRelativePlanFromSchedulerDirectory(t *testing.T) {
+	for _, format := range []string{"launchd", "cron"} {
+		t.Run(format, func(t *testing.T) {
+			if format == "cron" && runtime.GOOS == "windows" {
+				t.Skip("cron requires a POSIX shell")
+			}
+			dir := t.TempDir()
+			t.Chdir(dir)
+			if err := os.WriteFile("weekly plan.json", []byte(`{"version":1,"confirm_token":"scheduled","actions":[]}`), 0600); err != nil {
+				t.Fatal(err)
+			}
+			bin := filepath.Join(dir, "capture-arguments")
+			if err := os.WriteFile(bin, []byte("#!/bin/sh\nprintf '%s\\000' \"$@\"\n"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			args := []string{"--config", filepath.Join(dir, "config.json"), "agent", "schedule", "print", "--weekly", "sat 09:00", "--plan", "weekly plan.json", "--confirm", "scheduled", "--dry-run", "--bin", bin}
+			if format == "cron" {
+				args = append(args, "--cron")
+			}
+			env := Environment{Getenv: func(string) string { return "" }}
+			var out, diagnostic bytes.Buffer
+			if code := executeTestWithEnvironment(args, &out, &diagnostic, env); code != 0 {
+				t.Fatalf("schedule exited %d: %s", code, diagnostic.String())
+			}
+			t.Chdir(t.TempDir())
+			var runArgs []string
+			if format == "cron" {
+				command := strings.TrimPrefix(strings.TrimSpace(out.String()), "0 9 * * 6 ")
+				result, err := exec.Command("/bin/sh", "-c", command).CombinedOutput()
+				if err != nil {
+					t.Fatalf("generated cron command: %v: %s", err, result)
+				}
+				runArgs = strings.Split(strings.TrimSuffix(string(result), "\x00"), "\x00")
+			} else {
+				var plist struct {
+					Arguments []string `xml:"dict>array>string"`
+				}
+				if err := xml.Unmarshal(out.Bytes(), &plist); err != nil {
+					t.Fatal(err)
+				}
+				runArgs = plist.Arguments[1:]
+			}
+			out.Reset()
+			diagnostic.Reset()
+			if code := executeTestWithEnvironment(append(runArgs, "--json"), &out, &diagnostic, env); code != 0 {
+				t.Fatalf("scheduled plan no longer loads from a different directory: exit %d: %s", code, diagnostic.String())
+			}
+			if !strings.Contains(out.String(), `"confirm_token": "scheduled"`) || !strings.Contains(out.String(), `"dry_run": true`) {
+				t.Fatalf("scheduled invocation did not preview the selected plan: %s", out.String())
+			}
+		})
 	}
 }

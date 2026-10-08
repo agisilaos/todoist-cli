@@ -217,6 +217,7 @@ var leafHelpPages = map[string]commandHelp{
   --quiet hides summaries, but retains tasks and cursor notices.
   Failed or missing Inbox lookup stops without fetching tasks from other projects.
   Use --project or --filter for an explicit selection; default filters/presets retain API order.
+  Active --filter/--preset rejects --project, --section, --parent, --label, or --id; put the complete selection in the filter instead.
   Completed listing accepts date hints such as yesterday and "2 weeks ago"; --since without --until ends today.
   Use --all to fetch all pages where supported, or follow the returned cursor.
 ` + taskSortNotes,
@@ -708,7 +709,9 @@ var leafHelpPages = map[string]commandHelp{
   --before <duration>               Reminder offset before due (e.g. 30m, 1h)
   --at <datetime>                   Reminder datetime (RFC3339 or YYYY-MM-DD HH:MM)`,
 		examples: `  todoist reminder add --task id:123456 --before 30m`,
-		notes:    `  Choose --before or --at. Relative reminders use the task's due time; absolute times accept RFC3339 or YYYY-MM-DD HH:MM.`,
+		notes: `  Choose --before or --at. Relative reminders use the task's due time; absolute times accept RFC3339 or YYYY-MM-DD HH:MM.
+  --before accepts whole-number duration terms (1h30m, 120s) or positive integer minutes.
+  Total seconds round up to a whole minute; negative, fractional, or partially recognized input is rejected.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},
@@ -718,7 +721,9 @@ var leafHelpPages = map[string]commandHelp{
   --before <duration>               Reminder offset before due (e.g. 30m, 1h)
   --at <datetime>                   Reminder datetime (RFC3339 or YYYY-MM-DD HH:MM)`,
 		examples: `  todoist reminder update --id 678 --before 1h`,
-		notes:    `  Find reminder IDs with reminder list; choose --before or --at.`,
+		notes: `  Find reminder IDs with reminder list; choose --before or --at.
+  --before accepts whole-number duration terms (1h30m, 120s) or positive integer minutes.
+  Total seconds round up to a whole minute; negative, fractional, or partially recognized input is rejected.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},
@@ -903,7 +908,8 @@ var leafHelpPages = map[string]commandHelp{
   --set                             Set planner command`,
 		examples: `  todoist agent planner
   todoist agent planner --set --cmd "my-planner"`,
-		notes: `  Without --set, reports the configured planner. --set requires --cmd and saves local configuration.
+		notes: `  Without --set, reports the effective planner, including TODOIST_PLANNER_CMD.
+  --set requires --cmd and saves only planner_cmd in the user configuration, preserving other fields and defaults.
   The top-level planner command is equivalent. Planner programs are trusted and not sandboxed.`,
 		globals: `  --no-input            Disable prompts`,
 	},
@@ -924,7 +930,8 @@ var leafHelpPages = map[string]commandHelp{
   --bin <path>                      Path to todoist binary (defaults to current executable)`,
 		examples: `  todoist agent schedule print --weekly "sat 09:00" --instruction "Review overdue tasks" --force --dry-run --cron`,
 		notes: `  Prints launchd XML by default or a cron line with --cron; it does not install or run the schedule.
-  Confirmation, profile, config, and preview selections are carried into the generated command.`,
+  Confirmation, profile, config, and preview selections are carried into the generated command.
+  Config, policy, and plan file paths are made absolute so the schedule can run from another directory.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},

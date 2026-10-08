@@ -255,7 +255,7 @@ func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
 	result, err := appfilters.ResolveReference(appfilters.ResolveReferenceInput{
 		Ref:         ref,
 		References:  references,
-		EnableFuzzy: true,
+		EnableFuzzy: useFuzzy(ctx),
 	})
 	if err != nil {
 		return api.Filter{}, &CodeError{Code: exitUsage, Err: err}
@@ -312,6 +312,9 @@ func writeFilterList(ctx *Context, filters []api.Filter) error {
 			fav = "yes"
 		}
 		rows = append(rows, []string{f.ID, f.Name, f.Query, f.Color, fav})
+	}
+	if ctx.Mode == output.ModePlain {
+		return output.WritePlain(ctx.Stdout, rows)
 	}
 	return output.WriteTable(ctx.Stdout, []string{"ID", "Name", "Query", "Color", "Favorite"}, rows)
 }

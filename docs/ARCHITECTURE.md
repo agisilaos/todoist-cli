@@ -80,6 +80,9 @@ further writes under ADR-0009; unrelated action timeouts remain individual
 failures in agent continue mode. Interrupted bulk commands emit the maintained
 batch target accounting before returning the error. Successfully recorded actions remain recorded; cancellation
 does not undo Todoist mutations or resolve an uncertain remote outcome.
+On Unix, planner cancellation kills the shell's dedicated process group. A bounded
+pipe wait also prevents inherited planner output streams from holding the CLI
+indefinitely.
 
 ## Service coverage
 
@@ -135,21 +138,29 @@ review reads its own snapshot projection. See [daily review](review-design.md).
 
 ## HTTP and Sync transport
 
-JSON and Sync form requests share `internal/api.Client.doRequest` for dispatch,
-request-body replay, transient status/transport retries, and response reads. Every
-attempt still passes through the authorization boundary. REST mutation retries
-require an idempotency request ID. Sync reads are retry-safe; Sync mutations are
-retried only when every command carries its original non-empty UUID, as described
-in [Todoist's Sync command contract](https://developer.todoist.com/api/v1/).
-Request IDs and encoded command bodies remain identical across at most three
-attempts; cancellation and request deadlines bound retry waits.
+General JSON and Sync form requests share `internal/api.Client.doRequest` for
+dispatch and response reads. Task writes are excluded from its retries. Native
+task Sync commands use `Client.TaskCommand` to dispatch directly and validate the
+exact command acknowledgement independently of optional returned task data. All
+task writes dispatch once without automatic retries or redirects under
+[ADR-0009](adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md).
+
+Every dispatch passes through the authorization boundary. REST reads and non-task
+mutations with an idempotency request ID are eligible for bounded retries. Sync
+reads are retry-safe; non-task Sync mutations are eligible only when every command
+carries its original non-empty UUID, as described in
+[Todoist's Sync command contract](https://developer.todoist.com/api/v1/). Eligible
+requests retain identical request IDs and encoded command bodies across at most
+three attempts; cancellation and request deadlines bound retry waits.
 
 Workspaces, current-user lookup, filters, reminders, settings, and notifications
 use one Sync response type and decoder. Successful bodies are read completely,
 like REST responses, and read failures are returned before decoding. This removes
 silent 16 KiB/256 KiB truncation. Accepted mutations with optional advisory bodies
 retain their separate bounded best-effort handling; malformed Sync responses and
-provider command errors are returned without retry.
+provider command errors are returned without retry. Every settings, goals and
+notification mutation checks its submitted command UUID acknowledgement, including
+both commands when one settings update changes user and notification settings.
 
 ## Authorization boundary
 
@@ -165,9 +176,10 @@ Unknown credential compatibility is deliberate; see [ADR-0003](adr/0003-preserve
 
 Profile commands use `credentials.Store.List/Inspect/Delete`; list/current/use
 never retrieve native secrets or make API calls. Configuration selection remains
-outside the store. A narrow user-default update preserves raw unknown config
-fields and excludes merged project/environment values. Removal retains dangling
-selection rather than selecting fallback credentials; cleanup uses the existing
+outside the store. Narrow user-default and planner-command updates share a config
+lock, preserve raw unknown config fields and exclude merged project/environment
+values. Removal retains dangling selection rather than selecting fallback
+credentials; cleanup uses the existing
 disabled-before-delete protocol. See the [profile/OAuth contract](profile-oauth-design.md).
 
 `internal/credentials` owns profile persistence and recovery. CLI workflows use its

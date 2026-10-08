@@ -21,7 +21,7 @@ task view <ref> --include-children
 
 Preserve ordinary due editing in task update and ordinary recurring completion in task complete. Project/section administration, new agent-plan action kinds, and platform expansion remain outside scope.
 
-Preserve the legacy default task output, frozen opt-in v2 projection and allowlist, null/presence semantics, numeric machine priorities, IDs-only eligibility, and human-only `--full`.
+Preserve the legacy default task output, frozen opt-in v2 projection and allowlist, null/presence semantics, numeric machine priorities, and IDs-only eligibility. `--full` affects human and legacy plain detail; JSON/NDJSON payloads are unchanged.
 
 ## Input presence and conflicts
 

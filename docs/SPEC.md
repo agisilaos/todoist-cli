@@ -83,6 +83,14 @@ parent, label, task IDs, filter, preset, completed selection, or `--all-projects
 is supplied. `--all-projects` changes project scope; `--all` fetches every page.
 Use `todoist task list --all-projects --all` for every active task across projects,
 including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
+Upcoming default ordering recognizes date-only, floating timestamp and offset
+timestamp values in `due.date`, along with legacy `due.datetime` values.
+
+Active `task list` rejects `--filter` or `--preset` combined with project,
+section, parent, label, or task-ID selectors. Put the complete selection in the
+filter or use the separate selectors alone.
+
+Single-task mutation commands reject positional references combined with `--id`.
 
 Human active-task lists identify the effective selection, shown count, and page
 coverage, including empty selections. `--quiet` suppresses headers and summaries.
@@ -156,8 +164,9 @@ or trigger a retry. Required mutation failures retain their existing paths.
 
 No additional reads, mutations, prompts or retries are introduced. Positional
 exact references keep their existing task GET; explicit `--id` still bypasses it.
-Named destinations retain their existing resolution reads and pagination. Existing
-retry behavior may still make up to three attempts with the same request ID.
+Named destinations retain their existing resolution reads and pagination.
+Prerequisite reads retain bounded retries. Task mutations dispatch once without
+automatic retries or redirects.
 
 Human single-task dry runs show identity, requested changes and the existing
 authorization summary, explicitly stating no task changed. Full text/IDs are
@@ -204,6 +213,10 @@ todoist reminder update (<id> | --id <id>) (--before <duration> | --at <datetime
 todoist reminder delete (<id> | --id <id>) [--yes]
 ```
 
+Relative offsets accept positive whole-number minutes or whole-number duration
+terms such as `1h30m` and `120s`. Seconds are summed and rounded up once to minutes;
+negative, fractional, malformed and overflowing values are rejected.
+
 ### Notification commands
 
 ```
@@ -241,6 +254,7 @@ todoist settings themes
 Notes:
 - `settings view` uses human-friendly labels for time/date/day/theme values.
 - Start-page refs (`project?id=...`, `label?id=...`, `filter?id=...`) are resolved to display names on a best-effort basis.
+- Settings, goals, vacation and notification mutations require a successful acknowledgement for every submitted Sync command. A failed invitation accept/reject command does not trigger mark-read. Partial acceptance or missing acknowledgements require inspecting current state before retrying.
 
 ### View command
 
@@ -288,16 +302,26 @@ Planner action schema notes:
 - `section_add` accepts `project` or `project_id`.
 - `comment_add` requires `content` plus `task_id` or `project`/`project_id`.
 - `reason` is an optional action field for explanation in human plan previews.
+- Planner timeouts and caller cancellation stop the owned Unix shell process group. Inherited output streams have a bounded wait, including after the shell exits.
 
 Planner context notes:
 
 - Planner request context includes `projects`, `sections`, `labels`, `active_tasks` (capped), and optional `completed_tasks`.
+- Project and label restrictions apply to both active and completed tasks.
+- Label IDs and fuzzy matches use the resolved name when selecting planner tasks.
+- Setting the planner updates only `planner_cmd` in user configuration, preserving unrelated and unknown fields without persisting project or environment overrides.
+- Planner inspection reports the effective environment/configuration command.
+- launchd and cron both retain the requested weekday.
+- Generated schedules make configuration, policy and plan file paths absolute.
 
 ## References
 
 - Use `id:<id>` to explicitly reference IDs.
 - Task/project/label/filter refs also accept Todoist app URLs (`https://app.todoist.com/app/<entity>/...`).
 - Fuzzy name resolution is opt-in via `--fuzzy` / `TODOIST_FUZZY=1`.
+- Explicit filter IDs and URLs match only IDs.
+- Assignee emails take precedence over display names, and duplicate display names are ambiguous.
+- `--no-fuzzy` disables approximate filter name matching too.
 - Active-task overviews always use text labels. Legacy task table/plain markers remain opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
 
 ### Task ambiguity
@@ -332,11 +356,12 @@ ID. Structured ambiguity enrichment requires a separate compatibility decision.
   devices such as `/dev/null` do not enable prompts or select
   automatic human output. Real terminals retain their interactive behavior.
 - Human default for TTY; `--plain` (tab-separated) for stable text.
+- Plain and redirected filter lists emit headerless TSV: ID, name, query, color and favorite (`yes` or empty).
 - `--json` emits raw arrays/objects; empty lists are `[]`, never `null`. `--ndjson` emits one JSON object per line. Single-task views, mutation acknowledgements, dry runs, doctor reports, and agent/planner results emit one record with the same payload as `--json`. Completion script generation still emits shell source.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
 - Supported commands: `task list`, `project list`, `project collaborators`, `section list`, `label list`, `comment list`, `filter list`, `workspace list`, `reminder list`, `notification list`, `activity`, `completed`, `today`, `upcoming`, bare `inbox`, and `filter show`, including existing `ls` aliases. Collaborators emit user IDs; activity emits event IDs, not object IDs.
 - Preserve command result order (including existing sorting), duplicates, fetching defaults, and `--all` behavior. Validate the whole fetched collection before output: missing IDs or IDs containing whitespace/control characters fail with exit 1.
-- In ID mode only, remaining pages produce stderr notices: `More available. Use --cursor "<cursor>"` (quoted with escapes) or `More available. Use --offset N` for notifications. Empty pages may have notices; exhausted collections do not. Pagination never appears on stdout.
+- In IDs-only, JSON and NDJSON list output, remaining pages produce stderr notices: `More available. Use --cursor "<cursor>"` (quoted with escapes) or `More available. Use --offset N` for notifications. Empty pages may have notices; exhausted collections do not. Pagination never appears on stdout.
 - `--ids-only` conflicts with `--json`, `--plain`, and `--ndjson`. Conflicts and unsupported commands fail before side effects with usage exit 2, empty stdout, and the existing JSON error envelope on stderr. Mutations, single-object views, resources without stable IDs, and `view URL` are unsupported.
 - `todoist schema --name ids_only` returns a wire-format descriptor, not a JSON payload schema. Existing payload schemas and existing output modes remain unchanged.
 - `--quiet-json` emits compact single-line JSON errors (useful for agents and log pipelines).
@@ -345,6 +370,7 @@ ID. Structured ambiguity enrichment requires a separate compatibility decision.
   Event stream includes planner/apply lifecycle markers such as `agent_plan_loaded`,
   `agent_action_validated`, `agent_action_dispatched`, `agent_action_succeeded`,
   `agent_action_failed`, and `agent_apply_summary`.
+- In continue mode, a recoverable action preparation failure records an action error, emits `agent_action_error` and `agent_action_failed` with `stage: "prepare"`, and continues without dispatching that action. Global plan validation and fatal authorization, replay or cancellation errors still stop execution.
 - An agent action succeeds only after the Todoist mutation and its replay record both succeed. `agent_action_complete` and `agent_action_succeeded` are emitted only after durable recording.
 - Caller cancellation or an expired operation deadline stops bulk task commands and agent application, even under `--on-error=continue`; prior Todoist mutations are not undone. Task-write timeouts are uncertain outcomes and stop further writes under ADR-0009; unrelated action timeouts remain individual failures in agent continue mode. Interrupted bulk commands emit the maintained `task_batch` accounting before returning the error: accepted, rejected, uncertain, and unattempted targets remain explicit. `failed` counts rejected or uncertain targets; `unattempted` counts targets not dispatched.
 - A replay-record failure emits `agent_action_error` and `agent_action_failed` with `stage: "replay_record"` and `remote_succeeded: true`, then terminates application even under `--on-error=continue`.
@@ -393,7 +419,8 @@ stdout/stderr behavior are unchanged, including accessible plain output.
 
 Implementation ownership: active command handlers supply effective scope and
 pagination context to `task_overview.go`; `task_output.go` remains the legacy
-renderer and machine-output path. Filters ignore other selection flags as before.
+renderer and machine-output path. Active filtered and preset lists reject additional
+project, section, parent, label, or task-ID selectors.
 Upcoming carries its selection's UTC reference day into the header so a midnight
 boundary during rendering cannot misstate its window. No domain vocabulary or
 architecture decision changes are required.
@@ -483,6 +510,7 @@ the existing nonhuman path. No general presentation framework is introduced.
 - Explicit `--help`/`-h` requests show command usage before validating mutation arguments or contacting the API.
 - Existing informational precedence applies: version wins over output conflicts, conflicts precede help, and root/command help remains available with `--ids-only` (an exception to ID-only stdout).
 - Subcommand flags may be interspersed with positional references (for example `todoist add "Buy milk" --project Home --dry-run`).
+- A command's `--` delimiter preserves all subsequent operands literally, including option-shaped content. A delimiter before a root command or subcommand retains the existing global-only meaning.
 - Common aliases: `ls=list`, `rm/del=delete`; plus `task show=view`.
 - For destructive task deletion, `todoist task delete` requires explicit `--yes`.
 
@@ -608,7 +636,8 @@ zero. Description stdin is exact UTF-8 text. Ordinary due updates and recurring
 completion retain their existing behavior. No new agent/review action kinds.
 
 Legacy task output remains default; opt-in v2 allowlist, null/presence, numeric
-priority, IDs-only, and human-only full remain frozen. New schemas:
+priority and IDs-only remain frozen. `--full` affects human and legacy plain
+detail; JSON/NDJSON payloads are unchanged. New schemas:
 `task_expanded_view`, `task_expanded_view_v2`, `task_write_ack`, `task_unchanged`,
 `task_partial_edit`, `task_batch`, `task_write_result`, `task_write_result_v2`,
 `task_write_record`, `task_write_record_v2`. JSON write results accept a task array
@@ -637,10 +666,11 @@ retries within the command's request timeout. Task writes are excluded under
 including native Sync task commands. REST reads and non-task mutations with an
 idempotency request ID are eligible. Sync resource reads and non-task commands that all
 carry stable UUIDs are eligible; the command body and request ID remain unchanged
-across attempts. UUID deduplication does not establish response replay: filter and
-reminder mutations require their command acknowledgement, and creates require a
-server ID mapping. Missing evidence returns an error and requires inspecting the
-resource before retrying; temporary reminder IDs are never reported as server IDs.
+across attempts. UUID deduplication does not establish response replay: filter,
+reminder, settings, goals and notification mutations require each command's
+acknowledgement, and creates require a server ID mapping. Missing evidence returns
+an error and requires inspecting the resource before retrying; temporary reminder
+IDs are never reported as server IDs.
 Authentication/authorization failures, malformed successful
 responses, body read failures, and Sync command errors are not retried. Retries do
 not establish that an interrupted mutation was unapplied; use the documented

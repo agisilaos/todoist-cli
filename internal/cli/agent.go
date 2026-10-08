@@ -241,12 +241,19 @@ func runPlanner(ctx *Context, plannerCmd string, instruction string, expectedVer
 	cmdCtx, cancel := requestContext(ctx)
 	defer cancel()
 	cmd := exec.CommandContext(cmdCtx, "/bin/sh", "-c", plannerCmd)
+	cmd.WaitDelay = time.Second
+	configurePlannerCancellation(cmd)
 	cmd.Stdin = bytes.NewReader(payload)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		// WaitDelay can expire after the shell exits, without invoking Cancel.
+		// Stop any remaining planner group before returning that failure.
+		if cmd.Process != nil {
+			_ = cmd.Cancel()
+		}
 		if cmdCtx.Err() != nil {
 			return Plan{}, fmt.Errorf("planner failed: %w", cmdCtx.Err())
 		}
