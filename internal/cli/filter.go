@@ -313,5 +313,8 @@ func writeFilterList(ctx *Context, filters []api.Filter) error {
 		}
 		rows = append(rows, []string{f.ID, f.Name, f.Query, f.Color, fav})
 	}
+	if ctx.Mode == output.ModePlain {
+		return output.WritePlain(ctx.Stdout, rows)
+	}
 	return output.WriteTable(ctx.Stdout, []string{"ID", "Name", "Query", "Color", "Favorite"}, rows)
 }

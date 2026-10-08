@@ -1300,6 +1300,8 @@ empty messages are added to machine output.
 
 Plain output columns:
 
+- `filter list`: `id`, `name`, `query`, `color`, `favorite` (`yes` or empty).
+
 - `task list`: `id, content, project_id, section_id, labels, due, priority, completed`
 - `project list`: `id, name, parent_id, is_archived, is_shared`
 - `section list`: `id, name, project_id, is_archived`
