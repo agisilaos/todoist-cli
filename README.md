@@ -1068,23 +1068,28 @@ Planner contract checklist:
 - Optional: include `reason` per action for richer human review output.
 - Use stable action fields (IDs or names as documented).
 
-Scheduling example (macOS launchd):
+The examples below use `--force --dry-run` to satisfy confirmation while
+previewing without CLI-dispatched Todoist mutations. For reviewed application,
+save a plan and pass its matching `--confirm` token. Unattended application of
+freshly generated plans requires deliberate `--force` use without `--dry-run`;
+use `--policy` to constrain permitted actions.
+
+Scheduling preview (macOS launchd; inspect the file before installing):
 
 ```bash
-todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" > ~/Library/LaunchAgents/com.todoist.agent.weekly.plist
-launchctl load ~/Library/LaunchAgents/com.todoist.agent.weekly.plist
+todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --force --dry-run > weekly-preview.plist
 ```
 
-Cron example:
+Cron preview example:
 
 ```bash
-todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --cron
+todoist agent schedule print --weekly "sat 09:00" --instruction "Move 3 articles from Learning to Today" --force --dry-run --cron
 ```
 
-Context scoping example:
+Context scoping preview:
 
 ```bash
-todoist agent run --instruction "Pick 3 articles for today" --context-project "Learning" --context-label article --context-completed 7d
+todoist agent run --instruction "Pick 3 articles for today" --context-project "Learning" --context-label article --context-completed 7d --force --dry-run
 ```
 
 ### Doctor
