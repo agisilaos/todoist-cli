@@ -288,6 +288,53 @@ func TestShouldAbortApply(t *testing.T) {
 	}
 }
 
+func TestAgentContinueReportsPreparationFailureAndAppliesRemainingActions(t *testing.T) {
+	for _, command := range []string{"apply", "run"} {
+		t.Run(command, func(t *testing.T) {
+			dir := t.TempDir()
+			planPath := filepath.Join(dir, "plan.json")
+			plan := `{"version":1,"confirm_token":"prepare-failure","actions":[{"type":"task_move","task_id":"task","parent":"parent","project_id":"project"},{"type":"task_add","content":"Remaining action"}]}`
+			if err := os.WriteFile(planPath, []byte(plan), 0600); err != nil {
+				t.Fatal(err)
+			}
+			var mutations atomic.Int32
+			server := newApplyTestServer(t, func(string) int { mutations.Add(1); return http.StatusOK })
+			defer server.Close()
+			args := []string{"--config", filepath.Join(dir, "config.json"), "--base-url", server.URL, "--json", "agent", command, "--plan", planPath, "--confirm", "prepare-failure", "--on-error", "continue"}
+			for attempt := 0; attempt < 2; attempt++ {
+				var out, diagnostic bytes.Buffer
+				code := executeTestWithEnvironment(args, &out, &diagnostic, Environment{Getenv: func(key string) string {
+					if key == "TODOIST_TOKEN" {
+						return "synthetic"
+					}
+					return ""
+				}})
+				if code != 0 {
+					t.Fatalf("continue invocation %d exited %d: %s", attempt, code, diagnostic.String())
+				}
+				var report struct {
+					Results []struct {
+						Error string `json:"error"`
+					} `json:"results"`
+				}
+				if err := json.Unmarshal(out.Bytes(), &report); err != nil {
+					t.Fatal(err)
+				}
+				if len(report.Results) != 2 || report.Results[0].Error != "--parent cannot be combined with project or section destinations" {
+					t.Fatalf("preparation failure lost or remaining action omitted: %s", out.String())
+				}
+				want := ""
+				if attempt == 1 {
+					want = "skipped_replay"
+				}
+				if report.Results[1].Error != want || mutations.Load() != 1 {
+					t.Fatalf("remaining action was not applied once and replayed: report=%s mutations=%d", out.String(), mutations.Load())
+				}
+			}
+		})
+	}
+}
+
 type fakeReplayStore struct {
 	applied     map[string]bool
 	recordErr   error
