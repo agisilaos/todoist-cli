@@ -138,14 +138,20 @@ review reads its own snapshot projection. See [daily review](review-design.md).
 
 ## HTTP and Sync transport
 
-JSON and Sync form requests share `internal/api.Client.doRequest` for dispatch,
-request-body replay, transient status/transport retries, and response reads. Every
-attempt still passes through the authorization boundary. REST mutation retries
-require an idempotency request ID. Sync reads are retry-safe; Sync mutations are
-retried only when every command carries its original non-empty UUID, as described
-in [Todoist's Sync command contract](https://developer.todoist.com/api/v1/).
-Request IDs and encoded command bodies remain identical across at most three
-attempts; cancellation and request deadlines bound retry waits.
+General JSON and Sync form requests share `internal/api.Client.doRequest` for
+dispatch and response reads. Task writes are excluded from its retries. Native
+task Sync commands use `Client.TaskCommand` to dispatch directly and validate the
+exact command acknowledgement independently of optional returned task data. All
+task writes dispatch once without automatic retries or redirects under
+[ADR-0009](adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md).
+
+Every dispatch passes through the authorization boundary. REST reads and non-task
+mutations with an idempotency request ID are eligible for bounded retries. Sync
+reads are retry-safe; non-task Sync mutations are eligible only when every command
+carries its original non-empty UUID, as described in
+[Todoist's Sync command contract](https://developer.todoist.com/api/v1/). Eligible
+requests retain identical request IDs and encoded command bodies across at most
+three attempts; cancellation and request deadlines bound retry waits.
 
 Workspaces, current-user lookup, filters, reminders, settings, and notifications
 use one Sync response type and decoder. Successful bodies are read completely,

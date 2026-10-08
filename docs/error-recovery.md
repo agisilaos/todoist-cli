@@ -55,7 +55,9 @@ A hard process kill cannot emit advice. The plan saved before dispatch and retai
 pending evidence remain the recovery basis. If the journal cannot be read, the
 human renderer cannot derive its uncertainty flags; preserve files and verify the
 remote state manually. The existing single-applying-process and durability limits
-still apply. Ordinary plans do not acquire review-plan pending protection.
+still apply. Ordinary task actions also retain pending-write evidence and block
+uncertain replay; review plans additionally require task checkpoints. Ordinary
+non-task actions retain their existing replay-recording limitations.
 
 ## Verification and domain impact
 

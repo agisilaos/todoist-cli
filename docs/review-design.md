@@ -107,7 +107,9 @@ is introduced. Native credentials and cross-platform expansion are outside scope
 ## Persistence sequence for maintainers
 
 The CLI apply loop owns replay skipping, dispatch events, error policy, and success
-reporting. Ordinary plans bind the existing mutation and replay-record operations.
+reporting. Ordinary task actions persist pending evidence before dispatch and bind
+mutation, failure cleanup, and replay recording to the prepared action. Ordinary
+non-task actions retain mutation and replay recording without pending evidence.
 Review preparation returns a `preparedAction` only after revalidating the task and
 persisting pending evidence. Its operations hold one action's checkpoint and
 mutation response; the replay store has no mutable current-action index or response.
@@ -119,7 +121,7 @@ mutation response; the replay store has no mutable current-action index or respo
 | Review preparation succeeds | Pending evidence exists before request construction and dispatch. Interruption can therefore block retry even if no request was sent. |
 | Final request result is a definite rejection | Clear pending evidence in a journal replacement. If replacement fails, retain pending evidence and stop. |
 | Final request result is uncertain | Retain pending evidence and stop; do not redispatch from this plan. |
-| Mutation succeeds | Record the replay key and, for review, clear pending and include any required response checkpoint in the same replacement. |
+| Mutation succeeds | Record the replay key and clear pending evidence in the same replacement; review actions also include any required response checkpoint. |
 | Required response snapshot is missing or recording fails | Stop without reporting an applied action. Review pending evidence remains. |
 | Recording succeeds | Report the applied action. Interruption before reporting is safe to replay because the record is already installed. |
 
@@ -128,8 +130,10 @@ in-memory publication for both ordinary and review writes. It copies the journal
 maps; callers replace checkpoint values and treat snapshot maps as immutable.
 Only successful persistence installs the candidate in memory. The file writer,
 JSON fields, key derivation, corruption handling, and durability limits are unchanged.
-The API client's existing request-ID/retry behavior is also unchanged; classification
-above applies to the final result returned to the apply loop.
+Task writes dispatch once without automatic retries or redirects under
+[ADR-0009](adr/0009-dispatch-task-writes-once-and-retain-pending-evidence.md).
+Prerequisite reads and eligible non-task requests retain bounded retries;
+classification above applies to the result returned to the apply loop.
 
 ## Accounting
 

@@ -164,8 +164,9 @@ or trigger a retry. Required mutation failures retain their existing paths.
 
 No additional reads, mutations, prompts or retries are introduced. Positional
 exact references keep their existing task GET; explicit `--id` still bypasses it.
-Named destinations retain their existing resolution reads and pagination. Existing
-retry behavior may still make up to three attempts with the same request ID.
+Named destinations retain their existing resolution reads and pagination.
+Prerequisite reads retain bounded retries. Task mutations dispatch once without
+automatic retries or redirects.
 
 Human single-task dry runs show identity, requested changes and the existing
 authorization summary, explicitly stating no task changed. Full text/IDs are
