@@ -301,6 +301,7 @@ Planner action schema notes:
 - `section_add` accepts `project` or `project_id`.
 - `comment_add` requires `content` plus `task_id` or `project`/`project_id`.
 - `reason` is an optional action field for explanation in human plan previews.
+- Planner timeouts and caller cancellation stop the owned Unix shell process group. Inherited output streams have a bounded wait, including after the shell exits.
 
 Planner context notes:
 

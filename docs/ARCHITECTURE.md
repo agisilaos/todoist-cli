@@ -80,6 +80,9 @@ further writes under ADR-0009; unrelated action timeouts remain individual
 failures in agent continue mode. Interrupted bulk commands emit the maintained
 batch target accounting before returning the error. Successfully recorded actions remain recorded; cancellation
 does not undo Todoist mutations or resolve an uncertain remote outcome.
+On Unix, planner cancellation kills the shell's dedicated process group. A bounded
+pipe wait also prevents inherited planner output streams from holding the CLI
+indefinitely.
 
 ## Service coverage
 
