@@ -167,9 +167,10 @@ Unknown credential compatibility is deliberate; see [ADR-0003](adr/0003-preserve
 
 Profile commands use `credentials.Store.List/Inspect/Delete`; list/current/use
 never retrieve native secrets or make API calls. Configuration selection remains
-outside the store. A narrow user-default update preserves raw unknown config
-fields and excludes merged project/environment values. Removal retains dangling
-selection rather than selecting fallback credentials; cleanup uses the existing
+outside the store. Narrow user-default and planner-command updates share a config
+lock, preserve raw unknown config fields and exclude merged project/environment
+values. Removal retains dangling selection rather than selecting fallback
+credentials; cleanup uses the existing
 disabled-before-delete protocol. See the [profile/OAuth contract](profile-oauth-design.md).
 
 `internal/credentials` owns profile persistence and recovery. CLI workflows use its

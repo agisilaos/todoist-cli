@@ -1,9 +1,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+	"time"
 
 	"github.com/agisilaos/todoist-cli/internal/config"
+	"github.com/agisilaos/todoist-cli/internal/credentials"
 	"github.com/agisilaos/todoist-cli/internal/output"
 )
 
@@ -54,9 +58,14 @@ func savePlannerCmd(ctx *Context, cmd string) error {
 			return err
 		}
 	}
-	cfg := ctx.Config
-	cfg.PlannerCmd = cmd
-	return config.SaveConfig(cfgPath, cfg)
+	bounded, cancel := context.WithTimeout(operationContext(ctx), 2*time.Second)
+	defer cancel()
+	unlock, err := (credentials.Disk{}).Lock(bounded, filepath.Join(filepath.Dir(cfgPath), ".todoist-config.lock"))
+	if err != nil {
+		return fmt.Errorf("lock configuration before setting planner: %w", err)
+	}
+	defer unlock()
+	return config.SetPlannerCommand(cfgPath, cmd)
 }
 
 func resolvePlannerCmd(ctx *Context, override string, includeEnv bool) (string, string) {
