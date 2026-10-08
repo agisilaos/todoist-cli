@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -119,5 +120,42 @@ func TestCronLine(t *testing.T) {
 	want := "0 9 * * 6 /usr/local/bin/todoist agent run --instruction hello"
 	if line != want {
 		t.Fatalf("unexpected cron line: %q", line)
+	}
+}
+
+func TestAgentSchedulePreservesRequestedWeekday(t *testing.T) {
+	// Both launchd.plist(5) and crontab(5) number Sunday as 0, Saturday as 6.
+	for _, tc := range []struct {
+		day     string
+		weekday int
+	}{{"sun", 0}, {"mon", 1}, {"tue", 2}, {"wed", 3}, {"thu", 4}, {"fri", 5}, {"sat", 6}} {
+		for _, cron := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/cron=%t", tc.day, cron), func(t *testing.T) {
+				args := []string{"--config", filepath.Join(t.TempDir(), "config.json"), "agent", "schedule", "print", "--weekly", tc.day + " 09:30", "--instruction", "Review", "--bin", "todoist"}
+				if cron {
+					args = append(args, "--cron")
+				}
+				var out, diagnostic bytes.Buffer
+				code := executeTestWithEnvironment(args, &out, &diagnostic, Environment{Getenv: func(string) string { return "" }})
+				if code != 0 {
+					t.Fatalf("schedule exited %d: %s", code, diagnostic.String())
+				}
+				if cron {
+					if !strings.HasPrefix(out.String(), fmt.Sprintf("30 9 * * %d ", tc.weekday)) {
+						t.Fatalf("cron weekday changed: %s", out.String())
+					}
+					return
+				}
+				var plist struct {
+					Interval []int `xml:"dict>dict>integer"`
+				}
+				if err := xml.Unmarshal(out.Bytes(), &plist); err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(plist.Interval, []int{tc.weekday, 9, 30}) {
+					t.Fatalf("launchd interval = %v; requested %s 09:30 requires weekday %d", plist.Interval, tc.day, tc.weekday)
+				}
+			})
+		}
 	}
 }

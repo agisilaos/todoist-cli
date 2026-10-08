@@ -281,7 +281,7 @@ func launchdPlist(spec scheduleSpec, binPath string, args []string) string {
 	}
 	b.WriteString("    </array>\n")
 	b.WriteString("    <key>StartCalendarInterval</key>\n    <dict>\n")
-	b.WriteString(fmt.Sprintf("      <key>Weekday</key>\n      <integer>%d</integer>\n", spec.Weekday))
+	b.WriteString(fmt.Sprintf("      <key>Weekday</key>\n      <integer>%d</integer>\n", cronWeekday(spec.Weekday)))
 	b.WriteString(fmt.Sprintf("      <key>Hour</key>\n      <integer>%d</integer>\n", spec.Hour))
 	b.WriteString(fmt.Sprintf("      <key>Minute</key>\n      <integer>%d</integer>\n", spec.Minute))
 	b.WriteString("    </dict>\n")

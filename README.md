@@ -1046,6 +1046,7 @@ todoist agent status
 - Setting the planner changes only `planner_cmd` in the user configuration, preserving unrelated and unknown fields without saving project or environment overrides.
 - `agent run` combines plan + apply for automation (cron/launchd).
 - `agent schedule print` emits a scheduler entry (launchd by default; use `--cron`). It preserves `--dry-run` and `--force` plus profile/configuration selections; authorization is resolved when the generated command runs. Shell/XML metacharacters are escaped. Cron output escapes `%` and rejects arguments containing line breaks.
+- launchd and cron both retain the requested weekday.
 - Context flags: `--context-project`, `--context-label`, `--context-completed 7d` limit planner context.
 - Project and label selections restrict both active and completed tasks.
 - Resolved label IDs and fuzzy matches select the same planner tasks as the exact label name.
