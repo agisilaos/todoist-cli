@@ -1227,6 +1227,7 @@ context would require a separate compatibility decision.
 - `--accessible` (or `TODOIST_ACCESSIBLE=1`) retains the existing due/priority markers in task tables and plain output. Active-task overviews always have explicit text labels, with or without this flag.
 - Human width uses `--truncate-width` where supported, then `TODOIST_TABLE_WIDTH` or configured `table_width`, then `COLUMNS`, then 120 columns. Existing `--wide` selects the detailed table for active lists and expands other task tables; it is intended for a broad terminal.
 - Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
+- Explicit filter IDs and URLs never match a different filter's name.
 
 ### Everyday overview
 

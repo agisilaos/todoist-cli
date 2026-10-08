@@ -305,6 +305,7 @@ Planner context notes:
 - Use `id:<id>` to explicitly reference IDs.
 - Task/project/label/filter refs also accept Todoist app URLs (`https://app.todoist.com/app/<entity>/...`).
 - Fuzzy name resolution is opt-in via `--fuzzy` / `TODOIST_FUZZY=1`.
+- Explicit filter IDs and URLs match only IDs.
 - Active-task overviews always use text labels. Legacy task table/plain markers remain opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
 
 ### Task ambiguity
