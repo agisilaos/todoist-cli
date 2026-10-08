@@ -1130,7 +1130,7 @@ todoist completion uninstall zsh
 todoist completion uninstall powershell
 ```
 
-`completion install` prints a shell-specific activation command. Bash and fish use `source`; PowerShell uses `. '<path>'`. For zsh, the command initializes `compinit` and registers a completion function that loads the installed file when Tab is pressed, including custom `--path` filenames. Run the printed command to activate completion now; add it to `.zshrc` for future zsh sessions. Do not source the zsh completion file directly.
+`completion install` prints a shell-specific activation command with quoted paths, including paths containing spaces or shell metacharacters. Bash and fish use `source`; PowerShell uses `. '<path>'`. For zsh, the command initializes `compinit` and registers a completion function that loads the installed file when Tab is pressed, including custom `--path` filenames. Run the printed command to activate completion now; add it to `.zshrc` for future zsh sessions. Do not source the zsh completion file directly.
 
 PowerShell completion supports PowerShell 7 on macOS and Linux. Its default path is `$XDG_DATA_HOME/todoist/completions/todoist.ps1`, falling back to `~/.local/share/todoist/completions/todoist.ps1`. Installation never edits `$PROFILE`; run the printed dot-source command for the current session and add that command to your chosen `$PROFILE` for future sessions.
 

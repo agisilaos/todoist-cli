@@ -659,3 +659,42 @@ _todoist
 		})
 	}
 }
+
+func TestCompletionInstallActivationLoadsSpecialPaths(t *testing.T) {
+	for _, shell := range []string{"bash", "fish"} {
+		t.Run(shell, func(t *testing.T) {
+			binary, err := exec.LookPath(shell)
+			if err != nil {
+				t.Skipf("%s is not installed", shell)
+			}
+			dir := t.TempDir()
+			path := filepath.Join(dir, "user's completion $files\\copies", "todoist")
+			var stdout, stderr bytes.Buffer
+			code := executeTestWithEnvironment([]string{"--config", filepath.Join(dir, "config.json"), "completion", "install", shell, "--path", path, "--json"}, &stdout, &stderr, Environment{Getenv: func(string) string { return "" }})
+			if code != exitOK {
+				t.Fatalf("completion install failed: exit=%d stderr=%s", code, &stderr)
+			}
+			var result struct{ Activation string }
+			if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			activation, ok := strings.CutPrefix(result.Activation, "Activate now: ")
+			if !ok {
+				t.Fatalf("missing activation command: %q", result.Activation)
+			}
+			args, check, want := []string{"--noprofile", "--norc"}, "complete -p todoist", "-F _todoist todoist"
+			if shell == "fish" {
+				args, check, want = []string{"--no-config"}, "complete -C 'todoist tas'", "task"
+			}
+			operation, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			cmd := exec.CommandContext(operation, binary, append(args, "-c", activation+"\n"+check)...)
+			cmd.Dir = dir
+			cmd.Env = []string{"HOME=" + dir, "PATH=" + os.Getenv("PATH"), "XDG_CONFIG_HOME=" + filepath.Join(dir, "config"), "XDG_DATA_HOME=" + filepath.Join(dir, "data")}
+			actual, err := cmd.CombinedOutput()
+			if err != nil || !strings.Contains(string(actual), want) {
+				t.Fatalf("printed activation failed: %v; output: %s", err, actual)
+			}
+		})
+	}
+}
