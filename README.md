@@ -1229,6 +1229,7 @@ context would require a separate compatibility decision.
 - Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
 - Explicit filter IDs and URLs never match a different filter's name.
 - Assignee email matches take precedence over display names; duplicate display names require disambiguation.
+- Filter names follow the same opt-in fuzzy matching rule, including the `--no-fuzzy` override.
 
 ### Everyday overview
 

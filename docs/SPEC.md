@@ -307,6 +307,7 @@ Planner context notes:
 - Fuzzy name resolution is opt-in via `--fuzzy` / `TODOIST_FUZZY=1`.
 - Explicit filter IDs and URLs match only IDs.
 - Assignee emails take precedence over display names, and duplicate display names are ambiguous.
+- `--no-fuzzy` disables approximate filter name matching too.
 - Active-task overviews always use text labels. Legacy task table/plain markers remain opt-in via `--accessible` / `TODOIST_ACCESSIBLE=1`.
 
 ### Task ambiguity

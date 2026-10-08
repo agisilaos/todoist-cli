@@ -255,7 +255,7 @@ func resolveFilterRef(ctx *Context, ref string) (api.Filter, error) {
 	result, err := appfilters.ResolveReference(appfilters.ResolveReferenceInput{
 		Ref:         ref,
 		References:  references,
-		EnableFuzzy: true,
+		EnableFuzzy: useFuzzy(ctx),
 	})
 	if err != nil {
 		return api.Filter{}, &CodeError{Code: exitUsage, Err: err}
