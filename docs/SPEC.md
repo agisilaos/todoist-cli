@@ -298,6 +298,7 @@ Planner context notes:
 
 - Planner request context includes `projects`, `sections`, `labels`, `active_tasks` (capped), and optional `completed_tasks`.
 - Setting the planner updates only `planner_cmd` in user configuration, preserving unrelated and unknown fields without persisting project or environment overrides.
+- Planner inspection reports the effective environment/configuration command.
 
 ## References
 

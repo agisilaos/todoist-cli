@@ -41,7 +41,7 @@ func agentPlanner(ctx *Context, args []string) error {
 		fmt.Fprintf(ctx.Stdout, "Planner command set to: %s\n", cmd)
 		return nil
 	}
-	effective, source := resolvePlannerCmd(ctx, "", false)
+	effective, source := resolvePlannerCmd(ctx, "", true)
 	if ctx.Mode == output.ModeJSON || ctx.Mode == output.ModeNDJSON {
 		return writeStructuredValue(ctx, map[string]any{"planner_cmd": effective, "source": source})
 	}

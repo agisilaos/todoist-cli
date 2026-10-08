@@ -907,7 +907,7 @@ var leafHelpPages = map[string]commandHelp{
   --set                             Set planner command`,
 		examples: `  todoist agent planner
   todoist agent planner --set --cmd "my-planner"`,
-		notes: `  Without --set, reports the configured planner.
+		notes: `  Without --set, reports the effective planner, including TODOIST_PLANNER_CMD.
   --set requires --cmd and saves only planner_cmd in the user configuration, preserving other fields and defaults.
   The top-level planner command is equivalent. Planner programs are trusted and not sandboxed.`,
 		globals: `  --no-input            Disable prompts`,

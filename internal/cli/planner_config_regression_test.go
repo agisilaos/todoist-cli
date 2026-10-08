@@ -68,3 +68,38 @@ func TestPlannerSetPreservesUserConfiguration(t *testing.T) {
 		t.Errorf("profile outside project=%q, want personal", current.SelectedProfile)
 	}
 }
+
+func TestPlannerInspectionReportsEnvironmentOverride(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	path := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(path, []byte(`{"planner_cmd":"configured-planner"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	env := Environment{Getenv: func(key string) string {
+		if key == "TODOIST_PLANNER_CMD" {
+			return "environment-planner"
+		}
+		return ""
+	}}
+	for _, command := range [][]string{{"planner"}, {"agent", "planner"}} {
+		for _, mode := range []string{"--json", "--ndjson"} {
+			args := append([]string{"--config", path, mode}, command...)
+			var out, errOut bytes.Buffer
+			code := executeTestWithEnvironment(args, &out, &errOut, env)
+			if code != 0 {
+				t.Fatalf("%v exit=%d stderr=%s", args, code, errOut.String())
+			}
+			var result struct {
+				Command string `json:"planner_cmd"`
+				Source  string `json:"source"`
+			}
+			if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			if result.Command != "environment-planner" || result.Source != "env" {
+				t.Errorf("%v shows command=%q source=%q, want environment-planner from env", args, result.Command, result.Source)
+			}
+		}
+	}
+}
