@@ -64,6 +64,9 @@ def flags_from_help(text: str) -> dict[str, Flag]:
     return flags
 
 
+APPLICATION_COMMANDS = (("agent", "apply"), ("agent", "run"), ("agent", "schedule", "print"))
+
+
 class CommandInventory:
     def __init__(self, pages: list[HelpPage]):
         self.pages = {page.command: page for page in pages}
@@ -88,11 +91,14 @@ class CommandInventory:
         return any(len(child) > len(command) and child[:len(command)] == command
                    for child in self.pages)
 
-    def validate(self, arguments: list[str]) -> None:
-        """Validate names without executing examples or treating option values as paths."""
+    def validate(self, arguments: list[str], *, application_only: bool = False) -> bool:
+        """Validate names and application confirmation without executing examples."""
         command: tuple[str, ...] = ()
         index = 0
         help_command = False
+        help_flag = False
+        force = False
+        confirm = ""
         while index < len(arguments):
             argument = arguments[index]
             if argument in ("|", "||", ";", "&", "&&", ">", ">>", "<", "2>"):
@@ -100,7 +106,7 @@ class CommandInventory:
             if argument == "--":
                 break
             if argument.startswith("-") and argument != "-":
-                name, separator, _ = argument.partition("=")
+                name, separator, value = argument.partition("=")
                 flag = self.global_flags.get(name) or self.flags.get(command, {}).get(name)
                 if flag is None:
                     raise ValueError(f"{' '.join(command) or 'root'} has no documented flag {name}")
@@ -108,6 +114,13 @@ class CommandInventory:
                     index += 1
                     if index == len(arguments):
                         raise ValueError(f"{name} requires a value")
+                    value = arguments[index]
+                if name in ("--force", "-f") and not separator:
+                    force = True
+                elif name == "--confirm":
+                    confirm = value.strip()
+                elif name in ("--help", "-h"):
+                    help_flag = not separator or value in ("1", "t", "T", "TRUE", "true", "True")
                 index += 1
                 continue
             if not command and argument == "help":
@@ -119,10 +132,16 @@ class CommandInventory:
                 if candidate is None:
                     raise ValueError(f"unknown command {' '.join(command + (argument,))}")
                 command = candidate
+                if application_only and not any(path[:len(command)] == command for path in APPLICATION_COMMANDS):
+                    return False
             elif help_command:
                 raise ValueError(f"unknown help target {' '.join(command + (argument,))}")
             # Remaining operands belong to a leaf and need not be command names.
             index += 1
+        if (command in APPLICATION_COMMANDS
+                and not (help_command or help_flag or force or confirm)):
+            raise ValueError(f"{' '.join(command)} example requires --confirm or --force (including previews)")
+        return not application_only or command in APPLICATION_COMMANDS
 
 
 def manifest_commands(root: Path) -> list[tuple[str, ...]]:
@@ -187,7 +206,7 @@ def render_reference(pages: list[HelpPage]) -> str:
     return "\n".join(lines)
 
 
-def example_fragments(text: str):
+def example_fragments(text: str, *, include_inline: bool = True):
     language: str | None = None
     pending = ""
     pending_line = 0
@@ -203,11 +222,38 @@ def example_fragments(text: str):
                 continue
             pending, pending_line = "", 0
             yield first_line, fragment
-        elif language is None:
+        elif language is None and include_inline:
             for fragment in re.findall(r"`([^`]+)`", line):
                 yield number, fragment
     if pending:
         raise ValueError(f"line {pending_line}: unfinished shell continuation")
+
+
+def validate_fragments(source: str, fragments, inventory: CommandInventory,
+                       *, application_only: bool = False) -> tuple[int, list[str]]:
+    errors: list[str] = []
+    checked = 0
+    for number, fragment in fragments:
+        if not re.search(r"\btodoist(?:\s|$)", fragment):
+            continue
+        try:
+            lexer = shlex.shlex(fragment, posix=True, punctuation_chars="|;&<>")
+            lexer.whitespace_split = True
+            tokens = list(lexer)
+            command_start = True
+            for index, token in enumerate(tokens):
+                if token in ("|", "||", ";", "&", "&&"):
+                    command_start = True
+                    continue
+                if command_start and re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*=.*", token):
+                    continue
+                if command_start and token == "todoist":
+                    if inventory.validate(tokens[index + 1:], application_only=application_only):
+                        checked += 1
+                command_start = False
+        except ValueError as error:
+            errors.append(f"{source}:{number}: {error}")
+    return checked, errors
 
 
 def validate_examples(root: Path, inventory: CommandInventory) -> tuple[int, list[str]]:
@@ -217,29 +263,54 @@ def validate_examples(root: Path, inventory: CommandInventory) -> tuple[int, lis
     for path in sorted(bundle.rglob("*.md")):
         if path.name == "commands.md":
             continue  # Generated declarations have no manually maintained examples.
-        for number, fragment in example_fragments(path.read_text()):
-            if not re.search(r"\btodoist(?:\s|$)", fragment):
-                continue
-            try:
-                lexer = shlex.shlex(fragment, posix=True, punctuation_chars="|;&<>")
-                lexer.whitespace_split = True
-                tokens = list(lexer)
-                command_start = True
-                for index, token in enumerate(tokens):
-                    if token in ("|", "||", ";", "&", "&&"):
-                        command_start = True
-                        continue
-                    if command_start and re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*=.*", token):
-                        continue
-                    if command_start and token == "todoist":
-                        inventory.validate(tokens[index + 1:])
-                        checked += 1
-                    command_start = False
-            except ValueError as error:
-                errors.append(f"{path.relative_to(root)}:{number}: {error}")
+        count, failures = validate_fragments(str(path.relative_to(root)),
+                                            example_fragments(path.read_text()), inventory)
+        checked += count
+        errors.extend(failures)
     if checked == 0:
         errors.append("agent skill contains no checked command examples")
     return checked, errors
+
+
+def help_example_fragments(text: str):
+    examples = False
+    for number, line in enumerate(text.splitlines(), 1):
+        if line and not line[0].isspace() and line.endswith(":"):
+            examples = line == "Examples:"
+        elif examples:
+            yield number, line.strip()
+
+
+def validate_public_examples(root: Path, inventory: CommandInventory,
+                            pages: list[HelpPage], agent_examples: str) -> tuple[int, list[str]]:
+    sources = []
+    for relative in ("README.md", "docs/SPEC.md"):
+        path = root / relative
+        if path.exists():
+            sources.append((relative, example_fragments(path.read_text(), include_inline=False)))
+    for page in pages:
+        sources.append(("todoist " + " ".join((*page.command, "--help")),
+                        help_example_fragments(page.text)))
+    sources.append(("todoist agent examples", help_example_fragments(agent_examples)))
+    checked = 0
+    errors: list[str] = []
+    for source, fragments in sources:
+        count, failures = validate_fragments(source, fragments, inventory, application_only=True)
+        checked += count
+        errors.extend(failures)
+    return checked, errors
+
+
+def collect_agent_examples(executable: Path, work: Path) -> str:
+    # Only invoke this fixed local informational command, never an extracted example.
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith("TODOIST_")}
+    result = subprocess.run([str(executable), "--config", str(work / "config.json"),
+                             "agent", "examples"], cwd=work, env=environment, text=True,
+                            capture_output=True, timeout=30, check=False)
+    if result.returncode or result.stderr:
+        raise ValueError(f"agent examples failed (exit {result.returncode}): {result.stderr.strip()}")
+    return result.stdout
 
 
 def main() -> int:
@@ -273,13 +344,17 @@ def main() -> int:
                     print("error: agent command references are stale; run "
                           "python3 scripts/agent-skill-reference.py --write", file=sys.stderr)
                     return 1
-            checked, errors = validate_examples(root, CommandInventory(pages))
+            inventory = CommandInventory(pages)
+            checked, errors = validate_examples(root, inventory)
+            emitted = collect_agent_examples(executable, work) if ("agent", "examples") in inventory.pages else ""
+            public_checked, public_errors = validate_public_examples(root, inventory, pages, emitted)
+            errors.extend(public_errors)
             if errors:
                 for error in errors:
                     print("error: " + error, file=sys.stderr)
                 return 1
             print(f"agent skill references {'updated' if args.write else 'are current'}; "
-                  f"checked {checked} examples")
+                  f"checked {checked} skill examples and {public_checked} public agent examples")
             return 0
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"error: agent skill reference check: {error}", file=sys.stderr)

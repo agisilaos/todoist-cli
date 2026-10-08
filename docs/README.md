@@ -70,15 +70,22 @@ The gate checks:
 - Exact bundled agent command references generated from live help, plus strict
   command/long-flag checks for skill examples. Unknown commands fail this check;
   examples are inspected without executing their mutations. CI checks never rewrite the bundle.
+- Confirmation in runnable agent application examples: `agent apply`, `agent run`
+  and `agent schedule print` examples need a nonempty `--confirm` or `--force`,
+  including previews. This checks shell-tagged README/spec examples, help
+  `Examples` sections, bundled guidance and the output of `agent examples`.
+  Formal usage declarations are excluded. The checker only invokes help and the
+  local `agent examples` command; it never executes extracted shell text.
 - Global flag inventory in README and root help against the global parser.
 - Shell quoting in README command lines.
 - Long flag names in command snippets in README, SPEC, and help snapshots against
   Go flag registrations and global parsing. The test reads Go syntax; it never
   executes examples, authenticates, or changes Todoist data.
 
-Flag checking covers recognized command prefixes, including common aliases. It
-is not a shell interpreter: it does not validate positional arguments, flag value
-semantics, arbitrary shell syntax, or command groups without a flag parser.
+Flag checking covers recognized command prefixes, including common aliases. Beyond
+the explicit agent confirmation check, it does not validate positional arguments
+or flag value semantics. It is not a shell interpreter: arbitrary shell syntax
+and command groups without a flag parser remain outside its coverage.
 Behavior descriptions and API compatibility still require review and behavioral
 tests; a passing docs check does not prove every prose claim.
 
