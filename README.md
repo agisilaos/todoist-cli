@@ -1228,6 +1228,7 @@ context would require a separate compatibility decision.
 - Human width uses `--truncate-width` where supported, then `TODOIST_TABLE_WIDTH` or configured `table_width`, then `COLUMNS`, then 120 columns. Existing `--wide` selects the detailed table for active lists and expands other task tables; it is intended for a broad terminal.
 - Fuzzy name resolution can be enabled with `--fuzzy` or `TODOIST_FUZZY=1` (project/section/label names); `--no-fuzzy` disables.
 - Explicit filter IDs and URLs never match a different filter's name.
+- Assignee email matches take precedence over display names; duplicate display names require disambiguation.
 
 ### Everyday overview
 

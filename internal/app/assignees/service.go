@@ -35,19 +35,22 @@ func ParseRef(ref string) ParsedRef {
 func MatchCollaboratorID(ref string, collaborators []Collaborator) (id string, candidates []apprefs.Candidate, found bool) {
 	trimmed := strings.TrimSpace(ref)
 	for _, c := range collaborators {
-		if strings.EqualFold(c.ID, trimmed) || strings.EqualFold(c.Name, trimmed) || strings.EqualFold(c.Email, trimmed) {
+		if c.ID == trimmed || strings.EqualFold(c.Email, trimmed) {
 			return c.ID, nil, true
 		}
 	}
-	var fuzzy []apprefs.Candidate
+	var exact, fuzzy []apprefs.Candidate
 	lower := strings.ToLower(trimmed)
 	for _, c := range collaborators {
-		if strings.Contains(strings.ToLower(c.Name), lower) || strings.Contains(strings.ToLower(c.Email), lower) {
-			fuzzy = append(fuzzy, apprefs.Candidate{
-				ID:   c.ID,
-				Name: c.Name + " <" + c.Email + ">",
-			})
+		candidate := apprefs.Candidate{ID: c.ID, Name: c.Name + " <" + c.Email + ">"}
+		if strings.EqualFold(c.Name, trimmed) {
+			exact = append(exact, candidate)
+		} else if strings.Contains(strings.ToLower(c.Name), lower) || strings.Contains(strings.ToLower(c.Email), lower) {
+			fuzzy = append(fuzzy, candidate)
 		}
+	}
+	if len(exact) > 0 {
+		fuzzy = exact
 	}
 	if len(fuzzy) == 1 {
 		return fuzzy[0].ID, nil, true
