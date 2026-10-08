@@ -62,9 +62,6 @@ func taskList(ctx *Context, args []string) error {
 	if err := sorting.validate(); err != nil {
 		return err
 	}
-	if err := ensureClient(ctx); err != nil {
-		return err
-	}
 	now := time.Now
 	if ctx != nil && ctx.Now != nil {
 		now = ctx.Now
@@ -79,6 +76,18 @@ func taskList(ctx *Context, args []string) error {
 	})
 	if err != nil {
 		return &CodeError{Code: exitUsage, Err: err}
+	}
+	if plan.Mode == "filter" {
+		for _, selector := range []struct{ name, value string }{
+			{"project", project}, {"section", section}, {"parent", parent}, {"label", label}, {"id", ids},
+		} {
+			if selector.value != "" {
+				return &CodeError{Code: exitUsage, Err: fmt.Errorf("--%s cannot be combined with an active --filter or --preset; express the selection in the filter query", selector.name)}
+			}
+		}
+	}
+	if err := ensureClient(ctx); err != nil {
+		return err
 	}
 	if truncateWidth > 0 {
 		ctx.Config.TableWidth = truncateWidth

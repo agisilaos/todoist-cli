@@ -84,6 +84,10 @@ is supplied. `--all-projects` changes project scope; `--all` fetches every page.
 Use `todoist task list --all-projects --all` for every active task across projects,
 including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
 
+Active `task list` rejects `--filter` or `--preset` combined with project,
+section, parent, label, or task-ID selectors. Put the complete selection in the
+filter or use the separate selectors alone.
+
 Single-task mutation commands reject positional references combined with `--id`.
 
 Human active-task lists identify the effective selection, shown count, and page
@@ -406,7 +410,8 @@ stdout/stderr behavior are unchanged, including accessible plain output.
 
 Implementation ownership: active command handlers supply effective scope and
 pagination context to `task_overview.go`; `task_output.go` remains the legacy
-renderer and machine-output path. Filters ignore other selection flags as before.
+renderer and machine-output path. Active filtered and preset lists reject additional
+project, section, parent, label, or task-ID selectors.
 Upcoming carries its selection's UTC reference day into the header so a midnight
 boundary during rendering cannot misstate its window. No domain vocabulary or
 architecture decision changes are required.

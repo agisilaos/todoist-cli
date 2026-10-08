@@ -217,6 +217,7 @@ var leafHelpPages = map[string]commandHelp{
   --quiet hides summaries, but retains tasks and cursor notices.
   Failed or missing Inbox lookup stops without fetching tasks from other projects.
   Use --project or --filter for an explicit selection; default filters/presets retain API order.
+  Active --filter/--preset rejects --project, --section, --parent, --label, or --id; put the complete selection in the filter instead.
   Completed listing accepts date hints such as yesterday and "2 weeks ago"; --since without --until ends today.
   Use --all to fetch all pages where supported, or follow the returned cursor.
 ` + taskSortNotes,

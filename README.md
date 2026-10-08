@@ -1237,8 +1237,13 @@ Start with `todoist today` for overdue and due-today work across projects.
 `inbox` and bare `task list` remain Inbox selections; the all-project view also
 includes undated tasks. The layout never groups or reorders tasks: existing API
 ordering and supported client sorting remain in effect. Filters and presets keep
-API ordering (`--sort` does not apply to them); `--preset today` selects only
+API ordering by default; explicit `--sort` applies client sorting. `--preset today` selects only
 `today`, while the top-level `today` command selects `overdue | today`.
+
+For active `task list`, `--filter` or `--preset` cannot be combined with
+`--project`, `--section`, `--parent`, `--label`, or `--id`. Express the full
+selection in the Todoist filter, or use the separate selectors without a filter.
+Conflicting selectors are rejected rather than silently dropped.
 
 Single-task commands reject a positional reference combined with `--id`.
 

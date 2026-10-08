@@ -215,8 +215,8 @@ func TestTaskOverviewCommandsScopeAndFetching(t *testing.T) {
 		pages              int
 	}{
 		{"today", func(c *Context) error { return todayCommand(c, nil) }, "/tasks/filter", "overdue | today", "Today · Across projects", 2},
-		{"filter ignores other selectors", func(c *Context) error {
-			return taskList(c, []string{"--filter", "today", "--project", "Ignored", "--sort", "priority"})
+		{"filter", func(c *Context) error {
+			return taskList(c, []string{"--filter", "today", "--sort", "priority"})
 		}, "/tasks/filter", "today", `Filter: "today"`, 1},
 		{"preset", func(c *Context) error { return taskList(c, []string{"--preset", "today"}) }, "/tasks/filter", "today", `Filter: "today"`, 1},
 		{"inbox", func(c *Context) error { return inboxCommand(c, nil) }, "/tasks", "", "Inbox · Active tasks", 2},
