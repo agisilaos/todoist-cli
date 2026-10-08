@@ -89,6 +89,9 @@ func requireTaskID(ctx *Context, name string, args []string) (string, error) {
 	if err := parseFlagSetInterspersed(fs, args); err != nil {
 		return "", &CodeError{Code: exitUsage, Err: err}
 	}
+	if id != "" && len(fs.Args()) > 0 {
+		return "", &CodeError{Code: exitUsage, Err: errors.New("--id cannot be combined with a positional task reference")}
+	}
 	if id != "" {
 		normalized, directID, err := apprefs.NormalizeEntityRef(id, "task")
 		if err != nil {

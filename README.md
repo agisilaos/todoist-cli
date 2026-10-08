@@ -1240,6 +1240,8 @@ ordering and supported client sorting remain in effect. Filters and presets keep
 API ordering (`--sort` does not apply to them); `--preset today` selects only
 `today`, while the top-level `today` command selects `overdue | today`.
 
+Single-task commands reject a positional reference combined with `--id`.
+
 Illustrative human output from `todoist task list --all-projects --all`, using
 synthetic tasks and a UTC reference date of 2026-09-29:
 

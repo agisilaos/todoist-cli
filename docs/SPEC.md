@@ -84,6 +84,8 @@ is supplied. `--all-projects` changes project scope; `--all` fetches every page.
 Use `todoist task list --all-projects --all` for every active task across projects,
 including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
 
+Single-task mutation commands reject positional references combined with `--id`.
+
 Human active-task lists identify the effective selection, shown count, and page
 coverage, including empty selections. `--quiet` suppresses headers and summaries.
 Redirected default output and explicit machine output retain their existing
