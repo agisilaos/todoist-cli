@@ -930,7 +930,8 @@ var leafHelpPages = map[string]commandHelp{
   --bin <path>                      Path to todoist binary (defaults to current executable)`,
 		examples: `  todoist agent schedule print --weekly "sat 09:00" --instruction "Review overdue tasks" --force --dry-run --cron`,
 		notes: `  Prints launchd XML by default or a cron line with --cron; it does not install or run the schedule.
-  Confirmation, profile, config, and preview selections are carried into the generated command.`,
+  Confirmation, profile, config, and preview selections are carried into the generated command.
+  Config, policy, and plan file paths are made absolute so the schedule can run from another directory.`,
 		globals: `  -n, --dry-run          Preview without Todoist mutations (reads may occur)
   --no-input            Disable prompts`,
 	},

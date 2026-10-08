@@ -25,6 +25,7 @@ Global flags:
 Notes:
   Prints launchd XML by default or a cron line with --cron; it does not install or run the schedule.
   Confirmation, profile, config, and preview selections are carried into the generated command.
+  Config, policy, and plan file paths are made absolute so the schedule can run from another directory.
 
 Examples:
   todoist agent schedule print --weekly "sat 09:00" --instruction "Review overdue tasks" --force --dry-run --cron

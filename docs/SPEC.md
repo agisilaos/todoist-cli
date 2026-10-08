@@ -310,6 +310,7 @@ Planner context notes:
 - Setting the planner updates only `planner_cmd` in user configuration, preserving unrelated and unknown fields without persisting project or environment overrides.
 - Planner inspection reports the effective environment/configuration command.
 - launchd and cron both retain the requested weekday.
+- Generated schedules make configuration, policy and plan file paths absolute.
 
 ## References
 

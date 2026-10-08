@@ -99,6 +99,13 @@ func agentSchedulePrint(ctx *Context, args []string) error {
 		}
 		policyPath = absolute
 	}
+	if planPath != "" && planPath != "-" {
+		absolute, err := filepath.Abs(planPath)
+		if err != nil {
+			return err
+		}
+		planPath = absolute
+	}
 	runArgs := buildAgentRunArgs(agentRunOptions{
 		PlanPath:         planPath,
 		PolicyPath:       policyPath,

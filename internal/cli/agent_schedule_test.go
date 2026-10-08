@@ -159,3 +159,57 @@ func TestAgentSchedulePreservesRequestedWeekday(t *testing.T) {
 		}
 	}
 }
+
+func TestAgentScheduleLoadsRelativePlanFromSchedulerDirectory(t *testing.T) {
+	for _, format := range []string{"launchd", "cron"} {
+		t.Run(format, func(t *testing.T) {
+			if format == "cron" && runtime.GOOS == "windows" {
+				t.Skip("cron requires a POSIX shell")
+			}
+			dir := t.TempDir()
+			t.Chdir(dir)
+			if err := os.WriteFile("weekly plan.json", []byte(`{"version":1,"confirm_token":"scheduled","actions":[]}`), 0600); err != nil {
+				t.Fatal(err)
+			}
+			bin := filepath.Join(dir, "capture-arguments")
+			if err := os.WriteFile(bin, []byte("#!/bin/sh\nprintf '%s\\000' \"$@\"\n"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			args := []string{"--config", filepath.Join(dir, "config.json"), "agent", "schedule", "print", "--weekly", "sat 09:00", "--plan", "weekly plan.json", "--confirm", "scheduled", "--dry-run", "--bin", bin}
+			if format == "cron" {
+				args = append(args, "--cron")
+			}
+			env := Environment{Getenv: func(string) string { return "" }}
+			var out, diagnostic bytes.Buffer
+			if code := executeTestWithEnvironment(args, &out, &diagnostic, env); code != 0 {
+				t.Fatalf("schedule exited %d: %s", code, diagnostic.String())
+			}
+			t.Chdir(t.TempDir())
+			var runArgs []string
+			if format == "cron" {
+				command := strings.TrimPrefix(strings.TrimSpace(out.String()), "0 9 * * 6 ")
+				result, err := exec.Command("/bin/sh", "-c", command).CombinedOutput()
+				if err != nil {
+					t.Fatalf("generated cron command: %v: %s", err, result)
+				}
+				runArgs = strings.Split(strings.TrimSuffix(string(result), "\x00"), "\x00")
+			} else {
+				var plist struct {
+					Arguments []string `xml:"dict>array>string"`
+				}
+				if err := xml.Unmarshal(out.Bytes(), &plist); err != nil {
+					t.Fatal(err)
+				}
+				runArgs = plist.Arguments[1:]
+			}
+			out.Reset()
+			diagnostic.Reset()
+			if code := executeTestWithEnvironment(append(runArgs, "--json"), &out, &diagnostic, env); code != 0 {
+				t.Fatalf("scheduled plan no longer loads from a different directory: exit %d: %s", code, diagnostic.String())
+			}
+			if !strings.Contains(out.String(), `"confirm_token": "scheduled"`) || !strings.Contains(out.String(), `"dry_run": true`) {
+				t.Fatalf("scheduled invocation did not preview the selected plan: %s", out.String())
+			}
+		})
+	}
+}
