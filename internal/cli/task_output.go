@@ -253,8 +253,10 @@ func parseDue(due *api.Due) time.Time {
 		}
 	}
 	if due.Date != "" {
-		if t, err := time.Parse("2006-01-02", due.Date); err == nil {
-			return t
+		for _, layout := range []string{"2006-01-02", time.RFC3339Nano, "2006-01-02T15:04:05"} {
+			if t, err := time.Parse(layout, due.Date); err == nil {
+				return t
+			}
 		}
 	}
 	return time.Time{}

@@ -4,6 +4,7 @@ Usage:
 Notes:
   - Shows N days including today (default 7: today and the next 6 days, UTC).
   - Excludes overdue tasks and tasks without a due date.
+  - Default ordering is by due date and time, including timed due dates.
   - Human output shows the UTC window, scope, coverage, and three-line titles.
   - Overview P1 is highest; --wide retains the detailed table (API priorities: 4 highest).
   - Use task view id:<id> for full text and secondary details.

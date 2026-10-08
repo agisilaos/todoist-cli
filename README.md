@@ -857,7 +857,7 @@ todoist completed [--completed-by completion|due] [--since <date>] [--until <dat
 
 ### Upcoming
 
-List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks.
+List tasks due across projects during N days including today (default 7: today and the next 6 days, using UTC dates). Excludes overdue and undated tasks. Default ordering is by due date and time, including timed due dates.
 
 ```
 todoist upcoming [days] [--project <id|name>] [--label <name>] [--sort <key>] [--sort-order asc|desc] [--wide]

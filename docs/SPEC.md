@@ -83,6 +83,8 @@ parent, label, task IDs, filter, preset, completed selection, or `--all-projects
 is supplied. `--all-projects` changes project scope; `--all` fetches every page.
 Use `todoist task list --all-projects --all` for every active task across projects,
 including undated tasks. `inbox`, `today`, and `upcoming` fetch every page.
+Upcoming default ordering recognizes date-only, floating timestamp and offset
+timestamp values in `due.date`, along with legacy `due.datetime` values.
 
 Active `task list` rejects `--filter` or `--preset` combined with project,
 section, parent, label, or task-ID selectors. Put the complete selection in the
