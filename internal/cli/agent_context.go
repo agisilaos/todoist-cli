@@ -78,7 +78,7 @@ func buildPlannerContext(ctx *Context, opts plannerContextOptions) (PlannerConte
 		Sections:       toAnySlice(filteredSections),
 		Labels:         toAnySlice(filteredLabels),
 		ActiveTasks:    toAnySlice(filteredActiveTasks),
-		CompletedTasks: toAnySlice(completed),
+		CompletedTasks: toAnySlice(filterTasksForContext(completed, projectIDs, opts.LabelFilters)),
 	}, nil
 }
 
@@ -195,6 +195,14 @@ func listCompletedTasks(ctx *Context, since string) ([]api.Task, error) {
 }
 
 func filterActiveTasksForContext(tasks []api.Task, projectIDs map[string]struct{}, labelFilters []string) []api.Task {
+	tasks = filterTasksForContext(tasks, projectIDs, labelFilters)
+	if len(tasks) > 50 {
+		return tasks[:50]
+	}
+	return tasks
+}
+
+func filterTasksForContext(tasks []api.Task, projectIDs map[string]struct{}, labelFilters []string) []api.Task {
 	out := make([]api.Task, 0, len(tasks))
 	labelSet := map[string]struct{}{}
 	for _, label := range labelFilters {
@@ -223,9 +231,6 @@ func filterActiveTasksForContext(tasks []api.Task, projectIDs map[string]struct{
 			}
 		}
 		out = append(out, task)
-		if len(out) >= 50 {
-			break
-		}
 	}
 	return out
 }
