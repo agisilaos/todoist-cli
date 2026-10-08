@@ -361,7 +361,7 @@ ID. Structured ambiguity enrichment requires a separate compatibility decision.
 - `--ids-only` is an additive machine output contract: one raw, opaque ID followed by LF per result, without headings, metadata, quoting, or empty-state text. Empty results emit zero stdout bytes.
 - Supported commands: `task list`, `project list`, `project collaborators`, `section list`, `label list`, `comment list`, `filter list`, `workspace list`, `reminder list`, `notification list`, `activity`, `completed`, `today`, `upcoming`, bare `inbox`, and `filter show`, including existing `ls` aliases. Collaborators emit user IDs; activity emits event IDs, not object IDs.
 - Preserve command result order (including existing sorting), duplicates, fetching defaults, and `--all` behavior. Validate the whole fetched collection before output: missing IDs or IDs containing whitespace/control characters fail with exit 1.
-- In ID mode only, remaining pages produce stderr notices: `More available. Use --cursor "<cursor>"` (quoted with escapes) or `More available. Use --offset N` for notifications. Empty pages may have notices; exhausted collections do not. Pagination never appears on stdout.
+- In IDs-only, JSON and NDJSON list output, remaining pages produce stderr notices: `More available. Use --cursor "<cursor>"` (quoted with escapes) or `More available. Use --offset N` for notifications. Empty pages may have notices; exhausted collections do not. Pagination never appears on stdout.
 - `--ids-only` conflicts with `--json`, `--plain`, and `--ndjson`. Conflicts and unsupported commands fail before side effects with usage exit 2, empty stdout, and the existing JSON error envelope on stderr. Mutations, single-object views, resources without stable IDs, and `view URL` are unsupported.
 - `todoist schema --name ids_only` returns a wire-format descriptor, not a JSON payload schema. Existing payload schemas and existing output modes remain unchanged.
 - `--quiet-json` emits compact single-line JSON errors (useful for agents and log pipelines).
@@ -636,7 +636,8 @@ zero. Description stdin is exact UTF-8 text. Ordinary due updates and recurring
 completion retain their existing behavior. No new agent/review action kinds.
 
 Legacy task output remains default; opt-in v2 allowlist, null/presence, numeric
-priority, IDs-only, and human-only full remain frozen. New schemas:
+priority and IDs-only remain frozen. `--full` affects human and legacy plain
+detail; JSON/NDJSON payloads are unchanged. New schemas:
 `task_expanded_view`, `task_expanded_view_v2`, `task_write_ack`, `task_unchanged`,
 `task_partial_edit`, `task_batch`, `task_write_result`, `task_write_result_v2`,
 `task_write_record`, `task_write_record_v2`. JSON write results accept a task array

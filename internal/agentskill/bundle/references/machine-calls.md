@@ -57,7 +57,8 @@ NDJSON. Legacy version 1 remains the default and can insert defaults for facts
 that were not returned. Version 2 retains supported returned values and presence:
 absent means unknown and is omitted; explicit null, false,
 zero, and empty values remain distinct. Consult `task_item_v2` for a view or NDJSON
-record and `task_list_v2` for JSON lists. `--full` remains human-only.
+record and `task_list_v2` for JSON lists. `--full` affects human and legacy plain
+detail; JSON/NDJSON payloads are unchanged.
 
 ```sh
 todoist task view id:123456 --no-input --json --task-output-version 2
