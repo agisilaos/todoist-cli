@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on *Keep a Changelog*, and this project adheres to *Semantic Versioning*.
 
+## [v0.10.0] - 2026-10-11
+
+### Upgrade notes
+
+- **Breaking configuration change:** automatically discovered `.todoist.json` files no longer select `base_url` or `planner_cmd`. Move these settings to user configuration, explicitly select the configuration with `--config`, or use explicit command/environment overrides. Ordinary project defaults remain supported. [#35](https://github.com/agisilaos/todoist-cli/pull/35)
+- **Script compatibility:** filter lists under `--plain` now emit headerless TSV. Conflicting task selectors, ambiguous references, malformed reminder durations, and unacknowledged Sync mutations now fail instead of silently selecting a target or reporting success. [#39](https://github.com/agisilaos/todoist-cli/pull/39)
+- Regenerate existing cron and launchd schedules to receive corrected weekdays, absolute saved-plan paths, and explicit planner preview examples. Refresh installed shell completions and use `todoist skill update` explicitly for installed agent guidance; upgrading the binary does not update those files. [#39](https://github.com/agisilaos/todoist-cli/pull/39), [#23](https://github.com/agisilaos/todoist-cli/pull/23)
+- Task writes are dispatched once; uncertain outcomes stop application and require read-only inspection before further action. Keep saved recovery plans and replay journals intact, and run only one applying process at a time. Task editing and agent application now retain pending evidence to block blind replay of uncertain writes. [#27](https://github.com/agisilaos/todoist-cli/pull/27), [#28](https://github.com/agisilaos/todoist-cli/pull/28)
+
+### Added
+
+- Added offline credential-profile inspection, selection, and removal through `profile list`, `current`, `use`, and `remove`. Removing a selected profile leaves its selection visible for explicit recovery rather than activating another credential. OAuth onboarding validates explicit public-client configuration and rejects unsupported refresh or finite-lifetime grants; live provider setup remains unverified. [#22](https://github.com/agisilaos/todoist-cli/pull/22)
+- Added bundled Todoist guidance for Codex and Claude Code with `skill list`, `install`, `update`, and `uninstall`, explicit local/global placement, protection for edited files, and optional backups. Skill maintenance works without Todoist credentials. [#23](https://github.com/agisilaos/todoist-cli/pull/23)
+- Added opt-in `--task-output-version 2` JSON/NDJSON with matching schemas, preserving returned task facts and the difference between absent, null, false, zero, and empty values. Human task detail now includes deadline, duration, assignment, recurrence, and distinct due timestamps; legacy v1 remains the default. [#24](https://github.com/agisilaos/todoist-cli/pull/24)
+- Expanded task editing with field clearing, description input from stdin, reference-item controls, hierarchy detachment, recurring rescheduling, permanent completion, child expansion, and explicit collection sorting. Combined and filtered edits preflight their targets and report partial or uncertain outcomes with recovery guidance. [#27](https://github.com/agisilaos/todoist-cli/pull/27)
+
+### Changed
+
+- Active task lists now use a readable overview with fuller titles, IDs, project context, priorities, due labels, and visible selection/page coverage. Ambiguous choices and single-task detail show more context, and completion/move feedback identifies the affected task. [#16](https://github.com/agisilaos/todoist-cli/pull/16), [#17](https://github.com/agisilaos/todoist-cli/pull/17), [#18](https://github.com/agisilaos/todoist-cli/pull/18), [#19](https://github.com/agisilaos/todoist-cli/pull/19)
+- Today fetches matching tasks with larger pages, and task detail reuses already-fetched section metadata to avoid redundant reads. [#21](https://github.com/agisilaos/todoist-cli/pull/21)
+
+### Fixed
+
+- Single-task `--ndjson` views now emit a JSON record, and completed-task collections decode the returned `items` records, including planner context. [#20](https://github.com/agisilaos/todoist-cli/pull/20), [#24](https://github.com/agisilaos/todoist-cli/pull/24)
+- Caller cancellation now reaches command operations and planners; Unix planner cancellation stops its owned process group and bounds waits for inherited pipes. Agent continue mode reports preparation failures and continues eligible work while still stopping on uncertain task writes. [#28](https://github.com/agisilaos/todoist-cli/pull/28), [#39](https://github.com/agisilaos/todoist-cli/pull/39)
+- Sync mutations require confirmed command outcomes, including reminder server-ID mapping and settings, notifications, and productivity updates. Eligible non-task retries preserve request identities; missing acknowledgements produce inspection guidance. [#28](https://github.com/agisilaos/todoist-cli/pull/28), [#39](https://github.com/agisilaos/todoist-cli/pull/39)
+- Pagination cursor cycles now fail for every resource, task deletion validates targets before credential loading, and failed configuration staging preserves existing user settings. [#36](https://github.com/agisilaos/todoist-cli/pull/36), [#37](https://github.com/agisilaos/todoist-cli/pull/37), [#38](https://github.com/agisilaos/todoist-cli/pull/38)
+- Corrected literal operands after `--`, exact filter/assignee resolution and fuzzy controls, Upcoming timestamp ordering, reminder-duration parsing, planner configuration persistence and effective-command display, scoped planner context, and Bash/fish completion activation paths. [#39](https://github.com/agisilaos/todoist-cli/pull/39)
+
 ## [v0.9.1] - 2026-09-29
 
 ### Fixed
