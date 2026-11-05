@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from urllib.parse import unquote, urlsplit
 
 
@@ -341,6 +342,16 @@ def write_transport_config(metadata, settings):
             config.write(f"\n[{header}]\n\t{option}{assignment}\n")
 
 
+def require_portable_tree(head, cwd, env):
+    names = git("ls-tree", "-r", "-t", "--name-only", "-z", head, cwd=cwd, env=env).split("\0")
+    seen = {}
+    for name in names:
+        key = unicodedata.normalize("NFC", name).casefold()
+        previous = seen.setdefault(key, name)
+        if previous != name:
+            raise Refusal(f"paths collide on macOS: {previous!r} and {name!r}")
+
+
 @contextmanager
 def candidate_checkout(head, evidence, *, bare=False):
     env = candidate_environment()
@@ -357,6 +368,7 @@ def candidate_checkout(head, evidence, *, bare=False):
         (info / "alternates").write_text(f"{objects}\n")
         if not bare:
             git("config", "core.attributesFile", os.devnull, cwd=checkout, env=env)
+            require_portable_tree(head, checkout, env)
             git("switch", "--quiet", "--detach", head, cwd=checkout, env=env)
         yield checkout, env
 
@@ -457,6 +469,12 @@ def worktree_history(tree, base):
     return head, common
 
 
+def touched_paths(common, head, cwd=None):
+    return set(git("log", "--format=", "--name-only", "--no-renames", "-z",
+                   "--full-history", "--diff-merges=first-parent", f"{common}..{head}",
+                   cwd=cwd).split("\0")) - {""}
+
+
 def overlaps(root, paths):
     ignore_case = git("config", "--type=bool", "--get", "core.ignorecase",
                       allowed=(0, 1)).strip() == "true"
@@ -481,8 +499,7 @@ def overlaps(root, paths):
         changed = set(hidden)
         head, common = worktree_history(tree, base)
         if common:
-            changed.update(git("diff", "--name-only", "--no-renames", "-z", common, head,
-                               cwd=tree).split("\0"))
+            changed.update(touched_paths(common, head, cwd=tree))
         elif head:
             changed.update(git("ls-tree", "-r", "--name-only", "-z", head, cwd=tree).split("\0"))
         for args in (
@@ -500,9 +517,7 @@ def overlaps(root, paths):
     _, common = worktree_history(root, base)
     landed = []
     if common:
-        changed = git("log", "--format=", "--name-only", "--no-renames", "-z",
-                      "--full-history", "--diff-merges=first-parent", f"{common}..{base}").split("\0")
-        landed = sorted({file for file in changed if file and matches_path(file)})
+        landed = sorted(file for file in touched_paths(common, base) if matches_path(file))
     else:
         print("Upstream path comparison requires a shared commit with origin/main.")
     if landed:
@@ -523,10 +538,13 @@ def end(root, primary):
         if git("rev-list", f"{base}..{head}"):
             raise Refusal("the session has commits that are not on origin/main")
         require_candidate(root, primary, branch, head)
+        metadata = git_dir()
+        device = root.parent.stat().st_dev
+        if root.stat().st_dev != device or metadata.stat().st_dev != device:
+            raise Refusal("the checkout and its Git metadata must share a volume to archive the session")
         archive = Path(tempfile.mkdtemp(prefix=f".{primary.name}-ended-", dir=root.parent))
         saved = archive / "worktree"
         print(f"Retaining checkout files in {archive}", flush=True)
-        metadata = git_dir()
         common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
         git("worktree", "move", str(root), str(saved), cwd=primary, capture=False)
         archived_git = archive / "git-metadata"
@@ -537,8 +555,10 @@ def end(root, primary):
             raise Refusal(f"Git is updating the index of the worktree now at {saved}") from None
         try:
             # Save staged blobs while Git still sees the linked index as a GC root.
-            patch = git("diff", "--cached", "--binary", "--no-color", "--no-ext-diff",
-                        "--no-textconv", "--src-prefix=a/", "--dst-prefix=b/", head, cwd=saved)
+            patch = git("-c", "diff.suppressBlankEmpty=false", "diff", "--cached", "--binary",
+                        "--no-color", "--no-ext-diff", "--no-textconv", "--unified=3",
+                        "--no-relative", "--no-renames", "--word-diff=none",
+                        "--src-prefix=a/", "--dst-prefix=b/", head, cwd=saved)
             (archive / "staged.patch").write_text(patch, errors="surrogateescape")
             # Unregister the worktree without deleting the index or the checkout.
             metadata.rename(archived_git)

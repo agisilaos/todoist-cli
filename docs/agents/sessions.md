@@ -71,7 +71,8 @@ documentation before closing the chat. When cleanup is requested, run
 worktree has no local changes or ignored files and its commits are reachable
 from `origin/main` before unregistering the worktree and removing its branch.
 It moves the checkout files and Git metadata to a private sibling directory
-and prints the path so files and staged edits can be recovered. Delete that
+on the same volume and prints the path so files and staged edits can be
+recovered. Delete that
 directory once you no longer need it. If cleanup stops before unregistering the
 worktree, run `git worktree move <archive>/worktree <original-session-path>` from
 the primary checkout. Inspect the restored files and staged changes before

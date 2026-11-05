@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -77,8 +78,8 @@ print(args[-1])
         self.git("push", "origin", "main")
         self.base = self.git("rev-parse", "HEAD").strip()
 
-    def run_command(self, *args, cwd=None, success=True):
-        result = subprocess.run(args, cwd=cwd or self.repo, env=self.env, text=True,
+    def run_command(self, *args, cwd=None, success=True, input=None):
+        result = subprocess.run(args, cwd=cwd or self.repo, env=self.env, text=True, input=input,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
         self.assertEqual(result.returncode == 0, success, result.stdout)
         return result.stdout
@@ -176,7 +177,8 @@ if "worktree" in args and "move" in args and "SESSION_TEST_LATE_IGNORED" in os.e
     Path(os.environ["SESSION_TEST_LATE_IGNORED"]).write_text("late local work")
     makefile = Path(os.environ["SESSION_TEST_WORKTREE"]) / "Makefile"
     original = makefile.read_text()
-    makefile.write_text("late staged work\\n")
+    makefile.write_text(original.replace("\\tgit rev-parse HEAD\\n",
+                                         "\\t@echo late staged work\\n"))
     subprocess.run([git, "-C", str(makefile.parent), "add", "Makefile"], check=True)
     makefile.write_text(original)
 if "diff" in args and "--cached" in args and "SESSION_TEST_INTERRUPT_ARCHIVE" in os.environ:
@@ -525,11 +527,12 @@ os.execv(git, [git, *args])
         (self.repo / ".git/info/exclude").write_text("scratch\n")
         self.git("config", "color.ui", "always")
         self.git("config", "diff.noprefix", "true")
+        self.git("config", "diff.context", "0")
         self.intercept_git(SESSION_TEST_LATE_IGNORED=str(self.work / "scratch"))
         self.session("end", cwd=self.work)
         archive, = self.home.glob(".test repo-ended-*/worktree")
         self.assertEqual((archive / "scratch").read_text(), "late local work")
-        self.assertIn("+late staged work", (archive.parent / "staged.patch").read_text())
+        self.assertIn("+\t@echo late staged work", (archive.parent / "staged.patch").read_text())
         self.git("apply", "--check", archive.parent / "staged.patch")
         self.assertTrue((archive.parent / "git-metadata/index").is_file())
         self.assertFalse(self.work.exists())
@@ -542,7 +545,7 @@ os.execv(git, [git, *args])
         self.session("end", cwd=self.work, success=False)
         archive, = self.home.glob(".test repo-ended-*/worktree")
         self.assertIn(f"worktree {archive}", self.git("worktree", "list", "--porcelain"))
-        self.assertEqual(self.git("show", ":Makefile", cwd=archive), "late staged work\n")
+        self.assertIn("\t@echo late staged work", self.git("show", ":Makefile", cwd=archive))
 
     def test_cleanup_preserves_ignored_files(self):
         self.session("start", "example")
@@ -595,6 +598,23 @@ os.execv(git, [git, *args])
         output = self.session("overlaps", "upstream.txt", cwd=self.work)
         self.assertIn("Changes on origin/main", output)
         self.assertIn("upstream.txt", output)
+
+    def test_overlaps_reports_other_sessions_paths_even_after_revert(self):
+        self.start()
+        self.git("revert", "--no-edit", "HEAD", cwd=self.work)
+        self.assertIn(f"{self.work}: topic.txt", self.session("overlaps", "topic.txt"))
+
+    def test_candidate_rejects_case_collisions_before_checkout(self):
+        blob = self.git("rev-parse", "HEAD:Makefile").strip()
+        tree = self.git("mktree", input=f"100644 blob {blob}\tAlpha.go\n"
+                                        f"100644 blob {blob}\talpha.go\n").strip()
+        source = (
+            "from pathlib import Path; import runpy, sys; "
+            "script = runpy.run_path(sys.argv[1]); "
+            "script['require_portable_tree'](sys.argv[2], Path.cwd(), None)"
+        )
+        self.assertIn("paths collide on macOS",
+                      self.run_command(sys.executable, "-c", source, SESSION, tree, success=False))
 
     def test_overlaps_reports_orphan_worktree_before_and_after_its_first_commit(self):
         self.session("start", "example")
