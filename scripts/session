@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Worktree kickoff, overlap checks, and the maintainer's direct landing gate."""
+
+import argparse
+from contextlib import contextmanager
+import fcntl
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+
+MAIN = "refs/heads/main"
+BASE = "refs/remotes/origin/main"
+REVIEW_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["verdict", "findings"],
+    "properties": {
+        "verdict": {"type": "string", "enum": ["clean", "findings", "blocked"]},
+        "findings": {"type": "array", "items": {"type": "string"}},
+    },
+}
+
+
+class Refusal(Exception):
+    pass
+
+
+def git(*args, cwd=None, capture=True):
+    result = subprocess.run(
+        ["git", "--no-optional-locks", *args], cwd=cwd, check=True,
+        stdout=subprocess.PIPE if capture else None,
+    )
+    return os.fsdecode(result.stdout) if capture else ""
+
+
+def worktrees(root):
+    for field in git("worktree", "list", "--porcelain", "-z", cwd=root).split("\0"):
+        if field.startswith("worktree "):
+            yield Path(field[len("worktree "):]).resolve()
+
+
+def fetch_main():
+    git("fetch", "--no-tags", "--quiet", "origin", f"+{MAIN}:{BASE}")
+    return git("rev-parse", BASE).strip()
+
+
+def branch_name(name):
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+        raise Refusal("choose a lowercase session name with letters, digits and hyphens")
+    return f"fix/{name}"
+
+
+def owned_branch(root, primary):
+    branch = git("rev-parse", "--abbrev-ref", "HEAD").strip()
+    name = branch.removeprefix("fix/")
+    if not branch.startswith("fix/") or root != primary.with_name(f"{primary.name}-{name}"):
+        raise Refusal("run this in the sibling worktree created by scripts/session start")
+    return branch
+
+
+def require_clean():
+    git_dir = Path(git("rev-parse", "--absolute-git-dir").strip())
+    in_progress = ("rebase-merge", "rebase-apply", "MERGE_HEAD",
+                   "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
+    if any((git_dir / name).exists() for name in in_progress):
+        raise Refusal("finish or abort the in-progress Git operation first")
+    if git("status", "--porcelain", "-z", "--untracked-files=all"):
+        raise Refusal("the session has uncommitted changes")
+
+
+@contextmanager
+def landing_turn():
+    common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+    with (common / "todoist-landing.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print("Waiting for another session to finish landing.", flush=True)
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
+def evidence_dir(root):
+    if sys.platform == "darwin":
+        state = Path.home() / "Library/Logs"
+    else:
+        state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
+    parent = Path(os.environ.get("TODOIST_SESSION_LOG_DIR") or state / "todoist-cli/sessions").resolve()
+    if any(parent.is_relative_to(tree) for tree in worktrees(root)):
+        raise Refusal("the session log directory must be outside the repository")
+    parent.mkdir(parents=True, exist_ok=True)
+    path = Path(tempfile.mkdtemp(prefix="land-", dir=parent))
+    print(f"Landing evidence: {path}", flush=True)
+    return path
+
+
+def logged_run(argv, path, *, env=None):
+    print(f"Running {Path(argv[0]).name}; full log: {path}", flush=True)
+    with path.open("w") as log:
+        result = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=log,
+                                stderr=subprocess.STDOUT, env=env)
+    if result.returncode:
+        raise Refusal(f"{Path(argv[0]).name} exited {result.returncode}; see {path}")
+
+
+def review(base, head, evidence):
+    schema = evidence / "review-schema.json"
+    schema.write_text(json.dumps(REVIEW_SCHEMA))
+    output = evidence / "review.json"
+    prompt = (
+        f"Independently review the committed changes from {base} to {head} for actionable "
+        "regressions and repository contract violations. Inspect the complete diff with "
+        f"git diff {base} {head} and read relevant surrounding code and repo guidance. "
+        "Do not change files, push, or run the landing workflow. Return verdict clean "
+        "and an empty findings list only if you completed the review and found no "
+        "actionable issues. Use findings for defects with file and line, or blocked "
+        "if you could not finish; explain the blocker in findings."
+    )
+    logged_run([
+        os.environ.get("TODOIST_CODEX", "codex"), "exec", "--sandbox", "read-only",
+        "--ephemeral", "--output-schema", str(schema), "--output-last-message", str(output),
+        prompt,
+    ], evidence / "review.log")
+    try:
+        verdict = json.loads(output.read_text())
+    except (OSError, ValueError):
+        raise Refusal(f"review did not return a verdict; see {evidence / 'review.log'}") from None
+    if verdict != {"verdict": "clean", "findings": []}:
+        raise Refusal(f"review did not clear the change; see {output}")
+
+
+def push_destination():
+    urls = git("remote", "get-url", "--push", "--all", "origin").splitlines()
+    if len(urls) != 1 or urls != git("remote", "get-url", "--all", "origin").splitlines():
+        raise Refusal("origin must use the same single URL for fetching and pushing")
+    return urls[0]
+
+
+def require_remote_base(destination, base):
+    if destination != push_destination():
+        raise Refusal("origin's URL changed; inspect it before retrying")
+    tip = git("ls-remote", "--exit-code", "origin", MAIN).strip()
+    if tip != f"{base}\t{MAIN}":
+        raise Refusal("origin/main moved; land again against the new base")
+
+
+def require_candidate(root, primary, branch, head):
+    require_clean()
+    if owned_branch(root, primary) != branch or git("rev-parse", "HEAD").strip() != head:
+        raise Refusal("the session changed during qualification; land again")
+
+
+def land(root, primary):
+    with landing_turn():
+        branch = owned_branch(root, primary)
+        require_clean()
+        destination = push_destination()
+        base = fetch_main()
+        if git("rev-list", "--merges", f"{base}..HEAD"):
+            raise Refusal("session history contains merge commits; prepare a linear branch")
+        try:
+            git("rebase", "--no-autostash", "--no-update-refs", "--no-rebase-merges", base,
+                capture=False)
+        except subprocess.CalledProcessError:
+            raise Refusal("rebase failed; inspect git status before retrying") from None
+        head = git("rev-parse", "HEAD").strip()
+        if head == base:
+            print(f"No commits to land; already at origin/main ({base}).")
+            return
+        require_clean()
+        evidence = evidence_dir(root)
+        print(f"Reviewing {base}..{head}", flush=True)
+        review(base, head, evidence)
+        require_candidate(root, primary, branch, head)
+        require_remote_base(destination, base)
+        # An inherited make dry-run or ignore-errors flag would invalidate the gate.
+        make_env = os.environ.copy()
+        for name in ("MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS", "MAKEOVERRIDES", "MAKEFILES"):
+            make_env.pop(name, None)
+        logged_run(["make", "check"], evidence / "check.log", env=make_env)
+        require_candidate(root, primary, branch, head)
+        require_remote_base(destination, base)
+        git("push", "--no-follow-tags", "--recurse-submodules=no", "origin", f"{head}:{MAIN}",
+            capture=False)
+        print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
+
+
+def overlaps(root, paths):
+    wanted = []
+    for path in paths:
+        relative = Path(os.path.abspath(path))
+        if Path(path).is_absolute() or not relative.is_relative_to(root):
+            raise Refusal("give paths relative to the repository root")
+        wanted.append(relative.relative_to(root))
+    base = fetch_main()
+    matches = False
+    for tree in worktrees(root):
+        if tree == root or not tree.is_dir():
+            continue
+        changed = set()
+        for args in (
+            ("diff", "--name-only", "--no-renames", "-z", f"{base}...HEAD"),
+            ("diff", "--cached", "--name-only", "--no-renames", "-z"),
+            ("diff", "--name-only", "--no-renames", "-z"),
+            ("ls-files", "--others", "--exclude-standard", "-z"),
+        ):
+            changed.update(git(*args, cwd=tree).split("\0"))
+        for file in sorted(changed - {""}):
+            if any(Path(file).is_relative_to(path) for path in wanted):
+                print(f"{tree}: {file}")
+                matches = True
+    # Log paths as well as the commits: a landed change may have closed an overlap.
+    landed = git("log", "--oneline", "--name-only", "--no-renames", f"HEAD..{base}", "--",
+                 *(f":(top,literal){path}" if path != Path(".") else ":(top)" for path in wanted))
+    if landed:
+        print(f"Changes on origin/main since this worktree diverged:\n{landed.rstrip()}")
+    if not matches and not landed:
+        print("No overlap found.")
+
+
+def end(root, primary):
+    with landing_turn():
+        branch = owned_branch(root, primary)
+        require_clean()
+        if git("ls-files", "--others", "--ignored", "--exclude-standard", "-z"):
+            raise Refusal("the session has ignored files; move or remove them before ending")
+        base = fetch_main()
+        if git("rev-list", f"{base}..HEAD"):
+            raise Refusal("the session has commits that are not on origin/main")
+        git("worktree", "remove", str(root), cwd=primary, capture=False)
+        # Use the fetched origin/main as the safe-delete upstream even if local main is stale.
+        git("-c", f"branch.{branch}.remote=origin", "-c", f"branch.{branch}.merge={MAIN}",
+            "branch", "-d", branch, cwd=primary, capture=False)
+        print(f"Removed {root}. Return to {primary}.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("start", help="create a worktree from fresh origin/main").add_argument("name")
+    commands.add_parser("overlaps", help="check other sessions and main for changed paths").add_argument(
+        "paths", nargs="+")
+    commands.add_parser("land", help="review, check, and push to main (requires authorization)")
+    commands.add_parser("end", help="remove this clean, fully landed session")
+    args = parser.parse_args()
+    root = Path(git("rev-parse", "--show-toplevel").strip()).resolve()
+    primary = next(worktrees(root))
+    if args.command == "start":
+        branch = branch_name(args.name)
+        path = primary.with_name(f"{primary.name}-{args.name}")
+        base = fetch_main()
+        git("worktree", "add", "--no-track", "-b", branch, str(path), base, capture=False)
+        print(f"Open the chat in {path} ({branch} at {base}).")
+    elif args.command == "overlaps":
+        if Path.cwd().resolve() != root:
+            raise Refusal("run overlaps from the worktree root")
+        overlaps(root, args.paths)
+    elif args.command == "land":
+        os.chdir(root)
+        land(root, primary)
+    elif args.command == "end":
+        os.chdir(root)
+        end(root, primary)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (Refusal, OSError, subprocess.CalledProcessError) as error:
+        sys.exit(f"session: {error}")

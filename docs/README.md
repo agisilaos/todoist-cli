@@ -26,6 +26,7 @@ Use the [contributor handoff gate](../CONTRIBUTING.md#ready-for-handoff) for cur
 - [Daily review](review-design.md): interaction, review-plan compatibility, and recovery
 - [Credential profiles and OAuth onboarding](profile-oauth-design.md): selection, removal recovery, and external OAuth prerequisites
 - [Contributor guidance](../CONTRIBUTING.md): development workflow, validation, and handoff requirements
+- [Maintainer sessions](agents/sessions.md): chat kickoff, concurrent worktrees, and direct landing
 
 ## Historical review evidence
 

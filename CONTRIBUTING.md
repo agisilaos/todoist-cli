@@ -24,8 +24,9 @@ Thanks for your interest in contributing.
 `make check` verifies formatting, runs vet and the full Go suite with coverage,
 checks documentation and help snapshots, exercises terminal token input with fake
 credentials and a local HTTP server, verifies the capture/review/replay workflow
-against an isolated API fixture with a real PTY, and checks module metadata. It does not
-rewrite repository files or require Todoist credentials. A cold dependency cache
+against an isolated API fixture with a real PTY, tests direct landing against a
+disposable Git remote, and checks module metadata. It does not rewrite
+repository files or require Todoist credentials. A cold dependency cache
 may require network access. Coverage must be at least 30% for `internal/cli` and
 80% for `internal/output`.
 
@@ -37,7 +38,9 @@ unavailable checks. Earlier evidence does not cover subsequent edits.
 If CI is unavailable or pending, a local pass is enough to hand the change off
 for review; state which CI environments or specialized checks remain unverified.
 Do not describe a local pass as cross-platform validation. Merging still requires
-the repository's required CI checks.
+any CI checks required by GitHub. For maintainer-authorized direct landings,
+follow the [session workflow](docs/agents/sessions.md#land); its local gate runs
+before the push, and ordinary CI runs on the resulting push to `main`.
 
 Ordinary CI runs the same `make check` on Linux and macOS with Go
 1.27.1. Linux also runs the PowerShell completion smoke test. macOS also runs the
