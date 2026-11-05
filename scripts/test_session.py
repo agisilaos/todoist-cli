@@ -54,6 +54,7 @@ print(args[-1])
             '\t$(MAKE) verify\n'
             "verify:\n"
             '\t@test -z "$$BINARY"\n'
+            '\t@test -z "$$GOFLAGS" && test "$$GOENV" = off && test "$$GOWORK" = off\n'
             '\tgit rev-parse HEAD\n'
             '\t@if [ -n "$$SESSION_TEST_MOVE" ]; then git -C "$$SESSION_TEST_MOVE" push origin main; fi\n'
             '\t@exit "$$SESSION_TEST_CHECK"\n'
@@ -98,6 +99,9 @@ print(args[-1])
         self.start()
         upstream = self.make_upstream_change(push=True)
         self.env["BINARY"] = "/path/to/a/different/todoist"
+        self.env["GOFLAGS"] = "-skip=TestSpecificRegression"
+        self.env["GOENV"] = "/path/to/persisted/go-flags"
+        self.env["GOWORK"] = "/path/to/a/different/go.work"
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -135,8 +139,7 @@ print(args[-1])
         self.assertIn("origin/main moved", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), upstream)
 
-    def test_main_deleted_after_final_check_is_not_recreated(self):
-        self.start()
+    def intercept_push(self, **settings):
         wrapper = self.home / "git"
         wrapper.write_text("""#!/usr/bin/env python3
 import os
@@ -145,8 +148,12 @@ import sys
 git = os.environ["SESSION_TEST_REAL_GIT"]
 args = sys.argv[1:]
 if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
-    subprocess.run([git, "--git-dir", os.environ["SESSION_TEST_REMOTE"],
-                    "update-ref", "-d", "refs/heads/main"], check=True)
+    if "SESSION_TEST_RETARGET" in os.environ:
+        subprocess.run([git, "remote", "set-url", "--push", "origin",
+                        os.environ["SESSION_TEST_RETARGET"]], check=True)
+    else:
+        subprocess.run([git, "--git-dir", os.environ["SESSION_TEST_REMOTE"],
+                        "update-ref", "-d", "refs/heads/main"], check=True)
 os.execv(git, [git, *args])
 """)
         wrapper.chmod(0o755)
@@ -154,9 +161,31 @@ os.execv(git, [git, *args])
             "SESSION_TEST_REAL_GIT": shutil.which("git"),
             "SESSION_TEST_REMOTE": str(self.remote),
             "PATH": f"{self.home}{os.pathsep}{self.env['PATH']}",
+            **settings,
         })
+
+    def test_main_deleted_after_final_check_is_not_recreated(self):
+        self.start()
+        self.intercept_push()
         self.assertIn("stale info", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.git("branch", "--list", "main", cwd=self.remote), "")
+
+    def test_push_destination_stays_fixed_after_final_check(self):
+        self.start()
+        self.git("clone", "--bare", self.remote, self.other)
+        self.intercept_push(SESSION_TEST_RETARGET=str(self.other))
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+        self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
+
+    def test_main_rewrite_does_not_restore_dropped_commits(self):
+        self.make_upstream_change(push=True)
+        self.start()
+        self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
+        self.assertIn("no longer contains the recorded session base",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+        self.assertFalse(self.logs.exists())
 
     def test_distinct_push_destination_is_refused(self):
         self.start()

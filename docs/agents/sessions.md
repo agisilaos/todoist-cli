@@ -45,6 +45,8 @@ Set `TODOIST_SESSION_LOG_DIR` to use a different directory outside the checkouts
 - If `main` moves during the attempt, land again to qualify against the new base.
   The turn covers worktrees in one clone. For concurrent pushes from other
   clones, the push requires both a fast-forward and the reviewed base SHA.
+- If a rewrite removes the session's recorded base from `main`, inspect the
+  history and move only the intended commits to a fresh session.
 
 This is the maintainer's direct landing path. It runs the local gate itself;
 it does not install Git hooks or change GitHub branch rules. If the repository

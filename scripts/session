@@ -38,6 +38,10 @@ def git(*args, cwd=None, capture=True):
     return os.fsdecode(result.stdout) if capture else ""
 
 
+def git_dir(cwd=None):
+    return Path(git("rev-parse", "--absolute-git-dir", cwd=cwd).strip())
+
+
 def worktrees(root):
     for field in git("worktree", "list", "--porcelain", "-z", cwd=root).split("\0"):
         if field.startswith("worktree "):
@@ -64,10 +68,10 @@ def owned_branch(root, primary):
 
 
 def require_clean():
-    git_dir = Path(git("rev-parse", "--absolute-git-dir").strip())
+    metadata = git_dir()
     in_progress = ("rebase-merge", "rebase-apply", "MERGE_HEAD",
                    "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
-    if any((git_dir / name).exists() for name in in_progress):
+    if any((metadata / name).exists() for name in in_progress):
         raise Refusal("finish or abort the in-progress Git operation first")
     if git("status", "--porcelain", "-z", "--untracked-files=all"):
         raise Refusal("the session has uncommitted changes")
@@ -138,7 +142,9 @@ def push_destination():
     urls = git("remote", "get-url", "--push", "--all", "origin").splitlines()
     if len(urls) != 1 or urls != git("remote", "get-url", "--all", "origin").splitlines():
         raise Refusal("origin must use the same single URL for fetching and pushing")
-    return urls[0]
+    url = urls[0]
+    # Turn a local path into an absolute path so Git cannot resolve it as a remote name.
+    return url if ":" in url.split("/", 1)[0] else os.path.abspath(url)
 
 
 def require_remote_base(destination, base):
@@ -155,6 +161,19 @@ def require_candidate(root, primary, branch, head):
         raise Refusal("the session changed during qualification; land again")
 
 
+def record_rebase_target(base):
+    receipt = git_dir() / "todoist-session-base"
+    try:
+        previous = receipt.read_text().strip()
+        git("--no-replace-objects", "merge-base", "--is-ancestor", previous, base)
+    except (OSError, subprocess.CalledProcessError):
+        raise Refusal("origin/main no longer contains the recorded session base, or the base "
+                      "is missing. Inspect the history before starting a fresh session.") from None
+    # Record the target before rebasing so a later retry after conflict resolution
+    # also refuses to restore upstream commits removed since this attempt.
+    receipt.write_text(f"{base}\n")
+
+
 def land(root, primary):
     with landing_turn():
         branch = owned_branch(root, primary)
@@ -163,6 +182,7 @@ def land(root, primary):
         base = fetch_main()
         if git("rev-list", "--merges", f"{base}..HEAD"):
             raise Refusal("session history contains merge commits; prepare a linear branch")
+        record_rebase_target(base)
         try:
             git("rebase", "--no-autostash", "--no-update-refs", "--no-rebase-merges", base,
                 capture=False)
@@ -181,16 +201,22 @@ def land(root, primary):
         # Use the repo's recipes and build the capture/review binary from this checkout.
         make_env = os.environ.copy()
         for name in ("MAKE", "MAKE_COMMAND", "MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS",
-                     "MAKEOVERRIDES", "MAKEFILES", "BINARY"):
+                     "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS"):
             make_env.pop(name, None)
+        make_env.update(GOENV="off", GOWORK="off")
         logged_run(["make", "check"], evidence / "check.log", env=make_env)
         require_candidate(root, primary, branch, head)
         require_remote_base(destination, base)
         # The lease checks the reviewed base at the ref update. Check ancestry
         # explicitly so the lease cannot permit a non-fast-forward update.
         git("--no-replace-objects", "merge-base", "--is-ancestor", base, head)
-        git("push", "--no-follow-tags", "--recurse-submodules=no",
-            f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}", capture=False)
+        # Pin the actual URL rather than resolving origin again after the check.
+        try:
+            git("push", "--no-follow-tags", "--recurse-submodules=no",
+                f"--force-with-lease={MAIN}:{base}", "--", destination, f"{head}:{MAIN}",
+                capture=False)
+        except subprocess.CalledProcessError as error:
+            raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 
@@ -259,6 +285,7 @@ def main():
         path = primary.with_name(f"{primary.name}-{args.name}")
         base = fetch_main()
         git("worktree", "add", "--no-track", "-b", branch, str(path), base, capture=False)
+        (git_dir(path) / "todoist-session-base").write_text(f"{base}\n")
         print(f"Open the chat in {path} ({branch} at {base}).")
     elif args.command == "overlaps":
         if Path.cwd().resolve() != root:
