@@ -111,8 +111,9 @@ def require_clean():
 def require_supported_hooks():
     config = git("config", "--null", "--get-regexp", r"^hook\..+\.event$", allowed=(0, 1))
     events = {setting.partition("\n")[2] for setting in config.split("\0")}
-    names = ("pre-push", "pre-rebase", "post-checkout", "post-rewrite", "post-commit",
-             "post-merge", "post-index-change", "reference-transaction")
+    names = ("pre-push", "pre-rebase", "prepare-commit-msg", "pre-commit", "commit-msg",
+             "post-checkout", "post-rewrite", "post-commit", "post-merge",
+             "post-index-change", "reference-transaction")
     for name in names:
         if name in events:
             raise Refusal(f"the source checkout has a configured {name} hook")
@@ -516,7 +517,7 @@ def worktree_history(tree, base, revision="HEAD"):
 
 
 def touched_paths(common, head, cwd=None):
-    return set(git("log", "--format=", "--name-only", "--no-renames", "-z",
+    return set(git("log", "--root", "--format=", "--name-only", "--no-renames", "-z",
                    "--no-show-signature", "--full-history", "--diff-merges=first-parent",
                    f"{common}..{head}" if common else head,
                    cwd=cwd).split("\0")) - {""}

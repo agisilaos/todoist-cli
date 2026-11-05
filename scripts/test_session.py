@@ -542,7 +542,7 @@ os.execv(git, [git, *args])
 
     def test_landing_refuses_a_pre_rebase_hook_before_it_can_write_files(self):
         self.start()
-        for name in ("pre-rebase", "post-rewrite"):
+        for name in ("pre-rebase", "post-rewrite", "prepare-commit-msg"):
             hook = self.repo / ".git/hooks" / name
             hook.parent.mkdir(exist_ok=True)
             hook.write_text("#!/bin/sh\nprintf danger > scratch\n")
@@ -734,6 +734,7 @@ os.execv(git, [git, *args])
         self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
         self.git("add", "orphan.txt", cwd=self.work)
         self.git("commit", "-m", "Independent history", cwd=self.work)
+        self.git("config", "log.showRoot", "false")
         self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
         self.git("revert", "--no-edit", "HEAD", cwd=self.work)
         self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
