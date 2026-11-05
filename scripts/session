@@ -82,6 +82,8 @@ def require_clean():
         raise Refusal("clear assume-unchanged and skip-worktree flags before continuing")
     if git("status", "--porcelain", "-z", "--untracked-files=all"):
         raise Refusal("the session has uncommitted changes")
+    if git("ls-files", "--others", "--ignored", "--exclude-standard", "-z"):
+        raise Refusal("the session has ignored files; move or remove them before continuing")
 
 
 @contextmanager
@@ -197,21 +199,33 @@ def candidate_environment():
     return env
 
 
-def transport_environment(env):
-    # Keep authentication and network settings without inheriting URL rewrites,
-    # local refs, hooks, or checkout filters from the source clone.
+def transport_config(destination):
+    # Preserve the difference between a bare setting and an explicit empty value.
     transport = []
     for setting in git("config", "--null", "--list", "--includes").split("\0"):
-        key, _, value = setting.partition("\n")
+        key, separator, value = setting.partition("\n")
         if key.startswith(("credential.", "http.", "https.", "ssh.", "protocol.")) or key in (
-            "core.sshcommand", "core.askpass", "core.gitproxy"
+            "core.sshcommand", "core.askpass", "core.gitproxy",
+            "remote.origin.proxy", "remote.origin.proxyauthmethod",
         ):
-            transport.append((key, value))
-    env = {**env, "GIT_CONFIG_COUNT": str(len(transport))}
-    for index, (key, value) in enumerate(transport):
-        env[f"GIT_CONFIG_KEY_{index}"] = key
-        env[f"GIT_CONFIG_VALUE_{index}"] = value
-    return env
+            transport.append((key, value if separator else None))
+    return [*transport, ("remote.origin.url", destination)]
+
+
+def write_transport_config(checkout, settings):
+    def quote(value):
+        return '"' + (value.replace("\\", "\\\\").replace('"', '\\"')
+                      .replace("\n", "\\n").replace("\t", "\\t").replace("\b", "\\b")) + '"'
+
+    # The checkout is private and removed after the attempt. Keep credential
+    # settings out of command arguments and out of the review/check processes.
+    with (checkout / ".git/config").open("a", errors="surrogateescape") as config:
+        for key, value in settings:
+            prefix, option = key.rsplit(".", 1)
+            section, dot, subsection = prefix.partition(".")
+            header = f"{section} {quote(subsection)}" if dot else section
+            assignment = "" if value is None else f" = {quote(value)}"
+            config.write(f"\n[{header}]\n\t{option}{assignment}\n")
 
 
 @contextmanager
@@ -252,8 +266,8 @@ def land(root, primary):
         require_clean()
         evidence = evidence_dir(root)
         print(f"Reviewing {base}..{head}", flush=True)
+        transport = transport_config(destination)
         with candidate_checkout(head, evidence) as (checkout, env):
-            push_env = transport_environment(env)
             review(base, head, evidence, checkout, env)
             require_candidate(root, primary, branch, head)
             require_remote_base(destination, base)
@@ -263,10 +277,11 @@ def land(root, primary):
             require_remote_base(destination, base)
             # Pair the lease with an ancestry check to allow only fast-forwards.
             git("merge-base", "--is-ancestor", base, head, cwd=checkout, env=env)
+            write_transport_config(checkout, transport)
             try:
                 git("push", "--no-follow-tags", "--recurse-submodules=no",
-                    f"--force-with-lease={MAIN}:{base}", "--", destination, f"{head}:{MAIN}",
-                    cwd=checkout, env=push_env, capture=False)
+                    f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}",
+                    cwd=checkout, env=env, capture=False)
             except subprocess.CalledProcessError as error:
                 raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
@@ -310,15 +325,20 @@ def end(root, primary):
     with landing_turn():
         branch = owned_branch(root, primary)
         require_clean()
-        if git("ls-files", "--others", "--ignored", "--exclude-standard", "-z"):
-            raise Refusal("the session has ignored files; move or remove them before ending")
         base = fetch_main()
-        if git("rev-list", f"{base}..HEAD"):
+        head = git("rev-parse", "HEAD").strip()
+        if git("rev-list", f"{base}..{head}"):
             raise Refusal("the session has commits that are not on origin/main")
         git("worktree", "remove", str(root), cwd=primary, capture=False)
-        # Use the fetched origin/main as the safe-delete upstream even if local main is stale.
-        git("-c", f"branch.{branch}.remote=.", "-c", f"branch.{branch}.merge={BASE}",
-            "branch", "-d", branch, cwd=primary, capture=False)
+        ref = f"refs/heads/{branch}"
+        if f"branch {ref}" in git("worktree", "list", "--porcelain", "-z", cwd=primary).split("\0"):
+            raise Refusal("the worktree was removed but the branch is checked out elsewhere")
+        # Use the exact branch tip verified against fetched main, independently of
+        # local main and any upstream configuration on the session branch.
+        git("update-ref", "-d", ref, head, cwd=primary, capture=False)
+        if any(key.startswith(f"branch.{branch}.") for key in
+               git("config", "--local", "--name-only", "--list", cwd=primary).splitlines()):
+            git("config", "--local", "--remove-section", f"branch.{branch}", cwd=primary)
         print(f"Removed {root}. Return to {primary}.")
 
 

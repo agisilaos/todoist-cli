@@ -104,8 +104,6 @@ print(args[-1])
         self.env["GOENV"] = "/path/to/persisted/go-flags"
         self.env["GOWORK"] = "/path/to/a/different/go.work"
         self.env["BASH_ENV"] = "/path/to/local/bash-configuration"
-        (self.repo / ".git/info/exclude").write_text("ignored.go\n")
-        (self.work / "ignored.go").write_text("outside the commit")
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -114,7 +112,7 @@ print(args[-1])
         self.assertIn(f"from {upstream} to {landed}", (attempt / "review.log").read_text())
         self.assertIn(landed, (attempt / "check.log").read_text())
         self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.base)
-        (self.work / "ignored.go").unlink()
+        self.git("branch", "--set-upstream-to=origin/main", "fix/example")
         self.git("config", "remote.origin.fetch", "+refs/heads/other:refs/remotes/origin/other")
         self.session("end", cwd=self.work)
         self.assertFalse(self.work.exists())
@@ -131,8 +129,6 @@ print(args[-1])
 
     def test_failed_gate_stops_push(self):
         self.start()
-        (self.repo / ".git/info/exclude").write_text("GNUmakefile\n")
-        (self.work / "GNUmakefile").write_text("check verify:\n\t@true\n")
         self.env["SESSION_TEST_CHECK"] = "3"
         for override in ({}, {"MAKEFLAGS": "-n"}, {"MAKEFLAGS": "-i"},
                          {"MAKE": "true"}, {"MAKE_COMMAND": "true"}):
@@ -165,6 +161,17 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
         subprocess.run([git, "-C", os.environ["SESSION_TEST_ORIGINAL"],
                         "config", f"url.{url}.insteadOf",
                         os.environ["SESSION_TEST_REMOTE"]], check=True)
+    elif "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
+        expected = {
+            "http.sslVerify": b"true\\n",
+            "remote.origin.proxy": b"\\n",
+            "remote.origin.proxyAuthMethod": b"basic\\n",
+        }
+        for key, value in expected.items():
+            kind = ["--bool"] if key.startswith("http.") else []
+            result = subprocess.check_output([git, "config", *kind, "--get", key])
+            if result != value:
+                sys.exit(f"transport option {key} was not preserved")
     else:
         subprocess.run([git, "--git-dir", os.environ["SESSION_TEST_REMOTE"],
                         "update-ref", "-d", "refs/heads/main"], check=True)
@@ -200,6 +207,15 @@ os.execv(git, [git, *args])
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
+
+    def test_push_preserves_bare_tls_and_remote_proxy_configuration(self):
+        self.start()
+        with (self.repo / ".git/config").open("a") as config:
+            config.write('[http]\n\tsslVerify\n[remote "origin"]\n'
+                         '\tproxy = ""\n\tproxyAuthMethod = basic\n')
+        self.intercept_push(SESSION_TEST_VERIFY_TRANSPORT="1")
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
 
     def test_main_rewrite_does_not_restore_dropped_commits(self):
         self.make_upstream_change(push=True)
@@ -251,6 +267,7 @@ os.execv(git, [git, *args])
         (self.repo / ".git/info/exclude").write_text("scratch\n")
         scratch = self.work / "scratch"
         scratch.write_text("local work")
+        self.assertIn("ignored files", self.session("land", cwd=self.work, success=False))
         self.assertIn("ignored files", self.session("end", cwd=self.work, success=False))
         self.assertEqual(scratch.read_text(), "local work")
 

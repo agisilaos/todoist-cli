@@ -27,7 +27,8 @@ clone share the stash.
 ## Land
 
 Commit only when authorized. Once a push is authorized, run `scripts/session land`
-from the clean session checkout. It takes a turn shared by this clone's worktrees,
+from the clean session checkout. Move or remove ignored files first so a rebase
+cannot overwrite them. The command takes a turn shared by this clone's worktrees,
 fetches and rebases onto `origin/main`, and creates a disposable checkout of the
 candidate. The Codex review, `make check`, and fast-forward push run from that
 checkout. The push uses a snapshot of the user's authentication and network
