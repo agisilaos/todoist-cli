@@ -183,6 +183,14 @@ if "worktree" in args and "move" in args and "SESSION_TEST_LATE_IGNORED" in os.e
                                          "\\t@echo late staged work\\n"))
     subprocess.run([git, "-C", str(makefile.parent), "add", "Makefile"], check=True)
     makefile.write_text(original)
+if "worktree" in args and "move" in args and "SESSION_TEST_LATE_CONFLICT" in os.environ:
+    work = os.environ["SESSION_TEST_WORKTREE"]
+    blob = subprocess.check_output([git, "-C", work, "rev-parse", "HEAD:Makefile"],
+                                   text=True).strip()
+    entries = (f"0 {'0' * len(blob)}\\tMakefile\\n100644 {blob} 1\\tMakefile\\n"
+               f"100644 {blob} 2\\tMakefile\\n")
+    subprocess.run([git, "-C", work, "update-index", "--index-info"],
+                   input=entries, text=True, check=True)
 if "diff" in args and "--cached" in args and "SESSION_TEST_INTERRUPT_ARCHIVE" in os.environ:
     sys.exit(42)
 if "fetch" in args and "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
@@ -307,6 +315,20 @@ os.execv(git, [git, *args])
     def test_review_checkout_changes_cannot_replace_the_gate(self):
         self.start()
         self.env["SESSION_TEST_POISON_REVIEW"] = "1"
+        self.env["SESSION_TEST_CHECK"] = "3"
+        self.assertIn("make exited", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
+    def test_relative_path_cannot_select_make_from_the_candidate(self):
+        self.start()
+        tools = self.work / "tools"
+        tools.mkdir()
+        fake_make = tools / "make"
+        fake_make.write_text("#!/bin/sh\nexit 0\n")
+        fake_make.chmod(0o755)
+        self.git("add", "tools/make", cwd=self.work)
+        self.git("commit", "-m", "Add fake make", cwd=self.work)
+        self.env["PATH"] = f"tools{os.pathsep}{self.env['PATH']}"
         self.env["SESSION_TEST_CHECK"] = "3"
         self.assertIn("make exited", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
@@ -568,6 +590,15 @@ os.execv(git, [git, *args])
         self.assertIn(f"worktree {archive}", self.git("worktree", "list", "--porcelain"))
         self.assertIn("\t@echo late staged work", self.git("show", ":Makefile", cwd=archive))
 
+    def test_cleanup_keeps_a_late_unmerged_index_registered(self):
+        self.session("start", "example")
+        self.intercept_git(SESSION_TEST_LATE_CONFLICT="1")
+        self.assertIn("contains unmerged index entries",
+                      self.session("end", cwd=self.work, success=False))
+        archive, = self.home.glob(".test repo-ended-*/worktree")
+        self.assertIn(f"worktree {archive}", self.git("worktree", "list", "--porcelain"))
+        self.assertIn("\tMakefile", self.git("ls-files", "--unmerged", cwd=archive))
+
     def test_cleanup_preserves_ignored_files(self):
         self.session("start", "example")
         (self.repo / ".git/info/exclude").write_text("scratch\n")
@@ -636,6 +667,9 @@ os.execv(git, [git, *args])
         self.git("fetch", "origin", cwd=self.work)
         self.git("rebase", "origin/main", cwd=self.work, success=False)
         self.assertIn(f"{self.work}: later.txt", self.session("overlaps", "later.txt"))
+        output = self.session("overlaps", "upstream.txt", cwd=self.work)
+        self.assertIn("Changes on origin/main", output)
+        self.assertIn("upstream.txt", output)
 
     def test_overlaps_matches_canonically_equivalent_unicode(self):
         self.session("start", "example")

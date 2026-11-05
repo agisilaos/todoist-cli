@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -89,12 +90,15 @@ def hidden_paths(cwd=None):
             (entry[0] == "S" or entry[0].islower())}
 
 
-def require_clean():
-    metadata = git_dir()
+def require_no_operation(metadata):
     in_progress = ("rebase-merge", "rebase-apply", "MERGE_HEAD",
                    "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
     if any((metadata / name).exists() for name in in_progress):
         raise Refusal("finish or abort the in-progress Git operation first")
+
+
+def require_clean():
+    require_no_operation(git_dir())
     if hidden_paths():
         raise Refusal("clear assume-unchanged and skip-worktree flags before continuing")
     if git("status", "--porcelain", "-z", "--untracked-files=all"):
@@ -182,7 +186,8 @@ def review(base, head, evidence, checkout, env):
         "if you could not finish; explain the blocker in findings."
     )
     logged_run([
-        os.environ.get("TODOIST_CODEX", "codex"), "exec", "--sandbox", "read-only",
+        trusted_executable(os.environ.get("TODOIST_CODEX", "codex"), env),
+        "exec", "--sandbox", "read-only",
         "--ephemeral", "--output-schema", str(schema), "--output-last-message", str(output),
         prompt,
     ], evidence / "review.log", cwd=checkout, env=env)
@@ -308,7 +313,22 @@ def candidate_environment():
         env.pop(name, None)
     env.update(GOENV="off", GOWORK="off", GIT_CONFIG_NOSYSTEM="1",
                GIT_CONFIG_GLOBAL=os.devnull, GIT_NO_REPLACE_OBJECTS="1", GIT_ATTR_NOSYSTEM="1")
+    roots = list(worktrees(Path.cwd()))
+    env["PATH"] = os.pathsep.join(
+        entry for entry in os.get_exec_path(env) if os.path.isabs(entry)
+        and not any(within(Path(entry).resolve(), root) for root in roots)
+    )
     return env
+
+
+def trusted_executable(name, env):
+    executable = shutil.which(name, path=env["PATH"])
+    if not executable:
+        raise Refusal(f"required executable not found on the qualification PATH: {name}")
+    path = Path(executable).resolve()
+    if any(within(path, tree) for tree in worktrees(Path.cwd())):
+        raise Refusal(f"qualification executable is inside a repository worktree: {path}")
+    return str(path)
 
 
 def transport_config(destination):
@@ -432,7 +452,8 @@ def land(root, primary):
             require_candidate(root, primary, branch, head)
             require_remote_base(destination, base, metadata, push_env)
             with candidate_checkout(head, evidence) as (checkout, env):
-                logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log",
+                logged_run([trusted_executable("make", env), "-f", "Makefile", "check"],
+                           evidence / "check.log",
                            cwd=checkout, env=env)
             require_candidate(root, primary, branch, head)
             require_supported_hooks()
@@ -481,8 +502,7 @@ def touched_paths(common, head, cwd=None):
                    cwd=cwd).split("\0")) - {""}
 
 
-def other_worktree_commits(tree, base):
-    revisions = {"HEAD"}
+def rebase_original(tree):
     metadata = git_dir(tree)
     for backend in ("rebase-merge", "rebase-apply"):
         try:
@@ -490,7 +510,13 @@ def other_worktree_commits(tree, base):
         except FileNotFoundError:
             continue
         if re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", original):
-            revisions.add(original)
+            return original
+    return None
+
+
+def other_worktree_commits(tree, base):
+    original = rebase_original(tree)
+    revisions = {"HEAD", original} if original else {"HEAD"}
     paths = set()
     for revision in revisions:
         head, common = worktree_history(tree, base, revision)
@@ -539,7 +565,7 @@ def overlaps(root, paths):
                 print(f"{tree}: {file}{detail}")
                 matches = True
     # Log paths as well as the commits: a landed change may have closed an overlap.
-    _, common = worktree_history(root, base)
+    _, common = worktree_history(root, base, rebase_original(root) or "HEAD")
     landed = []
     if common:
         landed = sorted(file for file in touched_paths(common, base) if matches_path(file))
@@ -586,6 +612,9 @@ def end(root, primary):
             raise Refusal(f"Git is updating the index of the worktree now at {saved}") from None
         try:
             # Save staged blobs while Git still sees the linked index as a GC root.
+            require_no_operation(metadata)
+            if git("ls-files", "--unmerged", "-z", cwd=saved):
+                raise Refusal(f"the moved worktree at {saved} contains unmerged index entries")
             patch = git("-c", "diff.suppressBlankEmpty=false", "diff", "--cached", "--binary",
                         "--no-color", "--no-ext-diff", "--no-textconv", "--unified=3",
                         "--no-relative", "--no-renames", "--word-diff=none",
