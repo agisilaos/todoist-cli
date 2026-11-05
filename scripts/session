@@ -102,6 +102,16 @@ def require_supported_hooks():
                       "requires a checkout without a pre-push hook")
 
 
+def require_supported_rebase():
+    attributes = Path(git("rev-parse", "--path-format=absolute",
+                          "--git-path", "info/attributes").strip())
+    drivers = git("config", "--name-only", "--get-regexp", r"^merge\.(default|.+\.driver)$",
+                  allowed=(0, 1))
+    if drivers or (attributes.is_file() and attributes.stat().st_size):
+        raise Refusal("automatic landing requires built-in merge drivers and no local "
+                      "info/attributes overrides")
+
+
 @contextmanager
 def landing_turn():
     common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
@@ -219,7 +229,13 @@ def record_rebase_target(base):
                       "is missing. Inspect the history before starting a fresh session.") from None
     fork = git("merge-base", "--fork-point", BASE, "HEAD", allowed=(0, 1)).strip()
     if not fork:
-        raise Refusal("cannot establish the session's upstream boundary from origin/main")
+        # A tracking reflog can be disabled or expire. The recorded base is
+        # durable for branches rebased through this workflow.
+        try:
+            git("merge-base", "--is-ancestor", previous, "HEAD")
+        except subprocess.CalledProcessError:
+            raise Refusal("cannot establish the session's upstream boundary") from None
+        fork = previous
     try:
         git("merge-base", "--is-ancestor", fork, base)
     except subprocess.CalledProcessError:
@@ -247,9 +263,10 @@ def transport_config(destination):
     transport = []
     for setting in git("config", "--null", "--list", "--includes").split("\0"):
         key, separator, value = setting.partition("\n")
-        if key.startswith(("credential.", "http.", "https.", "ssh.", "protocol.")) or key in (
+        if key.startswith(("credential.", "http.", "https.", "ssh.", "protocol.", "gpg.")) or key in (
             "core.sshcommand", "core.askpass", "core.gitproxy",
             "remote.origin.proxy", "remote.origin.proxyauthmethod",
+            "push.gpgsign", "user.name", "user.email", "user.signingkey",
         ):
             transport.append((key, value if separator else None))
     return [*transport, ("remote.origin.url", destination)]
@@ -296,14 +313,17 @@ def land(root, primary):
         branch = owned_branch(root, primary)
         require_clean()
         require_supported_hooks()
+        require_supported_rebase()
         destination = push_destination()
         base = fetch_main(destination if os.path.isabs(destination) else "origin")
         if git("rev-list", "--merges", f"{base}..HEAD"):
             raise Refusal("session history contains merge commits; prepare a linear branch")
         require_clean()
+        require_supported_rebase()
         record_rebase_target(base)
         try:
-            git("rebase", "--merge", "--no-autostash", "--no-autosquash",
+            git("-c", f"core.attributesFile={os.devnull}", "-c", "rerere.enabled=false",
+                "rebase", "--merge", "--no-autostash", "--no-autosquash",
                 "--no-update-refs", "--no-rebase-merges",
                 "--reapply-cherry-picks", "--empty=ask", base, capture=False)
         except subprocess.CalledProcessError:
@@ -426,6 +446,7 @@ def end(root, primary):
 
 def main():
     os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
+    os.environ["GIT_ATTR_NOSYSTEM"] = "1"
     for name in ("GIT_ATTR_SOURCE", "GIT_EXTERNAL_DIFF", "GIT_DIFF_OPTS",
                  "GIT_LITERAL_PATHSPECS", "GIT_GLOB_PATHSPECS", "GIT_NOGLOB_PATHSPECS",
                  "GIT_ICASE_PATHSPECS",

@@ -186,6 +186,8 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
             "http.sslVerify": b"true\\n",
             "remote.origin.proxy": b"\\n",
             "remote.origin.proxyAuthMethod": b"basic\\n",
+            "push.gpgSign": b"if-asked\\n",
+            "user.signingkey": b"test-signing-key\\n",
         }
         for key, value in expected.items():
             kind = ["--bool"] if key.startswith("http.") else []
@@ -252,7 +254,8 @@ os.execv(git, [git, *args])
         self.start()
         with (self.repo / ".git/config").open("a") as config:
             config.write('[http]\n\tsslVerify\n[remote "origin"]\n'
-                         '\tproxy = ""\n\tproxyAuthMethod = basic\n')
+                         '\tproxy = ""\n\tproxyAuthMethod = basic\n'
+                         '[push]\n\tgpgSign = if-asked\n[user]\n\tsigningkey = test-signing-key\n')
         self.intercept_push(SESSION_TEST_VERIFY_TRANSPORT="1")
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
@@ -275,6 +278,26 @@ os.execv(git, [git, *args])
         self.assertIn("no longer contains the session's fork point",
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
+
+    def test_fast_forward_uses_recorded_base_without_a_tracking_reflog(self):
+        self.start()
+        upstream = self.make_upstream_change(push=True)
+        self.git("config", "core.logAllRefUpdates", "false")
+        reflog = self.repo / ".git/logs/refs/remotes/origin/main"
+        if reflog.exists():
+            reflog.unlink()
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.git("rev-parse", "main^", cwd=self.remote).strip(), upstream)
+
+    def test_landing_refuses_a_custom_merge_driver_before_rebase(self):
+        self.start()
+        original = self.git("rev-parse", "HEAD", cwd=self.work).strip()
+        self.make_upstream_change(push=True)
+        self.git("config", "merge.keep-upstream.driver", "true")
+        self.assertIn("requires built-in merge drivers",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.work).strip(), original)
+        self.assertFalse(self.logs.exists())
 
     def test_rebase_reapplies_patch_that_main_landed_and_reverted(self):
         self.start()

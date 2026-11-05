@@ -34,7 +34,8 @@ candidate. The Codex review and `make check` run there. The fast-forward push
 uses a separate Git directory and a snapshot of the user's authentication and
 network settings. Configure one direct `remote.origin.url` or absolute local
 path. The workflow supports Git's standard transports and requires a source
-checkout without an executable pre-push hook. Use `TODOIST_CODEX` to select the
+checkout without an executable pre-push hook. Automatic rebase uses built-in
+merge drivers and repository attributes. Use `TODOIST_CODEX` to select the
 review executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
