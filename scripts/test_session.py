@@ -51,7 +51,7 @@ print(args[-1])
         self.git("clone", self.remote, self.repo, cwd=self.home)
         (self.repo / "Makefile").write_text(
             "check:\n"
-            '\t$(MAKE) verify\n'
+            '\t$(MAKE) -f Makefile verify\n'
             "verify:\n"
             '\t@test -z "$$BINARY"\n'
             '\t@test -z "$$GOFLAGS" && test "$$GOENV" = off && test "$$GOWORK" = off\n'
@@ -125,6 +125,8 @@ print(args[-1])
 
     def test_failed_gate_stops_push(self):
         self.start()
+        (self.repo / ".git/info/exclude").write_text("GNUmakefile\n")
+        (self.work / "GNUmakefile").write_text("check verify:\n\t@true\n")
         self.env["SESSION_TEST_CHECK"] = "3"
         for override in ({}, {"MAKEFLAGS": "-n"}, {"MAKEFLAGS": "-i"},
                          {"MAKE": "true"}, {"MAKE_COMMAND": "true"}):
@@ -187,6 +189,15 @@ os.execv(git, [git, *args])
         self.assertEqual(self.tip(), self.base)
         self.assertFalse(self.logs.exists())
 
+    def test_rebase_reapplies_patch_that_main_landed_and_reverted(self):
+        self.start()
+        self.make_upstream_change(push=False)
+        self.commit_file(self.other, "topic.txt")
+        self.git("revert", "--no-edit", "HEAD", cwd=self.other)
+        self.git("push", "origin", "main", cwd=self.other)
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.git("show", "main:topic.txt", cwd=self.remote), "example\n")
+
     def test_distinct_push_destination_is_refused(self):
         self.start()
         self.git("clone", "--bare", self.remote, self.other)
@@ -195,6 +206,15 @@ os.execv(git, [git, *args])
         self.assertEqual(self.tip(), self.base)
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
         self.assertFalse(self.logs.exists())
+
+    def test_rewritten_origin_url_is_refused(self):
+        self.start()
+        self.git("clone", "--bare", self.remote, self.other)
+        self.git("config", f"url.{self.other}.insteadOf", self.remote)
+        self.assertIn("without pushurl or Git URL rewrites",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+        self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
 
     def test_dirty_session_and_unlanded_cleanup_are_refused(self):
         self.start()
@@ -212,6 +232,14 @@ os.execv(git, [git, *args])
         scratch.write_text("local work")
         self.assertIn("ignored files", self.session("end", cwd=self.work, success=False))
         self.assertEqual(scratch.read_text(), "local work")
+
+    def test_cleanup_preserves_edits_hidden_by_index_flags(self):
+        self.session("start", "example")
+        self.git("update-index", "--assume-unchanged", "Makefile", cwd=self.work)
+        local_makefile = self.work / "Makefile"
+        local_makefile.write_text("local changes\n")
+        self.assertIn("clear assume-unchanged", self.session("end", cwd=self.work, success=False))
+        self.assertEqual(local_makefile.read_text(), "local changes\n")
 
     def test_overlaps_shows_committed_untracked_and_upstream_changes(self):
         self.start()

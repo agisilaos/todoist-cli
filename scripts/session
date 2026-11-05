@@ -73,6 +73,9 @@ def require_clean():
                    "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
     if any((metadata / name).exists() for name in in_progress):
         raise Refusal("finish or abort the in-progress Git operation first")
+    entries = git("ls-files", "-v", "-z").split("\0")
+    if any(entry and (entry[0] == "S" or entry[0].islower()) for entry in entries):
+        raise Refusal("clear assume-unchanged and skip-worktree flags before continuing")
     if git("status", "--porcelain", "-z", "--untracked-files=all"):
         raise Refusal("the session has uncommitted changes")
 
@@ -143,8 +146,12 @@ def push_destination():
     if len(urls) != 1 or urls != git("remote", "get-url", "--all", "origin").splitlines():
         raise Refusal("origin must use the same single URL for fetching and pushing")
     url = urls[0]
-    # Turn a local path into an absolute path so Git cannot resolve it as a remote name.
-    return url if ":" in url.split("/", 1)[0] else os.path.abspath(url)
+    raw = git("config", "--null", "--get-regexp", r"^remote\.origin\.(url|pushurl)$")
+    if raw != f"remote.origin.url\n{url}\0":
+        raise Refusal("configure one direct origin URL without pushurl or Git URL rewrites")
+    if ":" not in url.split("/", 1)[0] and not os.path.isabs(url):
+        raise Refusal("origin must use a URL or an absolute local path")
+    return url
 
 
 def require_remote_base(destination, base):
@@ -184,8 +191,9 @@ def land(root, primary):
             raise Refusal("session history contains merge commits; prepare a linear branch")
         record_rebase_target(base)
         try:
-            git("rebase", "--no-autostash", "--no-update-refs", "--no-rebase-merges", base,
-                capture=False)
+            git("rebase", "--merge", "--no-autostash", "--no-autosquash",
+                "--no-update-refs", "--no-rebase-merges",
+                "--reapply-cherry-picks", "--empty=drop", base, capture=False)
         except subprocess.CalledProcessError:
             raise Refusal("rebase failed; inspect git status before retrying") from None
         head = git("rev-parse", "HEAD").strip()
@@ -204,7 +212,7 @@ def land(root, primary):
                      "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS"):
             make_env.pop(name, None)
         make_env.update(GOENV="off", GOWORK="off")
-        logged_run(["make", "check"], evidence / "check.log", env=make_env)
+        logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log", env=make_env)
         require_candidate(root, primary, branch, head)
         require_remote_base(destination, base)
         # The lease checks the reviewed base at the ref update. Check ancestry
@@ -278,6 +286,9 @@ def main():
     commands.add_parser("land", help="review, check, and push to main (requires authorization)")
     commands.add_parser("end", help="remove this clean, fully landed session")
     args = parser.parse_args()
+    version = re.search(r"\b(\d+)\.(\d+)", git("--version"))
+    if not version or tuple(map(int, version.groups())) < (2, 38):
+        raise Refusal("Git 2.38 or newer is required")
     root = Path(git("rev-parse", "--show-toplevel").strip()).resolve()
     primary = next(worktrees(root))
     if args.command == "start":

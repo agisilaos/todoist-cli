@@ -5,7 +5,7 @@ Thanks for your interest in contributing.
 ## Quick Start
 
 1. Fork and clone the repo.
-2. On macOS or Linux, install Go 1.27.1+, Python 3, Make, and Bash. Native macOS
+2. On macOS or Linux, install Git 2.38+, Go 1.27.1+, Python 3, Make, and Bash. Native macOS
    builds also need Xcode Command Line Tools. PowerShell is not required for the
    ordinary local gate.
 3. During development, run targeted tests, for example:

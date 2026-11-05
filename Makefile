@@ -8,7 +8,7 @@ test:
 
 # Check metadata before Go commands can fill in missing checksums.
 check: mod-check
-	$(MAKE) fmt-check vet coverage-check docs-check auth-terminal-check capture-review-check session-check
+	$(MAKE) -f Makefile fmt-check vet coverage-check docs-check auth-terminal-check capture-review-check session-check
 
 session-check:
 	python3 scripts/test_session.py

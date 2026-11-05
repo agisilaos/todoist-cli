@@ -30,8 +30,9 @@ Commit only when authorized. Once a push is authorized, run `scripts/session lan
 from the clean session checkout. It takes a turn shared by this clone's worktrees,
 fetches and rebases onto `origin/main`, has a separate Codex CLI review the exact
 base and candidate commits, then runs `make check` once before a fast-forward push
-to `origin/main`. The `origin` remote must use the same single URL for fetches
-and pushes. Use `TODOIST_CODEX` to select the review executable if needed.
+to `origin/main`. Set `remote.origin.url` to a direct URL or absolute local
+path and leave `remote.origin.pushurl` unset. Use `TODOIST_CODEX` to select the
+review executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.
@@ -60,5 +61,6 @@ Record useful decisions and outstanding checks in the issue or relevant
 documentation before closing the chat. When cleanup is requested, run
 `scripts/session end` from the session checkout. It fetches and checks that the
 worktree has no local changes or ignored files and its commits are reachable
-from `origin/main` before removing the worktree and branch. Move or remove any
-ignored build artifacts before ending. Use the primary checkout afterwards.
+from `origin/main` before removing the worktree and branch. Clear Git index
+flags that hide edits and move or remove ignored build artifacts before ending.
+Use the primary checkout afterwards.
