@@ -31,10 +31,11 @@ from the clean session checkout. Move or remove ignored files first so a rebase
 cannot overwrite them. The command takes a turn shared by this clone's worktrees,
 fetches and rebases onto `origin/main`, and creates a disposable checkout of the
 candidate. The Codex review and `make check` run there. The fast-forward push
-uses that checkout's Git directory and a snapshot of the user's authentication
-and network settings. Configure one direct `remote.origin.url` or absolute local path.
-The workflow supports Git's standard transports. Use `TODOIST_CODEX` to select
-the review executable if needed.
+uses a separate Git directory and a snapshot of the user's authentication and
+network settings. Configure one direct `remote.origin.url` or absolute local
+path. The workflow supports Git's standard transports and requires a source
+checkout without an executable pre-push hook. Use `TODOIST_CODEX` to select the
+review executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.
@@ -49,7 +50,8 @@ Set `TODOIST_SESSION_LOG_DIR` to use a different directory outside the checkouts
   The turn covers worktrees in one clone. For concurrent pushes from other
   clones, the push requires both a fast-forward and the reviewed base SHA.
 - If a rewrite removes the session's recorded base from `main`, inspect the
-  history and move only the intended commits to a fresh session.
+  history and move only the intended commits to a fresh session. Use `land` for
+  upstream rebases so it can record the base it used.
 
 This is the maintainer's direct landing path. It runs the local gate itself;
 it does not install Git hooks or change GitHub branch rules. If the repository

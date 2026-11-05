@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from urllib.parse import unquote, urlsplit
 
 
 MAIN = "refs/heads/main"
@@ -94,6 +95,13 @@ def require_clean():
         raise Refusal("the session has ignored files; move or remove them before continuing")
 
 
+def require_supported_hooks():
+    hook = git("rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-push").strip()
+    if os.path.isfile(hook) and os.access(hook, os.X_OK):
+        raise Refusal("the source checkout has a pre-push hook. This landing workflow "
+                      "requires a checkout without a pre-push hook")
+
+
 @contextmanager
 def landing_turn():
     common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
@@ -168,10 +176,15 @@ def push_destination():
         raise Refusal("configure one direct origin URL without pushurl, URL rewrites or "
                       "custom remote helpers")
     scheme, separator, _ = url.partition("://")
-    if (separator and scheme not in {"http", "https", "ssh", "git"}) or re.match(
+    if (separator and scheme not in {"http", "https", "ssh", "git", "file"}) or re.match(
         r"^[a-zA-Z][a-zA-Z0-9+.-]*::", url
     ):
         raise Refusal("origin must use a standard Git transport, without remote helper URLs")
+    if scheme == "file" and separator:
+        local = urlsplit(url)
+        if local.netloc not in ("", "localhost") or local.query or local.fragment:
+            raise Refusal("use a local file URL without a query or fragment")
+        url = unquote(local.path)
     if ":" not in url.split("/", 1)[0] and not os.path.isabs(url):
         raise Refusal("origin must use a URL or an absolute local path")
     if os.path.isabs(url):
@@ -204,6 +217,14 @@ def record_rebase_target(base):
     except (OSError, subprocess.CalledProcessError):
         raise Refusal("origin/main no longer contains the recorded session base, or the base "
                       "is missing. Inspect the history before starting a fresh session.") from None
+    fork = git("merge-base", "--fork-point", BASE, "HEAD", allowed=(0, 1)).strip()
+    if not fork:
+        raise Refusal("cannot establish the session's upstream boundary from origin/main")
+    try:
+        git("merge-base", "--is-ancestor", fork, base)
+    except subprocess.CalledProcessError:
+        raise Refusal("origin/main no longer contains the session's fork point. "
+                      "Inspect the history before starting a fresh session.") from None
     # Record the target before rebasing so a later retry after conflict resolution
     # also refuses to restore upstream commits removed since this attempt.
     receipt.write_text(f"{base}\n")
@@ -234,14 +255,14 @@ def transport_config(destination):
     return [*transport, ("remote.origin.url", destination)]
 
 
-def write_transport_config(checkout, settings):
+def write_transport_config(metadata, settings):
     def quote(value):
         return '"' + (value.replace("\\", "\\\\").replace('"', '\\"')
                       .replace("\n", "\\n").replace("\t", "\\t").replace("\b", "\\b")) + '"'
 
     # The checkout is private and removed after the attempt. Keep credential
     # settings out of command arguments and out of the review/check processes.
-    with (checkout / ".git/config").open("a", errors="surrogateescape") as config:
+    with (metadata / "config").open("a", errors="surrogateescape") as config:
         for key, value in settings:
             prefix, option = key.rsplit(".", 1)
             section, dot, subsection = prefix.partition(".")
@@ -251,19 +272,22 @@ def write_transport_config(checkout, settings):
 
 
 @contextmanager
-def candidate_checkout(head, evidence):
+def candidate_checkout(head, evidence, *, bare=False):
     env = candidate_environment()
     object_format = git("rev-parse", "--show-object-format").strip()
     objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").strip()
-    with tempfile.TemporaryDirectory(prefix="candidate-", dir=evidence) as directory:
+    with tempfile.TemporaryDirectory(prefix="push-" if bare else "candidate-", dir=evidence) as directory:
         checkout = Path(directory)
-        git("init", "--quiet", "--template=", f"--object-format={object_format}",
+        options = ["--bare"] if bare else []
+        git("init", "--quiet", "--template=", f"--object-format={object_format}", *options,
             cwd=checkout, env=env)
-        git("config", "core.attributesFile", os.devnull, cwd=checkout, env=env)
-        info = checkout / ".git/objects/info"
+        metadata = checkout if bare else checkout / ".git"
+        info = metadata / "objects/info"
         info.mkdir(exist_ok=True)
         (info / "alternates").write_text(f"{objects}\n")
-        git("switch", "--quiet", "--detach", head, cwd=checkout, env=env)
+        if not bare:
+            git("config", "core.attributesFile", os.devnull, cwd=checkout, env=env)
+            git("switch", "--quiet", "--detach", head, cwd=checkout, env=env)
         yield checkout, env
 
 
@@ -271,6 +295,7 @@ def land(root, primary):
     with landing_turn():
         branch = owned_branch(root, primary)
         require_clean()
+        require_supported_hooks()
         destination = push_destination()
         base = fetch_main(destination if os.path.isabs(destination) else "origin")
         if git("rev-list", "--merges", f"{base}..HEAD"):
@@ -297,15 +322,17 @@ def land(root, primary):
             require_remote_base(destination, base)
             logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log",
                        cwd=checkout, env=env)
-            require_candidate(root, primary, branch, head)
+        require_candidate(root, primary, branch, head)
+        require_supported_hooks()
+        with candidate_checkout(head, evidence, bare=True) as (metadata, env):
             require_remote_base(destination, base)
             # Pair the lease with an ancestry check to allow only fast-forwards.
-            git("merge-base", "--is-ancestor", base, head, cwd=checkout, env=env)
-            write_transport_config(checkout, transport)
+            git("merge-base", "--is-ancestor", base, head, cwd=metadata, env=env)
+            write_transport_config(metadata, transport)
             try:
                 # Use the isolated Git directory but preserve the caller's working
                 # directory for relative paths in SSH and other transport settings.
-                git(f"--git-dir={checkout / '.git'}", "-c", "core.bare=true",
+                git(f"--git-dir={metadata}",
                     "push", "--no-follow-tags", "--recurse-submodules=no",
                     f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}",
                     cwd=root, env=env, capture=False)
@@ -330,6 +357,11 @@ def overlaps(root, paths):
             raise Refusal("give paths relative to the repository root")
         wanted.append(relative.relative_to(root))
     match_paths = [Path(str(path).casefold()) for path in wanted] if ignore_case else wanted
+
+    def matches_path(file):
+        file_path = Path(file.casefold() if ignore_case else file)
+        return any(within(file_path, path) or within(path, file_path) for path in match_paths)
+
     base = fetch_main()
     matches = False
     for tree in worktrees(root):
@@ -350,24 +382,22 @@ def overlaps(root, paths):
         ):
             changed.update(git(*args, cwd=tree).split("\0"))
         for file in sorted(changed - {""}):
-            file_path = Path(file.casefold() if ignore_case else file)
-            if any(within(file_path, path) for path in match_paths):
+            if matches_path(file):
                 detail = " (index flags may hide edits)" if file in hidden else ""
                 print(f"{tree}: {file}{detail}")
                 matches = True
     # Log paths as well as the commits: a landed change may have closed an overlap.
-    head, common = worktree_history(root, base)
-    landed = ""
+    _, common = worktree_history(root, base)
+    landed = []
     if common:
-        magic = ":(top,icase,literal)" if ignore_case else ":(top,literal)"
-        landed = git("log", "--full-history", "--oneline", "--name-only", "--no-renames",
-                     "--diff-merges=first-parent",
-                     f"{head}..{base}", "--",
-                     *(f"{magic}{path}" if path != Path(".") else ":(top)" for path in wanted))
+        changed = git("diff", "--name-only", "--no-renames", "-z", common, base).split("\0")
+        landed = [file for file in changed if file and matches_path(file)]
     else:
         print("Upstream path comparison requires a shared commit with origin/main.")
     if landed:
-        print(f"Changes on origin/main since this worktree diverged:\n{landed.rstrip()}")
+        print("Changes on origin/main since this worktree diverged:")
+        for file in landed:
+            print(f"  {file}")
     if not matches and not landed:
         print("No overlap found.")
 

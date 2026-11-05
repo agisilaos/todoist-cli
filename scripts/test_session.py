@@ -37,6 +37,7 @@ class SessionTest(unittest.TestCase):
             "TODOIST_CODEX": str(reviewer),
             "SESSION_TEST_REVIEW": '{"verdict":"clean","findings":[]}',
             "SESSION_TEST_MOVE": "",
+            "SESSION_TEST_POISON_PUSH": "",
             "SESSION_TEST_CHECK": "0",
         }
         reviewer.write_text("""#!/usr/bin/env python3
@@ -63,6 +64,7 @@ print(args[-1])
             '\t@test -z "$$GOFLAGS" && test "$$GOENV" = off && test "$$GOWORK" = off\n'
             '\t@test -z "$$BASH_ENV" && test ! -e ignored.go\n'
             '\tgit rev-parse HEAD\n'
+            '\t@if [ -n "$$SESSION_TEST_POISON_PUSH" ]; then git config remote.origin.pushurl "$$SESSION_TEST_POISON_PUSH"; fi\n'
             '\t@if [ -n "$$SESSION_TEST_MOVE" ]; then git -C "$$SESSION_TEST_MOVE" push origin main; fi\n'
             '\t@exit "$$SESSION_TEST_CHECK"\n'
         )
@@ -232,8 +234,16 @@ os.execv(git, [git, *args])
         self.git("clone", "--bare", self.remote, self.other)
         link = self.home / "origin-link"
         link.symlink_to(self.remote)
-        self.git("remote", "set-url", "origin", link)
+        self.git("remote", "set-url", "origin", link.as_uri())
         self.intercept_push(SESSION_TEST_SYMLINK=str(link), SESSION_TEST_LINK_TARGET=str(self.other))
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+        self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
+
+    def test_gate_checkout_config_cannot_redirect_the_push(self):
+        self.start()
+        self.git("clone", "--bare", self.remote, self.other)
+        self.env["SESSION_TEST_POISON_PUSH"] = str(self.other)
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
@@ -255,6 +265,16 @@ os.execv(git, [git, *args])
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
         self.assertFalse(self.logs.exists())
+
+    def test_main_rewrite_does_not_restore_a_manually_rebased_fork_point(self):
+        self.start()
+        self.make_upstream_change(push=True)
+        self.git("fetch", "origin", cwd=self.work)
+        self.git("rebase", "origin/main", cwd=self.work)
+        self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
+        self.assertIn("no longer contains the session's fork point",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
 
     def test_rebase_reapplies_patch_that_main_landed_and_reverted(self):
         self.start()
@@ -299,6 +319,16 @@ os.execv(git, [git, *args])
         self.assertIn("without remote helper URLs", self.session("land", cwd=self.work, success=False))
         self.assertFalse(self.logs.exists())
 
+    def test_landing_refuses_to_skip_a_source_pre_push_hook(self):
+        self.start()
+        hook = self.repo / ".git/hooks/pre-push"
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        self.assertIn("source checkout has a pre-push hook",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
     def test_dirty_session_and_unlanded_cleanup_are_refused(self):
         self.start()
         self.assertIn("not on origin/main", self.session("end", cwd=self.work, success=False))
@@ -333,7 +363,8 @@ os.execv(git, [git, *args])
         self.make_upstream_change(push=True)
         self.git("config", "core.ignorecase", "true")
         self.env["GIT_LITERAL_PATHSPECS"] = "1"
-        output = self.session("overlaps", "TOPIC.TXT", "scratch", "UPSTREAM.TXT", "makefile")
+        output = self.session("overlaps", "TOPIC.TXT/guide.md", "scratch",
+                              "UPSTREAM.TXT/guide.md", "makefile")
         self.assertIn(f"{self.work}: topic.txt", output)
         self.assertIn(f"{self.work}: scratch", output)
         self.assertIn(f"{self.work}: Makefile (index flags may hide edits)", output)
