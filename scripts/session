@@ -37,7 +37,7 @@ class Refusal(Exception):
 def git(*args, cwd=None, capture=True, env=None, allowed=(0,), quiet=False):
     result = subprocess.run(
         ["git", "--no-optional-locks", "-c", "advice.graftFileDeprecated=false",
-         "-c", "core.fsmonitor=false", *args],
+         "-c", "core.fsmonitor=false", "-c", "maintenance.auto=false", *args],
         cwd=cwd, env=env,
         stdout=subprocess.PIPE if capture else None,
         stderr=subprocess.PIPE if quiet else None,
@@ -122,8 +122,9 @@ def require_supported_hooks():
             raise Refusal("hook names containing tabs cannot be inspected safely")
         for name in names:
             listing = git("hook", "list", "-z", name, allowed=(0, 1), quiet=True)
-            if any(entry and not entry.startswith(("disabled\t", "event-disabled\t"))
-                   for entry in listing.split("\0")):
+            entries = listing.split("\0")
+            if entries.pop() or any(not entry.startswith(("disabled\t", "event-disabled\t"))
+                                    for entry in entries):
                 raise Refusal(f"the source checkout has a {name} hook")
         return
     directory = git("config", "--null", "--path", "--get", "core.hooksPath",

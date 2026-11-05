@@ -575,6 +575,11 @@ os.execv(git, [git, *args])
         self.commit_file(self.work, "event-reset.txt")
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+        self.git("config", "hook..event", "pre-push")
+        self.git("config", "hook..command", "false")
+        self.git("hook", "run", "--ignore-missing", "pre-push", cwd=self.work, success=False)
+        self.assertIn("source checkout has a pre-push hook",
+                      self.session("land", cwd=self.work, success=False))
 
     def test_landing_refuses_commit_messages_that_skip_push_ci(self):
         self.start()
