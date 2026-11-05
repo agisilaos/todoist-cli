@@ -34,9 +34,10 @@ candidate. The Codex review and `make check` each get a fresh checkout of that
 commit. Fetch and push use a separate Git directory and the same snapshot of
 the user's transport settings. Configure one direct `remote.origin.url` or absolute local
 path. The workflow supports Git's standard transports and requires a source
-checkout without pre-push or pre-rebase hooks. Automatic rebase uses built-in
-merge drivers and repository attributes. Stop background writers in the session
-before rebasing. Use `TODOIST_CODEX` to select the review executable if needed.
+checkout without hooks that can run during rebase or publication. Automatic
+rebase uses built-in merge drivers and repository attributes. Stop background
+writers in the session before rebasing. Use `TODOIST_CODEX` to select the review
+executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.

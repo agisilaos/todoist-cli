@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -45,7 +46,7 @@ def git(*args, cwd=None, capture=True, env=None, allowed=(0,)):
 
 
 def git_dir(cwd=None):
-    return Path(git("rev-parse", "--absolute-git-dir", cwd=cwd).strip())
+    return Path(git("rev-parse", "--absolute-git-dir", cwd=cwd).rstrip("\n"))
 
 
 def worktrees(root):
@@ -57,12 +58,12 @@ def worktrees(root):
 FETCH_MAIN = (
     "-c", "fetch.bundleURI=", "fetch", "--no-tags", "--no-prune", "--no-prune-tags",
     "--no-auto-maintenance", "--no-write-commit-graph", "--no-write-fetch-head",
-    "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}",
+    "--quiet", "--refmap=",
 )
 
 
 def fetch_main():
-    git(*FETCH_MAIN)
+    git(*FETCH_MAIN, "origin", f"+{MAIN}:{BASE}")
     return git("rev-parse", BASE).strip()
 
 
@@ -73,7 +74,7 @@ def branch_name(name):
 
 
 def owned_branch(root, primary):
-    branch = git("rev-parse", "--abbrev-ref", "HEAD").strip()
+    branch = git("rev-parse", "--abbrev-ref", "HEAD", cwd=root).strip()
     name = branch[len("fix/"):]
     if not branch.startswith("fix/") or root != primary.with_name(f"{primary.name}-{name}"):
         raise Refusal("run this in the sibling worktree created by scripts/session start")
@@ -110,7 +111,8 @@ def require_clean():
 def require_supported_hooks():
     config = git("config", "--null", "--get-regexp", r"^hook\..+\.event$", allowed=(0, 1))
     events = {setting.partition("\n")[2] for setting in config.split("\0")}
-    names = ("pre-push", "pre-rebase")
+    names = ("pre-push", "pre-rebase", "post-checkout", "post-rewrite", "post-commit",
+             "post-merge", "post-index-change", "reference-transaction")
     for name in names:
         if name in events:
             raise Refusal(f"the source checkout has a configured {name} hook")
@@ -119,7 +121,7 @@ def require_supported_hooks():
     if directory and not Path(directory).is_dir():
         return
     for name in names:
-        hook = git("rev-parse", "--path-format=absolute", "--git-path", f"hooks/{name}").strip()
+        hook = git("rev-parse", "--path-format=absolute", "--git-path", f"hooks/{name}").rstrip("\n")
         if os.path.isfile(hook) and os.access(hook, os.X_OK):
             raise Refusal(f"the source checkout has a {name} hook. This landing workflow "
                           f"requires a checkout without a {name} hook")
@@ -127,7 +129,7 @@ def require_supported_hooks():
 
 def require_supported_rebase():
     attributes = Path(git("rev-parse", "--path-format=absolute",
-                          "--git-path", "info/attributes").strip())
+                          "--git-path", "info/attributes").rstrip("\n"))
     drivers = git("config", "--name-only", "--get-regexp", r"^merge\.(default|.+\.driver)$",
                   allowed=(0, 1))
     if drivers or (attributes.is_file() and attributes.stat().st_size):
@@ -137,7 +139,7 @@ def require_supported_rebase():
 
 @contextmanager
 def landing_turn():
-    common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+    common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").rstrip("\n"))
     with (common / "todoist-landing.lock").open("a") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -228,10 +230,24 @@ def push_destination():
     return url
 
 
+def local_transport_option(destination, service):
+    if not os.path.isabs(destination):
+        return []
+    # A local receiver is a separate Git server. Restore the original
+    # configuration environment rather than inheriting the isolated client's.
+    keys = ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_CONFIG_NOSYSTEM")
+    command = ["env"]
+    for key in (*keys, "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"):
+        command.extend(("-u", key))
+    command.extend(f"{key}={os.environ[key]}" for key in keys if key in os.environ)
+    return [f"--{service}={shlex.join([*command, 'git', service])}"]
+
+
 def require_remote_base(destination, base, metadata, env):
     if destination != push_destination():
         raise Refusal("origin's URL changed; inspect it before retrying")
-    tip = git(f"--git-dir={metadata}", "ls-remote", "--exit-code", "origin", MAIN,
+    tip = git(f"--git-dir={metadata}", "ls-remote", "--exit-code",
+              *local_transport_option(destination, "upload-pack"), "origin", MAIN,
               env=env).strip()
     if tip != f"{base}\t{MAIN}":
         raise Refusal("origin/main moved; land again against the new base")
@@ -378,7 +394,7 @@ def require_portable_tree(head, cwd, env):
 def candidate_checkout(head, evidence, *, bare=False):
     env = candidate_environment()
     object_format = git("rev-parse", "--show-object-format").strip()
-    objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").strip()
+    objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").rstrip("\n")
     with tempfile.TemporaryDirectory(prefix="push-" if bare else "candidate-", dir=evidence) as directory:
         checkout = Path(directory)
         options = ["--bare"] if bare else []
@@ -395,12 +411,13 @@ def candidate_checkout(head, evidence, *, bare=False):
         yield checkout, env
 
 
-def fetch_pinned_main(metadata, env):
+def fetch_pinned_main(destination, metadata, env):
     previous = git("rev-parse", "--verify", "--quiet", BASE, allowed=(0, 1)).strip()
-    objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").strip()
+    objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").rstrip("\n")
     # Store fetched objects in the source clone so its worktree can rebase onto
     # the exact commit read through the frozen transport.
-    git(f"--git-dir={metadata}", *FETCH_MAIN, env={**env, "GIT_OBJECT_DIRECTORY": objects})
+    git(f"--git-dir={metadata}", *FETCH_MAIN, *local_transport_option(destination, "upload-pack"),
+        "origin", f"+{MAIN}:{BASE}", env={**env, "GIT_OBJECT_DIRECTORY": objects})
     base = git(f"--git-dir={metadata}", "rev-parse", BASE, env=env).strip()
     git("update-ref", "-m", "session: refresh origin/main", BASE, base, previous)
     return base
@@ -419,7 +436,7 @@ def land(root, primary):
         # the checks and use the same configuration for all remote operations.
         with candidate_checkout(original_head, None, bare=True) as (metadata, push_env):
             write_transport_config(metadata, transport)
-            base = fetch_pinned_main(metadata, push_env)
+            base = fetch_pinned_main(destination, metadata, push_env)
             require_candidate(root, primary, branch, original_head)
             reconcile_publication(base)
             if git("rev-list", "--merges", f"{base}..{original_head}"):
@@ -448,6 +465,8 @@ def land(root, primary):
             evidence = evidence_dir(root)
             print(f"Reviewing {base}..{head}", flush=True)
             with candidate_checkout(head, evidence) as (checkout, env):
+                for tool in ("git", "python3", "go", "gofmt", "bash", "make"):
+                    trusted_executable(tool, env)
                 review(base, head, evidence, checkout, env)
             require_candidate(root, primary, branch, head)
             require_remote_base(destination, base, metadata, push_env)
@@ -468,6 +487,7 @@ def land(root, primary):
                 # directory for relative paths in SSH and other transport settings.
                 output = git(f"--git-dir={metadata}",
                     "push", "--porcelain", "--no-follow-tags", "--recurse-submodules=no",
+                    *local_transport_option(destination, "receive-pack"),
                     f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}",
                     cwd=root, env={**push_env, "LC_ALL": "C"})
             except subprocess.CalledProcessError as error:
@@ -498,7 +518,7 @@ def worktree_history(tree, base, revision="HEAD"):
 def touched_paths(common, head, cwd=None):
     return set(git("log", "--format=", "--name-only", "--no-renames", "-z",
                    "--no-show-signature", "--full-history", "--diff-merges=first-parent",
-                   f"{common}..{head}",
+                   f"{common}..{head}" if common else head,
                    cwd=cwd).split("\0")) - {""}
 
 
@@ -520,10 +540,8 @@ def other_worktree_commits(tree, base):
     paths = set()
     for revision in revisions:
         head, common = worktree_history(tree, base, revision)
-        if common:
+        if head:
             paths.update(touched_paths(common, head, cwd=tree))
-        elif head:
-            paths.update(git("ls-tree", "-r", "--name-only", "-z", head, cwd=tree).split("\0"))
     return paths
 
 
@@ -602,7 +620,7 @@ def end(root, primary):
         if git("bundle", "list-heads", str(bundle), ref) != f"{head} {ref}\n":
             raise Refusal("the archived branch changed before cleanup")
         require_candidate(root, primary, branch, head)
-        common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+        common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").rstrip("\n"))
         git("worktree", "move", str(root), str(saved), cwd=primary, capture=False)
         archived_git = archive / "git-metadata"
         index_lock = metadata / "index.lock"
@@ -668,13 +686,25 @@ def main():
     version = re.search(r"\b(\d+)\.(\d+)", git("--version"))
     if not version or tuple(map(int, version.groups())) < (2, 38):
         raise Refusal("Git 2.38 or newer is required")
-    root = Path(git("rev-parse", "--show-toplevel").strip()).resolve()
+    root = Path(git("rev-parse", "--show-toplevel").rstrip("\n")).resolve()
     primary = next(worktrees(root))
     if args.command == "start":
         branch = branch_name(args.name)
         path = primary.with_name(f"{primary.name}-{args.name}")
+        if path.exists() or path.is_symlink():
+            raise Refusal(f"a checkout already exists at {path}")
         base = fetch_main()
-        git("worktree", "add", "--no-track", "-b", branch, str(path), base, capture=False)
+        try:
+            git("worktree", "add", "--no-track", "-b", branch, str(path), base, capture=False)
+        except subprocess.CalledProcessError:
+            if (path / ".git").is_file() and git("rev-parse", "HEAD", cwd=path).strip() == base:
+                owned_branch(path, primary)
+                receipt = git_dir(path) / "todoist-session-base"
+                if not receipt.exists():
+                    write_base_record(receipt, base)
+                raise Refusal(f"the checkout was created at {path}. Inspect Git's output and "
+                              "continue from that checkout after resolving the failure.") from None
+            raise
         write_base_record(git_dir(path) / "todoist-session-base", base)
         print(f"Open the chat in {path} ({branch} at {base}).")
     elif args.command == "overlaps":

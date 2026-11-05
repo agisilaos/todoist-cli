@@ -267,8 +267,11 @@ os.execv(git, [git, *args])
 
     def test_definite_server_rejection_can_be_retried(self):
         self.start()
-        hook = self.remote / "hooks/pre-receive"
-        hook.parent.mkdir(exist_ok=True)
+        hook = self.home / "global hooks/pre-receive"
+        hook.parent.mkdir()
+        config = self.home / "global-config"
+        self.git("config", "--file", config, "core.hooksPath", hook.parent)
+        self.env["GIT_CONFIG_GLOBAL"] = str(config)
         hook.write_text("#!/bin/sh\nexit 1\n")
         hook.chmod(0o755)
         self.assertIn("[remote rejected]", self.session("land", cwd=self.work, success=False))
@@ -331,6 +334,21 @@ os.execv(git, [git, *args])
         self.env["PATH"] = f"tools{os.pathsep}{self.env['PATH']}"
         self.env["SESSION_TEST_CHECK"] = "3"
         self.assertIn("make exited", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
+    def test_gate_refuses_a_python_symlink_into_the_session_worktree(self):
+        self.start()
+        fake = self.work / "fake-python"
+        fake.write_text("#!/bin/sh\nexit 0\n")
+        fake.chmod(0o755)
+        self.git("add", fake.name, cwd=self.work)
+        self.git("commit", "-m", "Add fake Python", cwd=self.work)
+        trusted_bin = self.home / "bin"
+        trusted_bin.mkdir()
+        (trusted_bin / "python3").symlink_to(fake)
+        self.env["PATH"] = f"{trusted_bin}{os.pathsep}{self.env['PATH']}"
+        self.assertIn("qualification executable is inside a repository worktree",
+                      self.run_command(sys.executable, SESSION, "land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
 
     def test_push_preserves_bare_tls_and_remote_proxy_configuration(self):
@@ -524,13 +542,34 @@ os.execv(git, [git, *args])
 
     def test_landing_refuses_a_pre_rebase_hook_before_it_can_write_files(self):
         self.start()
-        hook = self.repo / ".git/hooks/pre-rebase"
-        hook.parent.mkdir(exist_ok=True)
-        hook.write_text("#!/bin/sh\nprintf danger > scratch\n")
-        hook.chmod(0o755)
-        self.assertIn("source checkout has a pre-rebase hook",
-                      self.session("land", cwd=self.work, success=False))
+        for name in ("pre-rebase", "post-rewrite"):
+            hook = self.repo / ".git/hooks" / name
+            hook.parent.mkdir(exist_ok=True)
+            hook.write_text("#!/bin/sh\nprintf danger > scratch\n")
+            hook.chmod(0o755)
+            self.assertIn(f"source checkout has a {name} hook",
+                          self.session("land", cwd=self.work, success=False))
+            hook.unlink()
         self.assertFalse((self.work / "scratch").exists())
+
+    def test_start_recovers_the_base_record_after_a_post_checkout_hook_fails(self):
+        hook = self.repo / ".git/hooks/post-checkout"
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        self.assertIn("checkout was created", self.session("start", "example", success=False))
+        hook.unlink()
+        self.commit_file(self.work, "topic.txt")
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+
+    def test_start_preserves_spaces_in_the_primary_path(self):
+        renamed = self.home / "test repo "
+        self.repo.rename(renamed)
+        self.repo = renamed
+        self.work = self.home / "test repo -example"
+        self.session("start", "example")
+        self.assertTrue(self.work.is_dir())
 
     def test_dirty_session_and_unlanded_cleanup_are_refused(self):
         self.start()
@@ -695,6 +734,8 @@ os.execv(git, [git, *args])
         self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
         self.git("add", "orphan.txt", cwd=self.work)
         self.git("commit", "-m", "Independent history", cwd=self.work)
+        self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
+        self.git("revert", "--no-edit", "HEAD", cwd=self.work)
         self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
 
 
