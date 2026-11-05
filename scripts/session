@@ -437,8 +437,10 @@ def land(root, primary):
                 print(output, end="", flush=True)
                 # Git's porcelain result distinguishes a refused ref from an
                 # update whose outcome was lost with the transport connection.
-                rejection = f"!\t{head}:{MAIN}\t[rejected] (stale info)"
-                if rejection in output.splitlines():
+                rejection = f"!\t{head}:{MAIN}\t"
+                if any(line.startswith((rejection + "[rejected] ",
+                                        rejection + "[remote rejected] "))
+                       for line in output.splitlines()):
                     pending.unlink()
                 raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
             print(output, end="", flush=True)
@@ -498,8 +500,9 @@ def overlaps(root, paths):
     _, common = worktree_history(root, base)
     landed = []
     if common:
-        changed = git("diff", "--name-only", "--no-renames", "-z", common, base).split("\0")
-        landed = [file for file in changed if file and matches_path(file)]
+        changed = git("log", "--format=", "--name-only", "--no-renames", "-z",
+                      "--full-history", "--diff-merges=first-parent", f"{common}..{base}").split("\0")
+        landed = sorted({file for file in changed if file and matches_path(file)})
     else:
         print("Upstream path comparison requires a shared commit with origin/main.")
     if landed:
@@ -534,8 +537,8 @@ def end(root, primary):
             raise Refusal(f"Git is updating the index of the worktree now at {saved}") from None
         try:
             # Save staged blobs while Git still sees the linked index as a GC root.
-            patch = git("diff", "--cached", "--binary", "--no-ext-diff", "--no-textconv", head,
-                        cwd=saved)
+            patch = git("diff", "--cached", "--binary", "--no-color", "--no-ext-diff",
+                        "--no-textconv", "--src-prefix=a/", "--dst-prefix=b/", head, cwd=saved)
             (archive / "staged.patch").write_text(patch, errors="surrogateescape")
             # Unregister the worktree without deleting the index or the checkout.
             metadata.rename(archived_git)

@@ -250,6 +250,18 @@ os.execv(git, [git, *args])
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
 
+    def test_definite_server_rejection_can_be_retried(self):
+        self.start()
+        hook = self.remote / "hooks/pre-receive"
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        self.assertIn("[remote rejected]", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+        hook.unlink()
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+
     def test_push_destination_stays_fixed_after_final_check(self):
         self.start()
         self.git("clone", "--bare", self.remote, self.other)
@@ -511,11 +523,14 @@ os.execv(git, [git, *args])
     def test_cleanup_retains_ignored_file_created_during_the_move(self):
         self.session("start", "example")
         (self.repo / ".git/info/exclude").write_text("scratch\n")
+        self.git("config", "color.ui", "always")
+        self.git("config", "diff.noprefix", "true")
         self.intercept_git(SESSION_TEST_LATE_IGNORED=str(self.work / "scratch"))
         self.session("end", cwd=self.work)
         archive, = self.home.glob(".test repo-ended-*/worktree")
         self.assertEqual((archive / "scratch").read_text(), "late local work")
         self.assertIn("+late staged work", (archive.parent / "staged.patch").read_text())
+        self.git("apply", "--check", archive.parent / "staged.patch")
         self.assertTrue((archive.parent / "git-metadata/index").is_file())
         self.assertFalse(self.work.exists())
 
@@ -571,6 +586,15 @@ os.execv(git, [git, *args])
         self.session("overlaps", "Makefile")
         self.assertEqual(self.git("rev-parse", "refs/tags/local-only").strip(), self.base)
         self.assertEqual(fetch_head.read_text(), "previous fetch\n")
+
+    def test_overlaps_reports_upstream_paths_even_after_revert(self):
+        self.start()
+        self.make_upstream_change(push=False)
+        self.git("revert", "--no-edit", "HEAD", cwd=self.other)
+        self.git("push", "origin", "main", cwd=self.other)
+        output = self.session("overlaps", "upstream.txt", cwd=self.work)
+        self.assertIn("Changes on origin/main", output)
+        self.assertIn("upstream.txt", output)
 
     def test_overlaps_reports_orphan_worktree_before_and_after_its_first_commit(self):
         self.session("start", "example")
