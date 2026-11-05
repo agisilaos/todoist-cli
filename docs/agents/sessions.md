@@ -34,9 +34,9 @@ candidate. The Codex review and `make check` each get a fresh checkout of that
 commit. Fetch and push use a separate Git directory and the same snapshot of
 the user's transport settings. Configure one direct `remote.origin.url` or absolute local
 path. The workflow supports Git's standard transports and requires a source
-checkout without an executable pre-push hook. Automatic rebase uses built-in
-merge drivers and repository attributes. Use `TODOIST_CODEX` to select the
-review executable if needed.
+checkout without pre-push or pre-rebase hooks. Automatic rebase uses built-in
+merge drivers and repository attributes. Stop background writers in the session
+before rebasing. Use `TODOIST_CODEX` to select the review executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.
@@ -67,7 +67,7 @@ documentation before closing the chat. When cleanup is requested, run
 `scripts/session end` from the session checkout. It fetches and checks that the
 worktree has no local changes or ignored files and its commits are reachable
 from `origin/main` before unregistering the worktree and removing its branch.
-It moves the checkout files to a private sibling directory and prints the path
-so files written during cleanup can be recovered. Delete that directory once
-you no longer need it. Clear Git index flags that hide edits and move or remove
+It moves the checkout files and Git metadata to a private sibling directory
+and prints the path so files and staged edits can be recovered. Delete that
+directory once you no longer need it. Clear Git index flags that hide edits and move or remove
 ignored build artifacts before ending. Use the primary checkout afterwards.

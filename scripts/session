@@ -103,13 +103,20 @@ def require_clean():
 
 
 def require_supported_hooks():
+    config = git("config", "--null", "--get-regexp", r"^hook\..+\.event$", allowed=(0, 1))
+    events = {setting.partition("\n")[2] for setting in config.split("\0")}
+    names = ("pre-push", "pre-rebase")
+    for name in names:
+        if name in events:
+            raise Refusal(f"the source checkout has a configured {name} hook")
     directory = git("config", "--path", "--get", "core.hooksPath", allowed=(0, 1)).strip()
     if directory and not Path(directory).is_dir():
         return
-    hook = git("rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-push").strip()
-    if os.path.isfile(hook) and os.access(hook, os.X_OK):
-        raise Refusal("the source checkout has a pre-push hook. This landing workflow "
-                      "requires a checkout without a pre-push hook")
+    for name in names:
+        hook = git("rev-parse", "--path-format=absolute", "--git-path", f"hooks/{name}").strip()
+        if os.path.isfile(hook) and os.access(hook, os.X_OK):
+            raise Refusal(f"the source checkout has a {name} hook. This landing workflow "
+                          f"requires a checkout without a {name} hook")
 
 
 def require_supported_rebase():
@@ -368,11 +375,12 @@ def land(root, primary):
             if git("rev-list", "--merges", f"{base}..{original_head}"):
                 raise Refusal("session history contains merge commits; prepare a linear branch")
             require_supported_rebase()
+            require_supported_hooks()
             record_rebase_target(base)
             require_candidate(root, primary, branch, original_head)
             try:
                 git("-c", f"core.attributesFile={os.devnull}", "-c", "rerere.enabled=false",
-                    "rebase", "--merge", "--no-autostash", "--no-autosquash",
+                    "rebase", "--merge", "--no-verify", "--no-autostash", "--no-autosquash",
                     "--no-update-refs", "--no-rebase-merges",
                     "--reapply-cherry-picks", "--empty=ask", base, capture=False)
             except subprocess.CalledProcessError:
@@ -406,6 +414,9 @@ def land(root, primary):
                     cwd=root, env=push_env, capture=False)
             except subprocess.CalledProcessError as error:
                 raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
+            # A future rewind must not make these already-landed commits eligible
+            # for publication again, even before another fetch updates origin/main.
+            write_base_record(git_dir() / "todoist-session-base", head)
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 
@@ -481,15 +492,24 @@ def end(root, primary):
             raise Refusal("the session has commits that are not on origin/main")
         require_candidate(root, primary, branch, head)
         archive = Path(tempfile.mkdtemp(prefix=f".{primary.name}-ended-", dir=root.parent))
-        staging = archive / "moving"
         saved = archive / "worktree"
         print(f"Retaining checkout files in {archive}", flush=True)
-        git("worktree", "move", str(root), str(staging), cwd=primary, capture=False)
-        # Unregister the missing path. Git never recursively deletes the directory
-        # containing the files, even if a process kept writing there during the move.
-        staging.rename(saved)
-        git("worktree", "remove", str(staging), cwd=primary, capture=False)
+        metadata = git_dir()
+        common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+        git("worktree", "move", str(root), str(saved), cwd=primary, capture=False)
+        # Moving the metadata out of the common worktree directory unregisters
+        # this checkout without deleting its index or other recoverable state.
+        archived_git = archive / "git-metadata"
+        metadata.rename(archived_git)
         (saved / ".git").unlink(missing_ok=True)
+        (archive / "original-common-dir").write_text(f"{common}\n")
+        # Save a readable staged patch as well as the raw index. A late staged
+        # blob may otherwise become unreachable in the original object store.
+        index = archived_git / "index"
+        if index.is_file():
+            patch = git("diff", "--cached", "--binary", "--no-ext-diff", "--no-textconv", head,
+                        cwd=primary, env={**os.environ, "GIT_INDEX_FILE": str(index)})
+            (archive / "staged.patch").write_text(patch, errors="surrogateescape")
         ref = f"refs/heads/{branch}"
         if f"branch {ref}" in git("worktree", "list", "--porcelain", "-z", cwd=primary).split("\0"):
             raise Refusal("the worktree was removed but the branch is checked out elsewhere")
@@ -503,7 +523,7 @@ def end(root, primary):
 
 
 def main():
-    overrides = ("GIT_DIR", "GIT_WORK_TREE", "GIT_IMPLICIT_WORK_TREE", "GIT_COMMON_DIR",
+    overrides = ("GIT_CONFIG", "GIT_DIR", "GIT_WORK_TREE", "GIT_IMPLICIT_WORK_TREE", "GIT_COMMON_DIR",
                  "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
                  "GIT_SHALLOW_FILE", "GIT_PREFIX")
     active = [name for name in overrides if os.environ.get(name)]

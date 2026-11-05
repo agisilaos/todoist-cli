@@ -172,6 +172,11 @@ git = os.environ["SESSION_TEST_REAL_GIT"]
 args = sys.argv[1:]
 if "worktree" in args and "move" in args and "SESSION_TEST_LATE_IGNORED" in os.environ:
     Path(os.environ["SESSION_TEST_LATE_IGNORED"]).write_text("late local work")
+    makefile = Path(os.environ["SESSION_TEST_WORKTREE"]) / "Makefile"
+    original = makefile.read_text()
+    makefile.write_text("late staged work\\n")
+    subprocess.run([git, "-C", str(makefile.parent), "add", "Makefile"], check=True)
+    makefile.write_text(original)
 if "fetch" in args and "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
     git_dir = next(arg for arg in args if arg.startswith("--git-dir="))
     if not {"--no-auto-maintenance", "--no-write-commit-graph"}.issubset(args):
@@ -296,6 +301,14 @@ os.execv(git, [git, *args])
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
         self.assertFalse(self.logs.exists())
+
+    def test_main_rewind_cannot_republish_a_previously_landed_tip(self):
+        self.start()
+        self.session("land", cwd=self.work)
+        self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
+        self.assertIn("no longer contains the recorded session base",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
 
     def test_main_rewrite_does_not_restore_a_manually_rebased_fork_point(self):
         self.start()
@@ -422,6 +435,24 @@ os.execv(git, [git, *args])
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
 
+    def test_landing_refuses_a_configured_hook_with_file_hooks_disabled(self):
+        self.start()
+        self.git("config", "core.hooksPath", os.devnull)
+        self.git("config", "hook.local-gate.event", "pre-push")
+        self.git("config", "hook.local-gate.command", "false")
+        self.assertIn("configured pre-push hook", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
+    def test_landing_refuses_a_pre_rebase_hook_before_it_can_write_files(self):
+        self.start()
+        hook = self.repo / ".git/hooks/pre-rebase"
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text("#!/bin/sh\nprintf danger > scratch\n")
+        hook.chmod(0o755)
+        self.assertIn("source checkout has a pre-rebase hook",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertFalse((self.work / "scratch").exists())
+
     def test_dirty_session_and_unlanded_cleanup_are_refused(self):
         self.start()
         self.assertIn("not on origin/main", self.session("end", cwd=self.work, success=False))
@@ -462,6 +493,8 @@ os.execv(git, [git, *args])
         self.session("end", cwd=self.work)
         archive, = self.home.glob(".test repo-ended-*/worktree")
         self.assertEqual((archive / "scratch").read_text(), "late local work")
+        self.assertIn("+late staged work", (archive.parent / "staged.patch").read_text())
+        self.assertTrue((archive.parent / "git-metadata/index").is_file())
         self.assertFalse(self.work.exists())
 
     def test_cleanup_preserves_ignored_files(self):
