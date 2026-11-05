@@ -50,6 +50,9 @@ Set `TODOIST_SESSION_LOG_DIR` to use a different directory outside the checkouts
 - If `main` moves during the attempt, land again to qualify against the new base.
   The turn covers worktrees in one clone. For concurrent pushes from other
   clones, the push requires both a fast-forward and the reviewed base SHA.
+- If Git cannot confirm the push result, retrying checks whether `main` contains
+  the candidate. If it does not, verify the commit was never published before
+  clearing the pending publication record named by the command.
 - If a rewrite removes the session's recorded base from `main`, inspect the
   history and move only the intended commits to a fresh session. Use `land` for
   upstream rebases so it can record the base it used.
@@ -69,5 +72,7 @@ worktree has no local changes or ignored files and its commits are reachable
 from `origin/main` before unregistering the worktree and removing its branch.
 It moves the checkout files and Git metadata to a private sibling directory
 and prints the path so files and staged edits can be recovered. Delete that
-directory once you no longer need it. Clear Git index flags that hide edits and move or remove
-ignored build artifacts before ending. Use the primary checkout afterwards.
+directory once you no longer need it. If cleanup stops before unregistering the
+worktree, Git still lists the worktree at its new location. Clear Git index flags
+that hide edits and move or remove ignored build artifacts before ending. Use
+the primary checkout afterwards.

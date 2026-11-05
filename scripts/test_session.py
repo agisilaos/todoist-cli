@@ -177,6 +177,8 @@ if "worktree" in args and "move" in args and "SESSION_TEST_LATE_IGNORED" in os.e
     makefile.write_text("late staged work\\n")
     subprocess.run([git, "-C", str(makefile.parent), "add", "Makefile"], check=True)
     makefile.write_text(original)
+if "diff" in args and "--cached" in args and "SESSION_TEST_INTERRUPT_ARCHIVE" in os.environ:
+    sys.exit(42)
 if "fetch" in args and "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
     git_dir = next(arg for arg in args if arg.startswith("--git-dir="))
     if not {"--no-auto-maintenance", "--no-write-commit-graph"}.issubset(args):
@@ -202,6 +204,9 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
         link = Path(os.environ["SESSION_TEST_SYMLINK"])
         link.unlink()
         link.symlink_to(os.environ["SESSION_TEST_LINK_TARGET"])
+    elif "SESSION_TEST_LOSE_PUSH_RESPONSE" in os.environ:
+        subprocess.run([git, *args], check=True)
+        sys.exit(42)
     elif "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
         if os.getcwd() != os.environ["SESSION_TEST_WORKTREE"]:
             sys.exit("transport settings did not keep the source working directory")
@@ -308,6 +313,17 @@ os.execv(git, [git, *args])
         self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
         self.assertIn("no longer contains the recorded session base",
                       self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
+    def test_main_rewind_after_a_lost_push_response_requires_reconciliation(self):
+        self.start()
+        head = self.git("rev-parse", "HEAD", cwd=self.work).strip()
+        with patch.dict(self.env):
+            self.intercept_git(SESSION_TEST_LOSE_PUSH_RESPONSE="1")
+            self.assertIn("push exited 42", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), head)
+        self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
+        self.assertIn("outcome of the previous push", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
 
     def test_main_rewrite_does_not_restore_a_manually_rebased_fork_point(self):
@@ -496,6 +512,16 @@ os.execv(git, [git, *args])
         self.assertIn("+late staged work", (archive.parent / "staged.patch").read_text())
         self.assertTrue((archive.parent / "git-metadata/index").is_file())
         self.assertFalse(self.work.exists())
+
+    def test_interrupted_staged_patch_keeps_the_index_registered(self):
+        self.session("start", "example")
+        (self.repo / ".git/info/exclude").write_text("scratch\n")
+        self.intercept_git(SESSION_TEST_LATE_IGNORED=str(self.work / "scratch"),
+                           SESSION_TEST_INTERRUPT_ARCHIVE="1")
+        self.session("end", cwd=self.work, success=False)
+        archive, = self.home.glob(".test repo-ended-*/worktree")
+        self.assertIn(f"worktree {archive}", self.git("worktree", "list", "--porcelain"))
+        self.assertEqual(self.git("show", ":Makefile", cwd=archive), "late staged work\n")
 
     def test_cleanup_preserves_ignored_files(self):
         self.session("start", "example")

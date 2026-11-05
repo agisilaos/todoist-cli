@@ -282,6 +282,21 @@ def finish_rebase(base):
     (metadata / "todoist-session-target").unlink()
 
 
+def reconcile_publication(base):
+    metadata = git_dir()
+    pending = metadata / "todoist-session-publication"
+    if not pending.exists():
+        return
+    published = pending.read_text().strip()
+    try:
+        git("merge-base", "--is-ancestor", published, base)
+    except subprocess.CalledProcessError:
+        raise Refusal(f"the outcome of the previous push of {published} is uncertain. "
+                      f"Verify it never landed before clearing {pending} and retrying.") from None
+    write_base_record(metadata / "todoist-session-base", published)
+    pending.unlink()
+
+
 def candidate_environment():
     local_git_vars = set(git("rev-parse", "--local-env-vars").splitlines())
     env = {key: value for key, value in os.environ.items()
@@ -372,6 +387,7 @@ def land(root, primary):
             write_transport_config(metadata, transport)
             base = fetch_pinned_main(metadata, push_env)
             require_candidate(root, primary, branch, original_head)
+            reconcile_publication(base)
             if git("rev-list", "--merges", f"{base}..{original_head}"):
                 raise Refusal("session history contains merge commits; prepare a linear branch")
             require_supported_rebase()
@@ -405,6 +421,9 @@ def land(root, primary):
             require_remote_base(destination, base, metadata, push_env)
             # Pair the lease with an ancestry check to allow only fast-forwards.
             git("merge-base", "--is-ancestor", base, head, cwd=metadata, env=push_env)
+            receipt = git_dir()
+            pending = receipt / "todoist-session-publication"
+            write_base_record(pending, head)
             try:
                 # Use the isolated Git directory but preserve the caller's working
                 # directory for relative paths in SSH and other transport settings.
@@ -416,7 +435,8 @@ def land(root, primary):
                 raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
             # A future rewind must not make these already-landed commits eligible
             # for publication again, even before another fetch updates origin/main.
-            write_base_record(git_dir() / "todoist-session-base", head)
+            write_base_record(receipt / "todoist-session-base", head)
+            pending.unlink()
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 
@@ -497,19 +517,25 @@ def end(root, primary):
         metadata = git_dir()
         common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
         git("worktree", "move", str(root), str(saved), cwd=primary, capture=False)
-        # Moving the metadata out of the common worktree directory unregisters
-        # this checkout without deleting its index or other recoverable state.
         archived_git = archive / "git-metadata"
-        metadata.rename(archived_git)
+        index_lock = metadata / "index.lock"
+        try:
+            lock = index_lock.open("xb")
+        except FileExistsError:
+            raise Refusal(f"Git is updating the index of the worktree now at {saved}") from None
+        try:
+            # Save staged blobs while Git still sees the linked index as a GC root.
+            patch = git("diff", "--cached", "--binary", "--no-ext-diff", "--no-textconv", head,
+                        cwd=saved)
+            (archive / "staged.patch").write_text(patch, errors="surrogateescape")
+            # Unregister the worktree without deleting the index or the checkout.
+            metadata.rename(archived_git)
+            index_lock = archived_git / "index.lock"
+        finally:
+            lock.close()
+            index_lock.unlink(missing_ok=True)
         (saved / ".git").unlink(missing_ok=True)
         (archive / "original-common-dir").write_text(f"{common}\n")
-        # Save a readable staged patch as well as the raw index. A late staged
-        # blob may otherwise become unreachable in the original object store.
-        index = archived_git / "index"
-        if index.is_file():
-            patch = git("diff", "--cached", "--binary", "--no-ext-diff", "--no-textconv", head,
-                        cwd=primary, env={**os.environ, "GIT_INDEX_FILE": str(index)})
-            (archive / "staged.patch").write_text(patch, errors="surrogateescape")
         ref = f"refs/heads/{branch}"
         if f"branch {ref}" in git("worktree", "list", "--porcelain", "-z", cwd=primary).split("\0"):
             raise Refusal("the worktree was removed but the branch is checked out elsewhere")
