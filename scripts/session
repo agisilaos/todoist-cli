@@ -178,15 +178,19 @@ def land(root, primary):
         review(base, head, evidence)
         require_candidate(root, primary, branch, head)
         require_remote_base(destination, base)
-        # An inherited make dry-run or ignore-errors flag would invalidate the gate.
+        # Use the repo's recipes and build the capture/review binary from this checkout.
         make_env = os.environ.copy()
-        for name in ("MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS", "MAKEOVERRIDES", "MAKEFILES"):
+        for name in ("MAKE", "MAKE_COMMAND", "MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS",
+                     "MAKEOVERRIDES", "MAKEFILES", "BINARY"):
             make_env.pop(name, None)
         logged_run(["make", "check"], evidence / "check.log", env=make_env)
         require_candidate(root, primary, branch, head)
         require_remote_base(destination, base)
-        git("push", "--no-follow-tags", "--recurse-submodules=no", "origin", f"{head}:{MAIN}",
-            capture=False)
+        # The lease checks the reviewed base at the ref update. Check ancestry
+        # explicitly so the lease cannot permit a non-fast-forward update.
+        git("--no-replace-objects", "merge-base", "--is-ancestor", base, head)
+        git("push", "--no-follow-tags", "--recurse-submodules=no",
+            f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}", capture=False)
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 

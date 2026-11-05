@@ -2,9 +2,11 @@
 
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 SESSION = Path(__file__).with_name("session").resolve()
@@ -29,6 +31,7 @@ class SessionTest(unittest.TestCase):
             "GIT_AUTHOR_EMAIL": "test@example.invalid",
             "GIT_COMMITTER_NAME": "Session Test",
             "GIT_COMMITTER_EMAIL": "test@example.invalid",
+            "LC_ALL": "C",
             "TODOIST_SESSION_LOG_DIR": str(self.logs),
             "TODOIST_CODEX": str(reviewer),
             "SESSION_TEST_REVIEW": '{"verdict":"clean","findings":[]}',
@@ -48,6 +51,9 @@ print(args[-1])
         self.git("clone", self.remote, self.repo, cwd=self.home)
         (self.repo / "Makefile").write_text(
             "check:\n"
+            '\t$(MAKE) verify\n'
+            "verify:\n"
+            '\t@test -z "$$BINARY"\n'
             '\tgit rev-parse HEAD\n'
             '\t@if [ -n "$$SESSION_TEST_MOVE" ]; then git -C "$$SESSION_TEST_MOVE" push origin main; fi\n'
             '\t@exit "$$SESSION_TEST_CHECK"\n'
@@ -91,6 +97,7 @@ print(args[-1])
     def test_start_rebase_review_check_push_and_cleanup(self):
         self.start()
         upstream = self.make_upstream_change(push=True)
+        self.env["BINARY"] = "/path/to/a/different/todoist"
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -115,9 +122,9 @@ print(args[-1])
     def test_failed_gate_stops_push(self):
         self.start()
         self.env["SESSION_TEST_CHECK"] = "3"
-        for flags in ("", "-n", "-i"):
-            with self.subTest(makeflags=flags):
-                self.env["MAKEFLAGS"] = flags
+        for override in ({}, {"MAKEFLAGS": "-n"}, {"MAKEFLAGS": "-i"},
+                         {"MAKE": "true"}, {"MAKE_COMMAND": "true"}):
+            with self.subTest(override=override), patch.dict(self.env, override):
                 self.assertIn("make exited", self.session("land", cwd=self.work, success=False))
                 self.assertEqual(self.tip(), self.base)
 
@@ -127,6 +134,29 @@ print(args[-1])
         self.env["SESSION_TEST_MOVE"] = str(self.other)
         self.assertIn("origin/main moved", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), upstream)
+
+    def test_main_deleted_after_final_check_is_not_recreated(self):
+        self.start()
+        wrapper = self.home / "git"
+        wrapper.write_text("""#!/usr/bin/env python3
+import os
+import subprocess
+import sys
+git = os.environ["SESSION_TEST_REAL_GIT"]
+args = sys.argv[1:]
+if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
+    subprocess.run([git, "--git-dir", os.environ["SESSION_TEST_REMOTE"],
+                    "update-ref", "-d", "refs/heads/main"], check=True)
+os.execv(git, [git, *args])
+""")
+        wrapper.chmod(0o755)
+        self.env.update({
+            "SESSION_TEST_REAL_GIT": shutil.which("git"),
+            "SESSION_TEST_REMOTE": str(self.remote),
+            "PATH": f"{self.home}{os.pathsep}{self.env['PATH']}",
+        })
+        self.assertIn("stale info", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.git("branch", "--list", "main", cwd=self.remote), "")
 
     def test_distinct_push_destination_is_refused(self):
         self.start()

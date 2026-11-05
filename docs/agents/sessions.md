@@ -29,7 +29,7 @@ clone share the stash.
 Commit only when authorized. Once a push is authorized, run `scripts/session land`
 from the clean session checkout. It takes a turn shared by this clone's worktrees,
 fetches and rebases onto `origin/main`, has a separate Codex CLI review the exact
-base and candidate commits, then runs `make check` once before a non-forced push
+base and candidate commits, then runs `make check` once before a fast-forward push
 to `origin/main`. The `origin` remote must use the same single URL for fetches
 and pushes. Use `TODOIST_CODEX` to select the review executable if needed.
 Review results and full gate logs are printed as paths under
@@ -42,9 +42,9 @@ Set `TODOIST_SESSION_LOG_DIR` to use a different directory outside the checkouts
 - Findings, missing review output, or a failed check stop the push. Read the
   reported log, fix the problem within scope, then land again. Resolve any
   review disagreement before publishing.
-- If `main` advances during the attempt, land again to qualify against the new
-  base. The turn covers worktrees in one clone; Git's non-forced push also
-  protects against concurrent pushes from other clones.
+- If `main` moves during the attempt, land again to qualify against the new base.
+  The turn covers worktrees in one clone. For concurrent pushes from other
+  clones, the push requires both a fast-forward and the reviewed base SHA.
 
 This is the maintainer's direct landing path. It runs the local gate itself;
 it does not install Git hooks or change GitHub branch rules. If the repository
