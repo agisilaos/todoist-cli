@@ -115,6 +115,11 @@ print(args[-1])
         self.git("config", "rebase.instructionFormat", "%s%n%b")
         upstream = self.make_upstream_change(push=True)
         self.git("config", "core.hooksPath", os.devnull)
+        monitor = self.home / "fsmonitor"
+        invoked = self.home / "monitor-invoked"
+        monitor.write_text(f"#!/bin/sh\ntouch '{invoked}'\n")
+        monitor.chmod(0o755)
+        self.git("config", "core.fsmonitor", monitor)
         self.env["BINARY"] = "/path/to/a/different/todoist"
         self.env["GOFLAGS"] = "-skip=TestSpecificRegression"
         self.env["GOENV"] = "/path/to/persisted/go-flags"
@@ -136,6 +141,7 @@ print(args[-1])
         self.git("branch", "--set-upstream-to=origin/main", "fix/example")
         self.git("config", "remote.origin.fetch", "+refs/heads/other:refs/remotes/origin/other")
         self.session("end", cwd=self.work)
+        self.assertFalse(invoked.exists())
         self.assertFalse(self.work.exists())
         self.assertEqual(self.git("branch", "--list", "fix/example"), "")
         bundle, = self.home.glob(".test repo-ended-*/session.bundle")
@@ -240,6 +246,9 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
             result = subprocess.check_output([git, git_dir, "config", *kind, "--get", key])
             if result != value:
                 sys.exit(f"transport option {key} was not preserved")
+        options = subprocess.check_output([git, git_dir, "config", "--get-all", "push.pushOption"])
+        if options != b"discarded\\n\\nretain\\n":
+            sys.exit("push options were not preserved in order")
     else:
         subprocess.run([git, "--git-dir", os.environ["SESSION_TEST_REMOTE"],
                         "update-ref", "-d", "refs/heads/main"], check=True)
@@ -353,10 +362,13 @@ os.execv(git, [git, *args])
 
     def test_push_preserves_bare_tls_and_remote_proxy_configuration(self):
         self.start()
+        self.git("config", "receive.advertisePushOptions", "true", cwd=self.remote)
         with (self.repo / ".git/config").open("a") as config:
             config.write('[http]\n\tsslVerify\n[remote "origin"]\n'
                          '\tproxy = ""\n\tproxyAuthMethod = basic\n'
-                         '[push]\n\tgpgSign = if-asked\n[user]\n\tsigningkey = test-signing-key\n'
+                         '[push]\n\tgpgSign = if-asked\n\tpushOption = discarded\n'
+                         '\tpushOption = ""\n\tpushOption = retain\n'
+                         '[user]\n\tsigningkey = test-signing-key\n'
                          '\tuseConfigOnly = true\n[committer]\n\tname = Fixture signer\n'
                          '\temail = signer@example.invalid\n'
                          '[fetch]\n\tfsckObjects = true\n[transfer]\n\tfsckObjects = true\n'
@@ -538,6 +550,28 @@ os.execv(git, [git, *args])
         self.git("config", "hook.local-gate.event", "pre-push")
         self.git("config", "hook.local-gate.command", "false")
         self.assertIn("configured pre-push hook", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+        self.git("config", "hook.local-gate.enabled", "false")
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+
+    def test_landing_refuses_commit_messages_that_skip_push_ci(self):
+        self.start()
+        for message in ("Add topic [skip ci]", "Add topic\n\n\nskip-checks: true"):
+            with self.subTest(message=message):
+                self.git("commit", "--amend", "--cleanup=verbatim", "-m", message, cwd=self.work)
+                self.assertIn("ordinary GitHub push CI",
+                              self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+        self.assertFalse(self.logs.exists())
+
+    def test_bisect_without_checkout_blocks_landing_and_cleanup(self):
+        self.start()
+        self.git("bisect", "start", "--no-checkout", cwd=self.work)
+        for command in ("land", "end"):
+            self.assertIn("in-progress Git operation",
+                          self.session(command, cwd=self.work, success=False))
+        self.assertTrue(self.work.exists())
         self.assertEqual(self.tip(), self.base)
 
     def test_landing_refuses_a_pre_rebase_hook_before_it_can_write_files(self):

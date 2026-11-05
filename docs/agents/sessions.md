@@ -48,6 +48,9 @@ Set `TODOIST_SESSION_LOG_DIR` to use a different directory outside the checkouts
 - Findings, missing review output, or a failed check stop the push. Read the
   reported log, fix the problem within scope, then land again. Resolve any
   review disagreement before publishing.
+- Keep GitHub's ordinary push CI enabled by omitting
+  [workflow skip instructions](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs)
+  from outgoing commit messages.
 - If `main` moves during the attempt, land again to qualify against the new base.
   The turn covers worktrees in one clone. For concurrent pushes from other
   clones, the push requires both a fast-forward and the reviewed base SHA.
