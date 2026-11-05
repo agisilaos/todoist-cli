@@ -50,9 +50,9 @@ def worktrees(root):
             yield Path(field[len("worktree "):]).resolve()
 
 
-def fetch_main():
+def fetch_main(remote="origin"):
     git("-c", "fetch.bundleURI=", "fetch", "--no-tags", "--no-prune", "--no-prune-tags",
-        "--no-write-fetch-head", "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}")
+        "--no-write-fetch-head", "--quiet", "--refmap=", "--", remote, f"+{MAIN}:{BASE}")
     return git("rev-parse", BASE).strip()
 
 
@@ -168,19 +168,24 @@ def push_destination():
         raise Refusal("configure one direct origin URL without pushurl, URL rewrites or "
                       "custom remote helpers")
     scheme, separator, _ = url.partition("://")
-    if (separator and scheme not in {"http", "https", "ssh", "git", "file"}) or re.match(
+    if (separator and scheme not in {"http", "https", "ssh", "git"}) or re.match(
         r"^[a-zA-Z][a-zA-Z0-9+.-]*::", url
     ):
         raise Refusal("origin must use a standard Git transport, without remote helper URLs")
     if ":" not in url.split("/", 1)[0] and not os.path.isabs(url):
         raise Refusal("origin must use a URL or an absolute local path")
+    if os.path.isabs(url):
+        url = str(Path(url).resolve(strict=True))
+        if git("ls-remote", "--get-url", "--", url).rstrip("\n") != url:
+            raise Refusal("the resolved local origin path is subject to a Git URL rewrite")
     return url
 
 
 def require_remote_base(destination, base):
     if destination != push_destination():
         raise Refusal("origin's URL changed; inspect it before retrying")
-    tip = git("ls-remote", "--exit-code", "origin", MAIN).strip()
+    remote = destination if os.path.isabs(destination) else "origin"
+    tip = git("ls-remote", "--exit-code", "--", remote, MAIN).strip()
     if tip != f"{base}\t{MAIN}":
         raise Refusal("origin/main moved; land again against the new base")
 
@@ -267,7 +272,7 @@ def land(root, primary):
         branch = owned_branch(root, primary)
         require_clean()
         destination = push_destination()
-        base = fetch_main()
+        base = fetch_main(destination if os.path.isabs(destination) else "origin")
         if git("rev-list", "--merges", f"{base}..HEAD"):
             raise Refusal("session history contains merge commits; prepare a linear branch")
         require_clean()
@@ -275,7 +280,7 @@ def land(root, primary):
         try:
             git("rebase", "--merge", "--no-autostash", "--no-autosquash",
                 "--no-update-refs", "--no-rebase-merges",
-                "--reapply-cherry-picks", "--empty=drop", base, capture=False)
+                "--reapply-cherry-picks", "--empty=ask", base, capture=False)
         except subprocess.CalledProcessError:
             raise Refusal("rebase failed; inspect git status before retrying") from None
         head = git("rev-parse", "HEAD").strip()
@@ -316,12 +321,15 @@ def worktree_history(tree, base):
 
 
 def overlaps(root, paths):
+    ignore_case = git("config", "--type=bool", "--get", "core.ignorecase",
+                      allowed=(0, 1)).strip() == "true"
     wanted = []
     for path in paths:
         relative = Path(os.path.abspath(path))
         if Path(path).is_absolute() or not within(relative, root):
             raise Refusal("give paths relative to the repository root")
         wanted.append(relative.relative_to(root))
+    match_paths = [Path(str(path).casefold()) for path in wanted] if ignore_case else wanted
     base = fetch_main()
     matches = False
     for tree in worktrees(root):
@@ -342,7 +350,8 @@ def overlaps(root, paths):
         ):
             changed.update(git(*args, cwd=tree).split("\0"))
         for file in sorted(changed - {""}):
-            if any(within(Path(file), path) for path in wanted):
+            file_path = Path(file.casefold() if ignore_case else file)
+            if any(within(file_path, path) for path in match_paths):
                 detail = " (index flags may hide edits)" if file in hidden else ""
                 print(f"{tree}: {file}{detail}")
                 matches = True
@@ -350,9 +359,11 @@ def overlaps(root, paths):
     head, common = worktree_history(root, base)
     landed = ""
     if common:
-        landed = git("log", "--oneline", "--name-only", "--no-renames", "--diff-merges=first-parent",
+        magic = ":(top,icase,literal)" if ignore_case else ":(top,literal)"
+        landed = git("log", "--full-history", "--oneline", "--name-only", "--no-renames",
+                     "--diff-merges=first-parent",
                      f"{head}..{base}", "--",
-                     *(f":(top,literal){path}" if path != Path(".") else ":(top)" for path in wanted))
+                     *(f"{magic}{path}" if path != Path(".") else ":(top)" for path in wanted))
     else:
         print("Upstream path comparison requires a shared commit with origin/main.")
     if landed:
@@ -386,8 +397,13 @@ def end(root, primary):
 def main():
     os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
     for name in ("GIT_ATTR_SOURCE", "GIT_EXTERNAL_DIFF", "GIT_DIFF_OPTS",
+                 "GIT_LITERAL_PATHSPECS", "GIT_GLOB_PATHSPECS", "GIT_NOGLOB_PATHSPECS",
+                 "GIT_ICASE_PATHSPECS",
                  "BASH_ENV", "ENV", "SHELLOPTS", "BASHOPTS"):
         os.environ.pop(name, None)
+    for name, value in list(os.environ.items()):
+        if name.startswith("BASH_FUNC_") or value.startswith("() {"):
+            del os.environ[name]
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("start", help="create a worktree from fresh origin/main").add_argument("name")

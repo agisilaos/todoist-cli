@@ -46,6 +46,9 @@ import sys
 args = sys.argv
 if any(name in os.environ for name in ("GIT_EXTERNAL_DIFF", "GIT_ATTR_SOURCE", "SHELLOPTS")):
     sys.exit("review inherited shell or Git output overrides")
+if any(name.startswith("BASH_FUNC_") or value.startswith("() {")
+       for name, value in os.environ.items()):
+    sys.exit("review inherited exported shell functions")
 Path(args[args.index("--output-last-message") + 1]).write_text(os.environ["SESSION_TEST_REVIEW"])
 print(args[-1])
 """)
@@ -110,6 +113,7 @@ print(args[-1])
         self.env["SHELLOPTS"] = "noexec"
         self.env["GIT_ATTR_SOURCE"] = "refs/heads/missing"
         self.env["GIT_EXTERNAL_DIFF"] = "true"
+        self.env["BASH_FUNC_go%%"] = "() { true; }"
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -167,6 +171,11 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
         subprocess.run([git, "-C", os.environ["SESSION_TEST_ORIGINAL"],
                         "config", f"url.{url}.insteadOf",
                         os.environ["SESSION_TEST_REMOTE"]], check=True)
+    elif "SESSION_TEST_SYMLINK" in os.environ:
+        from pathlib import Path
+        link = Path(os.environ["SESSION_TEST_SYMLINK"])
+        link.unlink()
+        link.symlink_to(os.environ["SESSION_TEST_LINK_TARGET"])
     elif "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
         if os.getcwd() != os.environ["SESSION_TEST_WORKTREE"]:
             sys.exit("transport settings did not keep the source working directory")
@@ -218,6 +227,17 @@ os.execv(git, [git, *args])
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
 
+    def test_late_symlink_retarget_cannot_redirect_the_push(self):
+        self.start()
+        self.git("clone", "--bare", self.remote, self.other)
+        link = self.home / "origin-link"
+        link.symlink_to(self.remote)
+        self.git("remote", "set-url", "origin", link)
+        self.intercept_push(SESSION_TEST_SYMLINK=str(link), SESSION_TEST_LINK_TARGET=str(self.other))
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+        self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
+
     def test_push_preserves_bare_tls_and_remote_proxy_configuration(self):
         self.start()
         with (self.repo / ".git/config").open("a") as config:
@@ -244,6 +264,16 @@ os.execv(git, [git, *args])
         self.git("push", "origin", "main", cwd=self.other)
         self.session("land", cwd=self.work)
         self.assertEqual(self.git("show", "main:topic.txt", cwd=self.remote), "example\n")
+
+    def test_rebase_stops_on_a_newly_empty_topic_commit(self):
+        self.start()
+        original = self.git("rev-parse", "HEAD", cwd=self.work).strip()
+        self.make_upstream_change(push=False)
+        self.commit_file(self.other, "topic.txt")
+        self.git("push", "origin", "main", cwd=self.other)
+        self.assertIn("rebase failed", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.git("rev-parse", "ORIG_HEAD", cwd=self.work).strip(), original)
+        self.assertFalse(self.logs.exists())
 
     def test_distinct_push_destination_is_refused(self):
         self.start()
@@ -301,7 +331,9 @@ os.execv(git, [git, *args])
         self.git("update-index", "--assume-unchanged", "Makefile", cwd=self.work)
         (self.work / "Makefile").write_text("hidden local change\n")
         self.make_upstream_change(push=True)
-        output = self.session("overlaps", "topic.txt", "scratch", "upstream.txt", "Makefile")
+        self.git("config", "core.ignorecase", "true")
+        self.env["GIT_LITERAL_PATHSPECS"] = "1"
+        output = self.session("overlaps", "TOPIC.TXT", "scratch", "UPSTREAM.TXT", "makefile")
         self.assertIn(f"{self.work}: topic.txt", output)
         self.assertIn(f"{self.work}: scratch", output)
         self.assertIn(f"{self.work}: Makefile (index flags may hide edits)", output)

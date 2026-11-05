@@ -40,8 +40,8 @@ Review results and full gate logs are printed as paths under
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.
 Set `TODOIST_SESSION_LOG_DIR` to use a different directory outside the checkouts.
 
-- A rebase conflict leaves the session in the rebase so you can resolve it or
-  abort it. Inspect the resolution before running `land` again.
+- A rebase conflict or newly empty commit leaves the session in the rebase.
+  Inspect the cause, then resolve the stop or abort before running `land` again.
 - Findings, missing review output, or a failed check stop the push. Read the
   reported log, fix the problem within scope, then land again. Resolve any
   review disagreement before publishing.
