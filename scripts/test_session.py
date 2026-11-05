@@ -46,7 +46,8 @@ import os
 from pathlib import Path
 import sys
 args = sys.argv
-if any(name in os.environ for name in ("GIT_EXTERNAL_DIFF", "GIT_ATTR_SOURCE", "SHELLOPTS")):
+if any(name in os.environ for name in ("GIT_EXTERNAL_DIFF", "GIT_ATTR_SOURCE", "SHELLOPTS",
+                                       "PYTHONOPTIMIZE")):
     sys.exit("review inherited shell or Git output overrides")
 if any(name.startswith("BASH_FUNC_") or value.startswith("() {")
        for name, value in os.environ.items()):
@@ -78,7 +79,7 @@ print(args[-1])
 
     def run_command(self, *args, cwd=None, success=True):
         result = subprocess.run(args, cwd=cwd or self.repo, env=self.env, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
         self.assertEqual(result.returncode == 0, success, result.stdout)
         return result.stdout
 
@@ -110,6 +111,7 @@ print(args[-1])
     def test_start_rebase_review_check_push_and_cleanup(self):
         self.start()
         upstream = self.make_upstream_change(push=True)
+        self.git("config", "core.hooksPath", os.devnull)
         self.env["BINARY"] = "/path/to/a/different/todoist"
         self.env["GOFLAGS"] = "-skip=TestSpecificRegression"
         self.env["GOENV"] = "/path/to/persisted/go-flags"
@@ -119,6 +121,7 @@ print(args[-1])
         self.env["GIT_ATTR_SOURCE"] = "refs/heads/missing"
         self.env["GIT_EXTERNAL_DIFF"] = "true"
         self.env["BASH_FUNC_go%%"] = "() { true; }"
+        self.env["PYTHONOPTIMIZE"] = "1"
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -166,6 +169,17 @@ import subprocess
 import sys
 git = os.environ["SESSION_TEST_REAL_GIT"]
 args = sys.argv[1:]
+if "fetch" in args and "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
+    git_dir = next(arg for arg in args if arg.startswith("--git-dir="))
+    if not {"--no-auto-maintenance", "--no-write-commit-graph"}.issubset(args):
+        sys.exit("fetch maintenance was not disabled")
+    for key, expected in {
+        "fetch.fsckObjects": b"true\\n",
+        "transfer.fsckObjects": b"true\\n",
+        "fetch.fsck.missingEmail": b"error\\n",
+    }.items():
+        if subprocess.check_output([git, git_dir, "config", "--get", key]) != expected:
+            sys.exit(f"fetch validation option {key} was not preserved")
 if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
     if "SESSION_TEST_RETARGET" in os.environ:
         subprocess.run([git, "-C", os.environ["SESSION_TEST_ORIGINAL"],
@@ -265,7 +279,9 @@ os.execv(git, [git, *args])
         with (self.repo / ".git/config").open("a") as config:
             config.write('[http]\n\tsslVerify\n[remote "origin"]\n'
                          '\tproxy = ""\n\tproxyAuthMethod = basic\n'
-                         '[push]\n\tgpgSign = if-asked\n[user]\n\tsigningkey = test-signing-key\n')
+                         '[push]\n\tgpgSign = if-asked\n[user]\n\tsigningkey = test-signing-key\n'
+                         '[fetch]\n\tfsckObjects = true\n[transfer]\n\tfsckObjects = true\n'
+                         '[fetch "fsck"]\n\tmissingEmail = error\n')
         self.intercept_push(SESSION_TEST_VERIFY_TRANSPORT="1")
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())

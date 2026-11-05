@@ -33,7 +33,8 @@ class Refusal(Exception):
 
 def git(*args, cwd=None, capture=True, env=None, allowed=(0,)):
     result = subprocess.run(
-        ["git", "--no-optional-locks", *args], cwd=cwd, env=env,
+        ["git", "--no-optional-locks", "-c", "advice.graftFileDeprecated=false", *args],
+        cwd=cwd, env=env,
         stdout=subprocess.PIPE if capture else None,
     )
     if result.returncode not in allowed:
@@ -53,7 +54,8 @@ def worktrees(root):
 
 FETCH_MAIN = (
     "-c", "fetch.bundleURI=", "fetch", "--no-tags", "--no-prune", "--no-prune-tags",
-    "--no-write-fetch-head", "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}",
+    "--no-auto-maintenance", "--no-write-commit-graph", "--no-write-fetch-head",
+    "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}",
 )
 
 
@@ -101,6 +103,9 @@ def require_clean():
 
 
 def require_supported_hooks():
+    directory = git("config", "--path", "--get", "core.hooksPath", allowed=(0, 1)).strip()
+    if directory and not Path(directory).is_dir():
+        return
     hook = git("rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-push").strip()
     if os.path.isfile(hook) and os.access(hook, os.X_OK):
         raise Refusal("the source checkout has a pre-push hook. This landing workflow "
@@ -275,7 +280,7 @@ def candidate_environment():
     env = {key: value for key, value in os.environ.items()
            if key not in local_git_vars and not key.startswith("GIT_CONFIG")}
     for name in ("MAKE", "MAKE_COMMAND", "MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS",
-                 "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS"):
+                 "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS", "PYTHONOPTIMIZE"):
         env.pop(name, None)
     env.update(GOENV="off", GOWORK="off", GIT_CONFIG_NOSYSTEM="1",
                GIT_CONFIG_GLOBAL=os.devnull, GIT_NO_REPLACE_OBJECTS="1", GIT_ATTR_NOSYSTEM="1")
@@ -287,10 +292,12 @@ def transport_config(destination):
     transport = []
     for setting in git("config", "--null", "--list", "--includes").split("\0"):
         key, separator, value = setting.partition("\n")
-        if key.startswith(("credential.", "http.", "https.", "ssh.", "protocol.", "gpg.")) or key in (
+        if key.startswith(("credential.", "http.", "https.", "ssh.", "protocol.", "gpg.",
+                           "fetch.fsck.")) or key in (
             "core.sshcommand", "core.askpass", "core.gitproxy",
             "remote.origin.proxy", "remote.origin.proxyauthmethod",
             "push.gpgsign", "user.name", "user.email", "user.signingkey",
+            "fetch.fsckobjects", "transfer.fsckobjects",
         ):
             transport.append((key, value if separator else None))
     return [*transport, ("remote.origin.url", destination)]
