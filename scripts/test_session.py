@@ -162,6 +162,9 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
                         "config", f"url.{url}.insteadOf",
                         os.environ["SESSION_TEST_REMOTE"]], check=True)
     elif "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
+        if os.getcwd() != os.environ["SESSION_TEST_WORKTREE"]:
+            sys.exit("transport settings did not keep the source working directory")
+        git_dir = next(arg for arg in args if arg.startswith("--git-dir="))
         expected = {
             "http.sslVerify": b"true\\n",
             "remote.origin.proxy": b"\\n",
@@ -169,7 +172,7 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
         }
         for key, value in expected.items():
             kind = ["--bool"] if key.startswith("http.") else []
-            result = subprocess.check_output([git, "config", *kind, "--get", key])
+            result = subprocess.check_output([git, git_dir, "config", *kind, "--get", key])
             if result != value:
                 sys.exit(f"transport option {key} was not preserved")
     else:
@@ -182,6 +185,7 @@ os.execv(git, [git, *args])
             "SESSION_TEST_REAL_GIT": shutil.which("git"),
             "SESSION_TEST_REMOTE": str(self.remote),
             "SESSION_TEST_ORIGINAL": str(self.repo),
+            "SESSION_TEST_WORKTREE": str(self.work),
             "PATH": f"{self.home}{os.pathsep}{self.env['PATH']}",
             **settings,
         })
@@ -248,7 +252,7 @@ os.execv(git, [git, *args])
         self.start()
         self.git("clone", "--bare", self.remote, self.other)
         self.git("config", f"url.{self.other}.insteadOf", self.remote)
-        self.assertIn("without pushurl or Git URL rewrites",
+        self.assertIn("without pushurl, URL rewrites or custom remote helpers",
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
@@ -282,12 +286,22 @@ os.execv(git, [git, *args])
     def test_overlaps_shows_committed_untracked_and_upstream_changes(self):
         self.start()
         (self.work / "scratch").touch()
+        self.git("update-index", "--assume-unchanged", "Makefile", cwd=self.work)
+        (self.work / "Makefile").write_text("hidden local change\n")
         self.make_upstream_change(push=True)
-        output = self.session("overlaps", "topic.txt", "scratch", "upstream.txt")
+        output = self.session("overlaps", "topic.txt", "scratch", "upstream.txt", "Makefile")
         self.assertIn(f"{self.work}: topic.txt", output)
         self.assertIn(f"{self.work}: scratch", output)
+        self.assertIn(f"{self.work}: Makefile (index flags may hide edits)", output)
         self.assertIn("Changes on origin/main", output)
         self.assertIn("upstream.txt", output)
+
+    def test_overlap_fetch_preserves_unpublished_tag_when_pruning_is_configured(self):
+        self.git("tag", "local-only")
+        self.git("config", "fetch.prune", "true")
+        self.git("config", "fetch.pruneTags", "true")
+        self.session("overlaps", "Makefile")
+        self.assertEqual(self.git("rev-parse", "refs/tags/local-only").strip(), self.base)
 
 
 if __name__ == "__main__":

@@ -30,11 +30,11 @@ Commit only when authorized. Once a push is authorized, run `scripts/session lan
 from the clean session checkout. Move or remove ignored files first so a rebase
 cannot overwrite them. The command takes a turn shared by this clone's worktrees,
 fetches and rebases onto `origin/main`, and creates a disposable checkout of the
-candidate. The Codex review, `make check`, and fast-forward push run from that
-checkout. The push uses a snapshot of the user's authentication and network
-settings. Set `remote.origin.url` to a direct URL or absolute local path and
-leave `remote.origin.pushurl` unset. Use `TODOIST_CODEX` to select the review
-executable if needed.
+candidate. The Codex review and `make check` run there. The fast-forward push
+uses that checkout's Git directory and a snapshot of the user's authentication
+and network settings. Configure one direct `remote.origin.url` or absolute local path.
+The workflow supports Git's standard transports. Use `TODOIST_CODEX` to select
+the review executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.
