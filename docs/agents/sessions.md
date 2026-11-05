@@ -30,9 +30,9 @@ Commit only when authorized. Once a push is authorized, run `scripts/session lan
 from the clean session checkout. Move or remove ignored files first so a rebase
 cannot overwrite them. The command takes a turn shared by this clone's worktrees,
 fetches and rebases onto `origin/main`, and creates a disposable checkout of the
-candidate. The Codex review and `make check` run there. The fast-forward push
-uses a separate Git directory and a snapshot of the user's authentication and
-network settings. Configure one direct `remote.origin.url` or absolute local
+candidate. The Codex review and `make check` each get a fresh checkout of that
+commit. Fetch and push use a separate Git directory and the same snapshot of
+the user's transport settings. Configure one direct `remote.origin.url` or absolute local
 path. The workflow supports Git's standard transports and requires a source
 checkout without an executable pre-push hook. Automatic rebase uses built-in
 merge drivers and repository attributes. Use `TODOIST_CODEX` to select the

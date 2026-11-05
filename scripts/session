@@ -51,9 +51,14 @@ def worktrees(root):
             yield Path(field[len("worktree "):]).resolve()
 
 
-def fetch_main(remote="origin"):
-    git("-c", "fetch.bundleURI=", "fetch", "--no-tags", "--no-prune", "--no-prune-tags",
-        "--no-write-fetch-head", "--quiet", "--refmap=", "--", remote, f"+{MAIN}:{BASE}")
+FETCH_MAIN = (
+    "-c", "fetch.bundleURI=", "fetch", "--no-tags", "--no-prune", "--no-prune-tags",
+    "--no-write-fetch-head", "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}",
+)
+
+
+def fetch_main():
+    git(*FETCH_MAIN)
     return git("rev-parse", BASE).strip()
 
 
@@ -204,11 +209,11 @@ def push_destination():
     return url
 
 
-def require_remote_base(destination, base):
+def require_remote_base(destination, base, metadata, env):
     if destination != push_destination():
         raise Refusal("origin's URL changed; inspect it before retrying")
-    remote = destination if os.path.isabs(destination) else "origin"
-    tip = git("ls-remote", "--exit-code", "--", remote, MAIN).strip()
+    tip = git(f"--git-dir={metadata}", "ls-remote", "--exit-code", "origin", MAIN,
+              env=env).strip()
     if tip != f"{base}\t{MAIN}":
         raise Refusal("origin/main moved; land again against the new base")
 
@@ -220,9 +225,15 @@ def require_candidate(root, primary, branch, head):
 
 
 def record_rebase_target(base):
-    receipt = git_dir() / "todoist-session-base"
+    metadata = git_dir()
+    receipt = metadata / "todoist-session-base"
+    pending = metadata / "todoist-session-target"
     try:
         previous = receipt.read_text().strip()
+        if pending.exists():
+            attempted = pending.read_text().strip()
+            if git("merge-base", attempted, "HEAD", allowed=(0, 1)).strip() == attempted:
+                previous = attempted
         git("--no-replace-objects", "merge-base", "--is-ancestor", previous, base)
     except (OSError, subprocess.CalledProcessError):
         raise Refusal("origin/main no longer contains the recorded session base, or the base "
@@ -241,9 +252,15 @@ def record_rebase_target(base):
     except subprocess.CalledProcessError:
         raise Refusal("origin/main no longer contains the session's fork point. "
                       "Inspect the history before starting a fresh session.") from None
-    # Record the target before rebasing so a later retry after conflict resolution
-    # also refuses to restore upstream commits removed since this attempt.
-    receipt.write_text(f"{base}\n")
+    # A completed manual resolution contains the attempted target in its history.
+    # An aborted rebase keeps the last successful base.
+    pending.write_text(f"{base}\n")
+
+
+def finish_rebase(base):
+    metadata = git_dir()
+    (metadata / "todoist-session-base").write_text(f"{base}\n")
+    (metadata / "todoist-session-target").unlink()
 
 
 def candidate_environment():
@@ -308,54 +325,71 @@ def candidate_checkout(head, evidence, *, bare=False):
         yield checkout, env
 
 
+def fetch_pinned_main(metadata, env):
+    previous = git("rev-parse", "--verify", "--quiet", BASE, allowed=(0, 1)).strip()
+    objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").strip()
+    # Store fetched objects in the source clone so its worktree can rebase onto
+    # the exact commit read through the frozen transport.
+    git(f"--git-dir={metadata}", *FETCH_MAIN, env={**env, "GIT_OBJECT_DIRECTORY": objects})
+    base = git(f"--git-dir={metadata}", "rev-parse", BASE, env=env).strip()
+    git("update-ref", "-m", "session: refresh origin/main", BASE, base, previous)
+    return base
+
+
 def land(root, primary):
     with landing_turn():
         branch = owned_branch(root, primary)
         require_clean()
         require_supported_hooks()
         require_supported_rebase()
+        original_head = git("rev-parse", "HEAD").strip()
         destination = push_destination()
-        base = fetch_main(destination if os.path.isabs(destination) else "origin")
-        if git("rev-list", "--merges", f"{base}..HEAD"):
-            raise Refusal("session history contains merge commits; prepare a linear branch")
-        require_clean()
-        require_supported_rebase()
-        record_rebase_target(base)
-        try:
-            git("-c", f"core.attributesFile={os.devnull}", "-c", "rerere.enabled=false",
-                "rebase", "--merge", "--no-autostash", "--no-autosquash",
-                "--no-update-refs", "--no-rebase-merges",
-                "--reapply-cherry-picks", "--empty=ask", base, capture=False)
-        except subprocess.CalledProcessError:
-            raise Refusal("rebase failed; inspect git status before retrying") from None
-        head = git("rev-parse", "HEAD").strip()
-        if head == base:
-            print(f"No commits to land; already at origin/main ({base}).")
-            return
-        require_clean()
-        evidence = evidence_dir(root)
-        print(f"Reviewing {base}..{head}", flush=True)
         transport = transport_config(destination)
-        with candidate_checkout(head, evidence) as (checkout, env):
-            review(base, head, evidence, checkout, env)
-            require_candidate(root, primary, branch, head)
-            require_remote_base(destination, base)
-            logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log",
-                       cwd=checkout, env=env)
-        require_candidate(root, primary, branch, head)
-        require_supported_hooks()
-        with candidate_checkout(head, evidence, bare=True) as (metadata, env):
-            require_remote_base(destination, base)
-            # Pair the lease with an ancestry check to allow only fast-forwards.
-            git("merge-base", "--is-ancestor", base, head, cwd=metadata, env=env)
+        # Keep the transport directory independent from both the reviewer and
+        # the checks and use the same configuration for all remote operations.
+        with candidate_checkout(original_head, None, bare=True) as (metadata, push_env):
             write_transport_config(metadata, transport)
+            base = fetch_pinned_main(metadata, push_env)
+            require_candidate(root, primary, branch, original_head)
+            if git("rev-list", "--merges", f"{base}..{original_head}"):
+                raise Refusal("session history contains merge commits; prepare a linear branch")
+            require_supported_rebase()
+            record_rebase_target(base)
+            require_candidate(root, primary, branch, original_head)
+            try:
+                git("-c", f"core.attributesFile={os.devnull}", "-c", "rerere.enabled=false",
+                    "rebase", "--merge", "--no-autostash", "--no-autosquash",
+                    "--no-update-refs", "--no-rebase-merges",
+                    "--reapply-cherry-picks", "--empty=ask", base, capture=False)
+            except subprocess.CalledProcessError:
+                raise Refusal("rebase failed; inspect git status before retrying") from None
+            finish_rebase(base)
+            head = git("rev-parse", "HEAD").strip()
+            if head == base:
+                print(f"No commits to land; already at origin/main ({base}).")
+                return
+            require_clean()
+            evidence = evidence_dir(root)
+            print(f"Reviewing {base}..{head}", flush=True)
+            with candidate_checkout(head, evidence) as (checkout, env):
+                review(base, head, evidence, checkout, env)
+            require_candidate(root, primary, branch, head)
+            require_remote_base(destination, base, metadata, push_env)
+            with candidate_checkout(head, evidence) as (checkout, env):
+                logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log",
+                           cwd=checkout, env=env)
+            require_candidate(root, primary, branch, head)
+            require_supported_hooks()
+            require_remote_base(destination, base, metadata, push_env)
+            # Pair the lease with an ancestry check to allow only fast-forwards.
+            git("merge-base", "--is-ancestor", base, head, cwd=metadata, env=push_env)
             try:
                 # Use the isolated Git directory but preserve the caller's working
                 # directory for relative paths in SSH and other transport settings.
                 git(f"--git-dir={metadata}",
                     "push", "--no-follow-tags", "--recurse-submodules=no",
                     f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}",
-                    cwd=root, env=env, capture=False)
+                    cwd=root, env=push_env, capture=False)
             except subprocess.CalledProcessError as error:
                 raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
@@ -426,11 +460,12 @@ def end(root, primary):
     with landing_turn():
         branch = owned_branch(root, primary)
         require_clean()
-        base = fetch_main()
         head = git("rev-parse", "HEAD").strip()
+        base = fetch_main()
+        require_candidate(root, primary, branch, head)
         if git("rev-list", f"{base}..{head}"):
             raise Refusal("the session has commits that are not on origin/main")
-        require_clean()
+        require_candidate(root, primary, branch, head)
         git("worktree", "remove", str(root), cwd=primary, capture=False)
         ref = f"refs/heads/{branch}"
         if f"branch {ref}" in git("worktree", "list", "--porcelain", "-z", cwd=primary).split("\0"):

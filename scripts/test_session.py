@@ -38,6 +38,7 @@ class SessionTest(unittest.TestCase):
             "SESSION_TEST_REVIEW": '{"verdict":"clean","findings":[]}',
             "SESSION_TEST_MOVE": "",
             "SESSION_TEST_POISON_PUSH": "",
+            "SESSION_TEST_POISON_REVIEW": "",
             "SESSION_TEST_CHECK": "0",
         }
         reviewer.write_text("""#!/usr/bin/env python3
@@ -50,6 +51,8 @@ if any(name in os.environ for name in ("GIT_EXTERNAL_DIFF", "GIT_ATTR_SOURCE", "
 if any(name.startswith("BASH_FUNC_") or value.startswith("() {")
        for name, value in os.environ.items()):
     sys.exit("review inherited exported shell functions")
+if os.environ["SESSION_TEST_POISON_REVIEW"]:
+    Path("Makefile").write_text("check:\\n\\t@true\\n")
 Path(args[args.index("--output-last-message") + 1]).write_text(os.environ["SESSION_TEST_REVIEW"])
 print(args[-1])
 """)
@@ -250,6 +253,13 @@ os.execv(git, [git, *args])
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
 
+    def test_review_checkout_changes_cannot_replace_the_gate(self):
+        self.start()
+        self.env["SESSION_TEST_POISON_REVIEW"] = "1"
+        self.env["SESSION_TEST_CHECK"] = "3"
+        self.assertIn("make exited", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
     def test_push_preserves_bare_tls_and_remote_proxy_configuration(self):
         self.start()
         with (self.repo / ".git/config").open("a") as config:
@@ -288,6 +298,24 @@ os.execv(git, [git, *args])
             reflog.unlink()
         self.session("land", cwd=self.work)
         self.assertEqual(self.git("rev-parse", "main^", cwd=self.remote).strip(), upstream)
+
+    def test_abort_keeps_the_last_successful_base_without_a_tracking_reflog(self):
+        self.start()
+        self.make_upstream_change(push=False)
+        (self.other / "topic.txt").write_text("conflicting upstream work\n")
+        self.git("add", "topic.txt", cwd=self.other)
+        self.git("commit", "-m", "Conflicting upstream work", cwd=self.other)
+        self.git("push", "origin", "main", cwd=self.other)
+        self.git("config", "core.logAllRefUpdates", "false")
+        reflog = self.repo / ".git/logs/refs/remotes/origin/main"
+        if reflog.exists():
+            reflog.unlink()
+        self.assertIn("rebase failed", self.session("land", cwd=self.work, success=False))
+        self.git("rebase", "--abort", cwd=self.work)
+        self.git("revert", "--no-edit", "HEAD", cwd=self.other)
+        self.git("push", "origin", "main", cwd=self.other)
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.git("show", "main:topic.txt", cwd=self.remote), "example\n")
 
     def test_landing_refuses_a_custom_merge_driver_before_rebase(self):
         self.start()
