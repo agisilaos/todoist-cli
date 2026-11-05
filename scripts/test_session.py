@@ -545,6 +545,8 @@ os.execv(git, [git, *args])
         self.assertFalse(self.logs.exists())
 
     def test_landing_refuses_a_configured_hook_with_file_hooks_disabled(self):
+        if "git hook list" not in self.git("hook", "-h", success=False):
+            self.skipTest("this Git does not support config-defined hooks")
         self.start()
         self.git("config", "core.hooksPath", os.devnull)
         self.git("config", "hook.local-gate.event", "pre-push")
@@ -554,9 +556,19 @@ os.execv(git, [git, *args])
         self.git("config", "hook.local-gate.enabled", "false")
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+        self.git("config", "hook.local-gate.enabled", "true")
+        self.git("config", "hook.pre-push.enabled", "false")
+        self.commit_file(self.work, "event-disabled.txt")
+        self.session("land", cwd=self.work)
+        self.git("config", "hook.pre-push.enabled", "true")
+        self.git("config", "--add", "hook.local-gate.event", "")
+        self.commit_file(self.work, "event-reset.txt")
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
 
     def test_landing_refuses_commit_messages_that_skip_push_ci(self):
         self.start()
+        self.git("config", "i18n.logOutputEncoding", "UTF-16LE")
         for message in ("Add topic [skip ci]", "Add topic\n\n\nskip-checks: true"):
             with self.subTest(message=message):
                 self.git("commit", "--amend", "--cleanup=verbatim", "-m", message, cwd=self.work)
