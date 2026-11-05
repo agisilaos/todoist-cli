@@ -547,7 +547,9 @@ os.execv(git, [git, *args])
         self.assertFalse(self.logs.exists())
 
     def test_landing_refuses_a_configured_hook_with_file_hooks_disabled(self):
-        if "git hook list" not in self.git("hook", "-h", success=False):
+        help_result = subprocess.run(["git", "hook", "-h"], cwd=self.repo, env=self.env,
+                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if b"git hook list" not in help_result.stdout:
             self.skipTest("this Git does not support config-defined hooks")
         self.start()
         self.git("config", "core.hooksPath", os.devnull)
