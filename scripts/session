@@ -34,12 +34,13 @@ class Refusal(Exception):
     pass
 
 
-def git(*args, cwd=None, capture=True, env=None, allowed=(0,)):
+def git(*args, cwd=None, capture=True, env=None, allowed=(0,), quiet=False):
     result = subprocess.run(
         ["git", "--no-optional-locks", "-c", "advice.graftFileDeprecated=false",
          "-c", "core.fsmonitor=false", *args],
         cwd=cwd, env=env,
         stdout=subprocess.PIPE if capture else None,
+        stderr=subprocess.PIPE if quiet else None,
     )
     if result.returncode not in allowed:
         result.check_returncode()
@@ -113,29 +114,18 @@ def require_supported_hooks():
     names = ("pre-push", "pre-rebase", "prepare-commit-msg", "pre-commit", "commit-msg",
              "post-checkout", "post-rewrite", "post-commit", "post-merge",
              "post-index-change", "reference-transaction")
-    config = git("config", "--null", "--get-regexp", r"^hook\..+\.(event|enabled)$", allowed=(0, 1))
-    if config:
-        help_text = subprocess.run(["git", "hook", "-h"], stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT).stdout
-        if b"git hook list" in help_text:
-            def disabled(key):
-                return git("config", "--type=bool", "--get", f"{key}.enabled",
-                           allowed=(0, 1)).strip() == "false"
-
-            names = tuple(name for name in names if not disabled(f"hook.{name}"))
-            events = {}
-            for setting in config.split("\0"):
-                key, _, event = setting.partition("\n")
-                if key.endswith(".event"):
-                    prefix = key.rsplit(".", 1)[0]
-                    if event:
-                        events.setdefault(prefix, set()).add(event)
-                    else:
-                        events.pop(prefix, None)
-            for key, registered in events.items():
-                for event in names:
-                    if event in registered and not disabled(key):
-                        raise Refusal(f"the source checkout has a configured {event} hook")
+    help_text = subprocess.run(["git", "hook", "-h"], stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT).stdout
+    if b"git hook list" in help_text:
+        config = git("config", "--null", "--get-regexp", r"^hook\..+\.event$", allowed=(0, 1))
+        if any("\t" in setting.partition("\n")[0] for setting in config.split("\0")):
+            raise Refusal("hook names containing tabs cannot be inspected safely")
+        for name in names:
+            listing = git("hook", "list", "-z", name, allowed=(0, 1), quiet=True)
+            if any(entry and not entry.startswith(("disabled\t", "event-disabled\t"))
+                   for entry in listing.split("\0")):
+                raise Refusal(f"the source checkout has a {name} hook")
+        return
     directory = git("config", "--null", "--path", "--get", "core.hooksPath",
                     allowed=(0, 1)).partition("\0")[0]
     if directory and not Path(directory).is_dir():

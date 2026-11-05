@@ -525,8 +525,10 @@ os.execv(git, [git, *args])
         hook = self.home / "hooks " / "pre-push"
         hook.parent.mkdir()
         self.git("config", "core.hooksPath", hook.parent)
+        self.git("config", "hook.pre-push.enabled", "false")
         hook.write_text("#!/bin/sh\nexit 1\n")
         hook.chmod(0o755)
+        self.git("hook", "run", "pre-push", cwd=self.work, success=False)
         self.assertIn("source checkout has a pre-push hook",
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
@@ -551,15 +553,23 @@ os.execv(git, [git, *args])
         self.git("config", "core.hooksPath", os.devnull)
         self.git("config", "hook.local-gate.event", "pre-push")
         self.git("config", "hook.local-gate.command", "false")
-        self.assertIn("configured pre-push hook", self.session("land", cwd=self.work, success=False))
+        self.assertIn("source checkout has a pre-push hook",
+                      self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
         self.git("config", "hook.local-gate.enabled", "false")
+        self.git("hook", "run", "--ignore-missing", "pre-push", cwd=self.work)
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.git("config", "hook.local-gate.enabled", "true")
         self.git("config", "hook.pre-push.enabled", "false")
         self.commit_file(self.work, "event-disabled.txt")
-        self.session("land", cwd=self.work)
+        result = subprocess.run(["git", "hook", "run", "--ignore-missing", "pre-push"],
+                                cwd=self.work, env=self.env, capture_output=True)
+        if result.returncode:
+            self.assertIn("source checkout has a pre-push hook",
+                          self.session("land", cwd=self.work, success=False))
+        else:
+            self.session("land", cwd=self.work)
         self.git("config", "hook.pre-push.enabled", "true")
         self.git("config", "--add", "hook.local-gate.event", "")
         self.commit_file(self.work, "event-reset.txt")
