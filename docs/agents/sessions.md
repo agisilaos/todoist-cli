@@ -28,11 +28,12 @@ clone share the stash.
 
 Commit only when authorized. Once a push is authorized, run `scripts/session land`
 from the clean session checkout. It takes a turn shared by this clone's worktrees,
-fetches and rebases onto `origin/main`, has a separate Codex CLI review the exact
-base and candidate commits, then runs `make check` once before a fast-forward push
-to `origin/main`. Set `remote.origin.url` to a direct URL or absolute local
-path and leave `remote.origin.pushurl` unset. Use `TODOIST_CODEX` to select the
-review executable if needed.
+fetches and rebases onto `origin/main`, and creates a disposable checkout of the
+candidate. The Codex review, `make check`, and fast-forward push run from that
+checkout. The push uses a snapshot of the user's authentication and network
+settings. Set `remote.origin.url` to a direct URL or absolute local path and
+leave `remote.origin.pushurl` unset. Use `TODOIST_CODEX` to select the review
+executable if needed.
 Review results and full gate logs are printed as paths under
 `~/Library/Logs/todoist-cli/sessions/` on macOS and
 `${XDG_STATE_HOME:-~/.local/state}/todoist-cli/sessions/` on Linux.

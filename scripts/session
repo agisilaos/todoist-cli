@@ -30,9 +30,9 @@ class Refusal(Exception):
     pass
 
 
-def git(*args, cwd=None, capture=True):
+def git(*args, cwd=None, capture=True, env=None):
     result = subprocess.run(
-        ["git", "--no-optional-locks", *args], cwd=cwd, check=True,
+        ["git", "--no-optional-locks", *args], cwd=cwd, check=True, env=env,
         stdout=subprocess.PIPE if capture else None,
     )
     return os.fsdecode(result.stdout) if capture else ""
@@ -49,7 +49,7 @@ def worktrees(root):
 
 
 def fetch_main():
-    git("fetch", "--no-tags", "--quiet", "origin", f"+{MAIN}:{BASE}")
+    git("fetch", "--no-tags", "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}")
     return git("rev-parse", BASE).strip()
 
 
@@ -61,10 +61,14 @@ def branch_name(name):
 
 def owned_branch(root, primary):
     branch = git("rev-parse", "--abbrev-ref", "HEAD").strip()
-    name = branch.removeprefix("fix/")
+    name = branch[len("fix/"):]
     if not branch.startswith("fix/") or root != primary.with_name(f"{primary.name}-{name}"):
         raise Refusal("run this in the sibling worktree created by scripts/session start")
     return branch
+
+
+def within(path, parent):
+    return path == parent or parent in path.parents
 
 
 def require_clean():
@@ -98,7 +102,7 @@ def evidence_dir(root):
     else:
         state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
     parent = Path(os.environ.get("TODOIST_SESSION_LOG_DIR") or state / "todoist-cli/sessions").resolve()
-    if any(parent.is_relative_to(tree) for tree in worktrees(root)):
+    if any(within(parent, tree) for tree in worktrees(root)):
         raise Refusal("the session log directory must be outside the repository")
     parent.mkdir(parents=True, exist_ok=True)
     path = Path(tempfile.mkdtemp(prefix="land-", dir=parent))
@@ -106,16 +110,16 @@ def evidence_dir(root):
     return path
 
 
-def logged_run(argv, path, *, env=None):
+def logged_run(argv, path, *, cwd, env):
     print(f"Running {Path(argv[0]).name}; full log: {path}", flush=True)
     with path.open("w") as log:
         result = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=log,
-                                stderr=subprocess.STDOUT, env=env)
+                                stderr=subprocess.STDOUT, cwd=cwd, env=env)
     if result.returncode:
         raise Refusal(f"{Path(argv[0]).name} exited {result.returncode}; see {path}")
 
 
-def review(base, head, evidence):
+def review(base, head, evidence, checkout, env):
     schema = evidence / "review-schema.json"
     schema.write_text(json.dumps(REVIEW_SCHEMA))
     output = evidence / "review.json"
@@ -132,7 +136,7 @@ def review(base, head, evidence):
         os.environ.get("TODOIST_CODEX", "codex"), "exec", "--sandbox", "read-only",
         "--ephemeral", "--output-schema", str(schema), "--output-last-message", str(output),
         prompt,
-    ], evidence / "review.log")
+    ], evidence / "review.log", cwd=checkout, env=env)
     try:
         verdict = json.loads(output.read_text())
     except (OSError, ValueError):
@@ -181,6 +185,51 @@ def record_rebase_target(base):
     receipt.write_text(f"{base}\n")
 
 
+def candidate_environment():
+    local_git_vars = set(git("rev-parse", "--local-env-vars").splitlines())
+    env = {key: value for key, value in os.environ.items()
+           if key not in local_git_vars and not key.startswith("GIT_CONFIG")}
+    for name in ("MAKE", "MAKE_COMMAND", "MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS",
+                 "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS", "BASH_ENV"):
+        env.pop(name, None)
+    env.update(GOENV="off", GOWORK="off", GIT_CONFIG_NOSYSTEM="1",
+               GIT_CONFIG_GLOBAL=os.devnull, GIT_NO_REPLACE_OBJECTS="1")
+    return env
+
+
+def transport_environment(env):
+    # Keep authentication and network settings without inheriting URL rewrites,
+    # local refs, hooks, or checkout filters from the source clone.
+    transport = []
+    for setting in git("config", "--null", "--list", "--includes").split("\0"):
+        key, _, value = setting.partition("\n")
+        if key.startswith(("credential.", "http.", "https.", "ssh.", "protocol.")) or key in (
+            "core.sshcommand", "core.askpass", "core.gitproxy"
+        ):
+            transport.append((key, value))
+    env = {**env, "GIT_CONFIG_COUNT": str(len(transport))}
+    for index, (key, value) in enumerate(transport):
+        env[f"GIT_CONFIG_KEY_{index}"] = key
+        env[f"GIT_CONFIG_VALUE_{index}"] = value
+    return env
+
+
+@contextmanager
+def candidate_checkout(head, evidence):
+    env = candidate_environment()
+    object_format = git("rev-parse", "--show-object-format").strip()
+    objects = git("rev-parse", "--path-format=absolute", "--git-path", "objects").strip()
+    with tempfile.TemporaryDirectory(prefix="candidate-", dir=evidence) as directory:
+        checkout = Path(directory)
+        git("init", "--quiet", "--template=", f"--object-format={object_format}",
+            cwd=checkout, env=env)
+        info = checkout / ".git/objects/info"
+        info.mkdir(exist_ok=True)
+        (info / "alternates").write_text(f"{objects}\n")
+        git("switch", "--quiet", "--detach", head, cwd=checkout, env=env)
+        yield checkout, env
+
+
 def land(root, primary):
     with landing_turn():
         branch = owned_branch(root, primary)
@@ -203,28 +252,23 @@ def land(root, primary):
         require_clean()
         evidence = evidence_dir(root)
         print(f"Reviewing {base}..{head}", flush=True)
-        review(base, head, evidence)
-        require_candidate(root, primary, branch, head)
-        require_remote_base(destination, base)
-        # Use the repo's recipes and build the capture/review binary from this checkout.
-        make_env = os.environ.copy()
-        for name in ("MAKE", "MAKE_COMMAND", "MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS",
-                     "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS"):
-            make_env.pop(name, None)
-        make_env.update(GOENV="off", GOWORK="off")
-        logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log", env=make_env)
-        require_candidate(root, primary, branch, head)
-        require_remote_base(destination, base)
-        # The lease checks the reviewed base at the ref update. Check ancestry
-        # explicitly so the lease cannot permit a non-fast-forward update.
-        git("--no-replace-objects", "merge-base", "--is-ancestor", base, head)
-        # Pin the actual URL rather than resolving origin again after the check.
-        try:
-            git("push", "--no-follow-tags", "--recurse-submodules=no",
-                f"--force-with-lease={MAIN}:{base}", "--", destination, f"{head}:{MAIN}",
-                capture=False)
-        except subprocess.CalledProcessError as error:
-            raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
+        with candidate_checkout(head, evidence) as (checkout, env):
+            push_env = transport_environment(env)
+            review(base, head, evidence, checkout, env)
+            require_candidate(root, primary, branch, head)
+            require_remote_base(destination, base)
+            logged_run(["make", "-f", "Makefile", "check"], evidence / "check.log",
+                       cwd=checkout, env=env)
+            require_candidate(root, primary, branch, head)
+            require_remote_base(destination, base)
+            # Pair the lease with an ancestry check to allow only fast-forwards.
+            git("merge-base", "--is-ancestor", base, head, cwd=checkout, env=env)
+            try:
+                git("push", "--no-follow-tags", "--recurse-submodules=no",
+                    f"--force-with-lease={MAIN}:{base}", "--", destination, f"{head}:{MAIN}",
+                    cwd=checkout, env=push_env, capture=False)
+            except subprocess.CalledProcessError as error:
+                raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 
@@ -232,7 +276,7 @@ def overlaps(root, paths):
     wanted = []
     for path in paths:
         relative = Path(os.path.abspath(path))
-        if Path(path).is_absolute() or not relative.is_relative_to(root):
+        if Path(path).is_absolute() or not within(relative, root):
             raise Refusal("give paths relative to the repository root")
         wanted.append(relative.relative_to(root))
     base = fetch_main()
@@ -249,11 +293,12 @@ def overlaps(root, paths):
         ):
             changed.update(git(*args, cwd=tree).split("\0"))
         for file in sorted(changed - {""}):
-            if any(Path(file).is_relative_to(path) for path in wanted):
+            if any(within(Path(file), path) for path in wanted):
                 print(f"{tree}: {file}")
                 matches = True
     # Log paths as well as the commits: a landed change may have closed an overlap.
-    landed = git("log", "--oneline", "--name-only", "--no-renames", f"HEAD..{base}", "--",
+    landed = git("log", "--oneline", "--name-only", "--no-renames", "--diff-merges=first-parent",
+                 f"HEAD..{base}", "--",
                  *(f":(top,literal){path}" if path != Path(".") else ":(top)" for path in wanted))
     if landed:
         print(f"Changes on origin/main since this worktree diverged:\n{landed.rstrip()}")
@@ -272,12 +317,13 @@ def end(root, primary):
             raise Refusal("the session has commits that are not on origin/main")
         git("worktree", "remove", str(root), cwd=primary, capture=False)
         # Use the fetched origin/main as the safe-delete upstream even if local main is stale.
-        git("-c", f"branch.{branch}.remote=origin", "-c", f"branch.{branch}.merge={MAIN}",
+        git("-c", f"branch.{branch}.remote=.", "-c", f"branch.{branch}.merge={BASE}",
             "branch", "-d", branch, cwd=primary, capture=False)
         print(f"Removed {root}. Return to {primary}.")
 
 
 def main():
+    os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("start", help="create a worktree from fresh origin/main").add_argument("name")

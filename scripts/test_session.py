@@ -55,6 +55,7 @@ print(args[-1])
             "verify:\n"
             '\t@test -z "$$BINARY"\n'
             '\t@test -z "$$GOFLAGS" && test "$$GOENV" = off && test "$$GOWORK" = off\n'
+            '\t@test -z "$$BASH_ENV" && test ! -e ignored.go\n'
             '\tgit rev-parse HEAD\n'
             '\t@if [ -n "$$SESSION_TEST_MOVE" ]; then git -C "$$SESSION_TEST_MOVE" push origin main; fi\n'
             '\t@exit "$$SESSION_TEST_CHECK"\n'
@@ -102,6 +103,9 @@ print(args[-1])
         self.env["GOFLAGS"] = "-skip=TestSpecificRegression"
         self.env["GOENV"] = "/path/to/persisted/go-flags"
         self.env["GOWORK"] = "/path/to/a/different/go.work"
+        self.env["BASH_ENV"] = "/path/to/local/bash-configuration"
+        (self.repo / ".git/info/exclude").write_text("ignored.go\n")
+        (self.work / "ignored.go").write_text("outside the commit")
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -110,6 +114,8 @@ print(args[-1])
         self.assertIn(f"from {upstream} to {landed}", (attempt / "review.log").read_text())
         self.assertIn(landed, (attempt / "check.log").read_text())
         self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.base)
+        (self.work / "ignored.go").unlink()
+        self.git("config", "remote.origin.fetch", "+refs/heads/other:refs/remotes/origin/other")
         self.session("end", cwd=self.work)
         self.assertFalse(self.work.exists())
         self.assertEqual(self.git("branch", "--list", "fix/example"), "")
@@ -151,8 +157,14 @@ git = os.environ["SESSION_TEST_REAL_GIT"]
 args = sys.argv[1:]
 if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
     if "SESSION_TEST_RETARGET" in os.environ:
-        subprocess.run([git, "remote", "set-url", "--push", "origin",
+        subprocess.run([git, "-C", os.environ["SESSION_TEST_ORIGINAL"],
+                        "remote", "set-url", "--push", "origin",
                         os.environ["SESSION_TEST_RETARGET"]], check=True)
+    elif "SESSION_TEST_REWRITE" in os.environ:
+        url = os.environ["SESSION_TEST_REWRITE"]
+        subprocess.run([git, "-C", os.environ["SESSION_TEST_ORIGINAL"],
+                        "config", f"url.{url}.insteadOf",
+                        os.environ["SESSION_TEST_REMOTE"]], check=True)
     else:
         subprocess.run([git, "--git-dir", os.environ["SESSION_TEST_REMOTE"],
                         "update-ref", "-d", "refs/heads/main"], check=True)
@@ -162,6 +174,7 @@ os.execv(git, [git, *args])
         self.env.update({
             "SESSION_TEST_REAL_GIT": shutil.which("git"),
             "SESSION_TEST_REMOTE": str(self.remote),
+            "SESSION_TEST_ORIGINAL": str(self.repo),
             "PATH": f"{self.home}{os.pathsep}{self.env['PATH']}",
             **settings,
         })
@@ -176,6 +189,14 @@ os.execv(git, [git, *args])
         self.start()
         self.git("clone", "--bare", self.remote, self.other)
         self.intercept_push(SESSION_TEST_RETARGET=str(self.other))
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
+        self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
+
+    def test_late_origin_rewrite_cannot_redirect_the_push(self):
+        self.start()
+        self.git("clone", "--bare", self.remote, self.other)
+        self.intercept_push(SESSION_TEST_REWRITE=str(self.other))
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
