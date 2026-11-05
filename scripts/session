@@ -30,11 +30,13 @@ class Refusal(Exception):
     pass
 
 
-def git(*args, cwd=None, capture=True, env=None):
+def git(*args, cwd=None, capture=True, env=None, allowed=(0,)):
     result = subprocess.run(
-        ["git", "--no-optional-locks", *args], cwd=cwd, check=True, env=env,
+        ["git", "--no-optional-locks", *args], cwd=cwd, env=env,
         stdout=subprocess.PIPE if capture else None,
     )
+    if result.returncode not in allowed:
+        result.check_returncode()
     return os.fsdecode(result.stdout) if capture else ""
 
 
@@ -49,8 +51,8 @@ def worktrees(root):
 
 
 def fetch_main():
-    git("fetch", "--no-tags", "--no-prune", "--no-prune-tags", "--quiet", "--refmap=",
-        "origin", f"+{MAIN}:{BASE}")
+    git("-c", "fetch.bundleURI=", "fetch", "--no-tags", "--no-prune", "--no-prune-tags",
+        "--no-write-fetch-head", "--quiet", "--refmap=", "origin", f"+{MAIN}:{BASE}")
     return git("rev-parse", BASE).strip()
 
 
@@ -134,7 +136,9 @@ def review(base, head, evidence, checkout, env):
     prompt = (
         f"Independently review the committed changes from {base} to {head} for actionable "
         "regressions and repository contract violations. Inspect the complete diff with "
-        f"git diff {base} {head} and read relevant surrounding code and repo guidance. "
+        f"git --no-pager diff --no-ext-diff --no-textconv {base} {head} and read relevant "
+        "surrounding code and repo guidance. Report concrete, actionable failures in "
+        "the documented workflow, including any risk of lost work or skipped checks. "
         "Do not change files, push, or run the landing workflow. Return verdict clean "
         "and an empty findings list only if you completed the review and found no "
         "actionable issues. Use findings for defects with file and line, or blocked "
@@ -163,6 +167,11 @@ def push_destination():
     if raw != f"remote.origin.url\n{url}\0":
         raise Refusal("configure one direct origin URL without pushurl, URL rewrites or "
                       "custom remote helpers")
+    scheme, separator, _ = url.partition("://")
+    if (separator and scheme not in {"http", "https", "ssh", "git", "file"}) or re.match(
+        r"^[a-zA-Z][a-zA-Z0-9+.-]*::", url
+    ):
+        raise Refusal("origin must use a standard Git transport, without remote helper URLs")
     if ":" not in url.split("/", 1)[0] and not os.path.isabs(url):
         raise Refusal("origin must use a URL or an absolute local path")
     return url
@@ -200,7 +209,7 @@ def candidate_environment():
     env = {key: value for key, value in os.environ.items()
            if key not in local_git_vars and not key.startswith("GIT_CONFIG")}
     for name in ("MAKE", "MAKE_COMMAND", "MAKEFLAGS", "GNUMAKEFLAGS", "MFLAGS",
-                 "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS", "BASH_ENV"):
+                 "MAKEOVERRIDES", "MAKEFILES", "BINARY", "GOFLAGS"):
         env.pop(name, None)
     env.update(GOENV="off", GOWORK="off", GIT_CONFIG_NOSYSTEM="1",
                GIT_CONFIG_GLOBAL=os.devnull, GIT_NO_REPLACE_OBJECTS="1", GIT_ATTR_NOSYSTEM="1")
@@ -300,6 +309,12 @@ def land(root, primary):
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 
+def worktree_history(tree, base):
+    head = git("rev-parse", "--verify", "--quiet", "HEAD", cwd=tree, allowed=(0, 1)).strip()
+    common = git("merge-base", base, head, cwd=tree, allowed=(0, 1)).strip() if head else ""
+    return head, common
+
+
 def overlaps(root, paths):
     wanted = []
     for path in paths:
@@ -314,8 +329,13 @@ def overlaps(root, paths):
             continue
         hidden = hidden_paths(tree)
         changed = set(hidden)
+        head, common = worktree_history(tree, base)
+        if common:
+            changed.update(git("diff", "--name-only", "--no-renames", "-z", common, head,
+                               cwd=tree).split("\0"))
+        elif head:
+            changed.update(git("ls-tree", "-r", "--name-only", "-z", head, cwd=tree).split("\0"))
         for args in (
-            ("diff", "--name-only", "--no-renames", "-z", f"{base}...HEAD"),
             ("diff", "--cached", "--name-only", "--no-renames", "-z"),
             ("diff", "--name-only", "--no-renames", "-z"),
             ("ls-files", "--others", "--exclude-standard", "-z"),
@@ -327,9 +347,14 @@ def overlaps(root, paths):
                 print(f"{tree}: {file}{detail}")
                 matches = True
     # Log paths as well as the commits: a landed change may have closed an overlap.
-    landed = git("log", "--oneline", "--name-only", "--no-renames", "--diff-merges=first-parent",
-                 f"HEAD..{base}", "--",
-                 *(f":(top,literal){path}" if path != Path(".") else ":(top)" for path in wanted))
+    head, common = worktree_history(root, base)
+    landed = ""
+    if common:
+        landed = git("log", "--oneline", "--name-only", "--no-renames", "--diff-merges=first-parent",
+                     f"{head}..{base}", "--",
+                     *(f":(top,literal){path}" if path != Path(".") else ":(top)" for path in wanted))
+    else:
+        print("Upstream path comparison requires a shared commit with origin/main.")
     if landed:
         print(f"Changes on origin/main since this worktree diverged:\n{landed.rstrip()}")
     if not matches and not landed:
@@ -360,6 +385,9 @@ def end(root, primary):
 
 def main():
     os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
+    for name in ("GIT_ATTR_SOURCE", "GIT_EXTERNAL_DIFF", "GIT_DIFF_OPTS",
+                 "BASH_ENV", "ENV", "SHELLOPTS", "BASHOPTS"):
+        os.environ.pop(name, None)
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("start", help="create a worktree from fresh origin/main").add_argument("name")

@@ -32,6 +32,7 @@ class SessionTest(unittest.TestCase):
             "GIT_COMMITTER_NAME": "Session Test",
             "GIT_COMMITTER_EMAIL": "test@example.invalid",
             "LC_ALL": "C",
+            "XDG_CONFIG_HOME": str(self.home / "config"),
             "TODOIST_SESSION_LOG_DIR": str(self.logs),
             "TODOIST_CODEX": str(reviewer),
             "SESSION_TEST_REVIEW": '{"verdict":"clean","findings":[]}',
@@ -43,6 +44,8 @@ import os
 from pathlib import Path
 import sys
 args = sys.argv
+if any(name in os.environ for name in ("GIT_EXTERNAL_DIFF", "GIT_ATTR_SOURCE", "SHELLOPTS")):
+    sys.exit("review inherited shell or Git output overrides")
 Path(args[args.index("--output-last-message") + 1]).write_text(os.environ["SESSION_TEST_REVIEW"])
 print(args[-1])
 """)
@@ -104,6 +107,9 @@ print(args[-1])
         self.env["GOENV"] = "/path/to/persisted/go-flags"
         self.env["GOWORK"] = "/path/to/a/different/go.work"
         self.env["BASH_ENV"] = "/path/to/local/bash-configuration"
+        self.env["SHELLOPTS"] = "noexec"
+        self.env["GIT_ATTR_SOURCE"] = "refs/heads/missing"
+        self.env["GIT_EXTERNAL_DIFF"] = "true"
         text = self.session("land", cwd=self.work)
         landed = self.tip()
         self.assertIn(f"Landed {landed}", text)
@@ -257,6 +263,12 @@ os.execv(git, [git, *args])
         self.assertEqual(self.tip(), self.base)
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
 
+    def test_remote_helper_url_is_refused_before_fetch(self):
+        self.start()
+        self.git("remote", "set-url", "origin", "ext::false")
+        self.assertIn("without remote helper URLs", self.session("land", cwd=self.work, success=False))
+        self.assertFalse(self.logs.exists())
+
     def test_dirty_session_and_unlanded_cleanup_are_refused(self):
         self.start()
         self.assertIn("not on origin/main", self.session("end", cwd=self.work, success=False))
@@ -300,8 +312,20 @@ os.execv(git, [git, *args])
         self.git("tag", "local-only")
         self.git("config", "fetch.prune", "true")
         self.git("config", "fetch.pruneTags", "true")
+        fetch_head = self.repo / ".git/FETCH_HEAD"
+        fetch_head.write_text("previous fetch\n")
         self.session("overlaps", "Makefile")
         self.assertEqual(self.git("rev-parse", "refs/tags/local-only").strip(), self.base)
+        self.assertEqual(fetch_head.read_text(), "previous fetch\n")
+
+    def test_overlaps_reports_orphan_worktree_before_and_after_its_first_commit(self):
+        self.session("start", "example")
+        self.git("switch", "--orphan", "orphan-history", cwd=self.work)
+        (self.work / "orphan.txt").write_text("local work\n")
+        self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
+        self.git("add", "orphan.txt", cwd=self.work)
+        self.git("commit", "-m", "Independent history", cwd=self.work)
+        self.assertIn(f"{self.work}: orphan.txt", self.session("overlaps", "orphan.txt"))
 
 
 if __name__ == "__main__":
