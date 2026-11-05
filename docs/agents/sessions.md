@@ -73,6 +73,7 @@ from `origin/main` before unregistering the worktree and removing its branch.
 It moves the checkout files and Git metadata to a private sibling directory
 and prints the path so files and staged edits can be recovered. Delete that
 directory once you no longer need it. If cleanup stops before unregistering the
-worktree, Git still lists the worktree at its new location. Clear Git index flags
-that hide edits and move or remove ignored build artifacts before ending. Use
-the primary checkout afterwards.
+worktree, run `git worktree move <archive>/worktree <original-session-path>` from
+the primary checkout. Inspect the restored files and staged changes before
+retrying. Clear Git index flags that hide edits and move or remove ignored build
+artifacts before ending. Use the primary checkout afterwards.

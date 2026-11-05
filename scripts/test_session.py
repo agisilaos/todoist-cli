@@ -110,6 +110,8 @@ print(args[-1])
 
     def test_start_rebase_review_check_push_and_cleanup(self):
         self.start()
+        self.git("commit", "--amend", "-m", "Add topic", "-m", "What changed:", cwd=self.work)
+        self.git("config", "rebase.instructionFormat", "%s%n%b")
         upstream = self.make_upstream_change(push=True)
         self.git("config", "core.hooksPath", os.devnull)
         self.env["BINARY"] = "/path/to/a/different/todoist"
@@ -240,9 +242,13 @@ os.execv(git, [git, *args])
 
     def test_main_deleted_after_final_check_is_not_recreated(self):
         self.start()
-        self.intercept_git()
-        self.assertIn("stale info", self.session("land", cwd=self.work, success=False))
+        with patch.dict(self.env):
+            self.intercept_git()
+            self.assertIn("stale info", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.git("branch", "--list", "main", cwd=self.remote), "")
+        self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
+        self.session("land", cwd=self.work)
+        self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
 
     def test_push_destination_stays_fixed_after_final_check(self):
         self.start()

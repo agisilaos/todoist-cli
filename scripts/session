@@ -396,6 +396,7 @@ def land(root, primary):
             require_candidate(root, primary, branch, original_head)
             try:
                 git("-c", f"core.attributesFile={os.devnull}", "-c", "rerere.enabled=false",
+                    "-c", "rebase.instructionFormat=%s",
                     "rebase", "--merge", "--no-verify", "--no-autostash", "--no-autosquash",
                     "--no-update-refs", "--no-rebase-merges",
                     "--reapply-cherry-picks", "--empty=ask", base, capture=False)
@@ -427,12 +428,20 @@ def land(root, primary):
             try:
                 # Use the isolated Git directory but preserve the caller's working
                 # directory for relative paths in SSH and other transport settings.
-                git(f"--git-dir={metadata}",
-                    "push", "--no-follow-tags", "--recurse-submodules=no",
+                output = git(f"--git-dir={metadata}",
+                    "push", "--porcelain", "--no-follow-tags", "--recurse-submodules=no",
                     f"--force-with-lease={MAIN}:{base}", "origin", f"{head}:{MAIN}",
-                    cwd=root, env=push_env, capture=False)
+                    cwd=root, env={**push_env, "LC_ALL": "C"})
             except subprocess.CalledProcessError as error:
+                output = os.fsdecode(error.stdout or b"")
+                print(output, end="", flush=True)
+                # Git's porcelain result distinguishes a refused ref from an
+                # update whose outcome was lost with the transport connection.
+                rejection = f"!\t{head}:{MAIN}\t[rejected] (stale info)"
+                if rejection in output.splitlines():
+                    pending.unlink()
                 raise Refusal(f"push exited {error.returncode}. Inspect Git's output before retrying.") from None
+            print(output, end="", flush=True)
             # A future rewind must not make these already-landed commits eligible
             # for publication again, even before another fetch updates origin/main.
             write_base_record(receipt / "todoist-session-base", head)
