@@ -66,6 +66,8 @@ Record useful decisions and outstanding checks in the issue or relevant
 documentation before closing the chat. When cleanup is requested, run
 `scripts/session end` from the session checkout. It fetches and checks that the
 worktree has no local changes or ignored files and its commits are reachable
-from `origin/main` before removing the worktree and branch. Clear Git index
-flags that hide edits and move or remove ignored build artifacts before ending.
-Use the primary checkout afterwards.
+from `origin/main` before unregistering the worktree and removing its branch.
+It moves the checkout files to a private sibling directory and prints the path
+so files written during cleanup can be recovered. Delete that directory once
+you no longer need it. Clear Git index flags that hide edits and move or remove
+ignored build artifacts before ending. Use the primary checkout afterwards.

@@ -161,14 +161,17 @@ print(args[-1])
         self.assertIn("origin/main moved", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), upstream)
 
-    def intercept_push(self, **settings):
+    def intercept_git(self, **settings):
         wrapper = self.home / "git"
         wrapper.write_text("""#!/usr/bin/env python3
 import os
+from pathlib import Path
 import subprocess
 import sys
 git = os.environ["SESSION_TEST_REAL_GIT"]
 args = sys.argv[1:]
+if "worktree" in args and "move" in args and "SESSION_TEST_LATE_IGNORED" in os.environ:
+    Path(os.environ["SESSION_TEST_LATE_IGNORED"]).write_text("late local work")
 if "fetch" in args and "SESSION_TEST_VERIFY_TRANSPORT" in os.environ:
     git_dir = next(arg for arg in args if arg.startswith("--git-dir="))
     if not {"--no-auto-maintenance", "--no-write-commit-graph"}.issubset(args):
@@ -191,7 +194,6 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
                         "config", f"url.{url}.insteadOf",
                         os.environ["SESSION_TEST_REMOTE"]], check=True)
     elif "SESSION_TEST_SYMLINK" in os.environ:
-        from pathlib import Path
         link = Path(os.environ["SESSION_TEST_SYMLINK"])
         link.unlink()
         link.symlink_to(os.environ["SESSION_TEST_LINK_TARGET"])
@@ -228,14 +230,14 @@ os.execv(git, [git, *args])
 
     def test_main_deleted_after_final_check_is_not_recreated(self):
         self.start()
-        self.intercept_push()
+        self.intercept_git()
         self.assertIn("stale info", self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.git("branch", "--list", "main", cwd=self.remote), "")
 
     def test_push_destination_stays_fixed_after_final_check(self):
         self.start()
         self.git("clone", "--bare", self.remote, self.other)
-        self.intercept_push(SESSION_TEST_RETARGET=str(self.other))
+        self.intercept_git(SESSION_TEST_RETARGET=str(self.other))
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
@@ -243,7 +245,7 @@ os.execv(git, [git, *args])
     def test_late_origin_rewrite_cannot_redirect_the_push(self):
         self.start()
         self.git("clone", "--bare", self.remote, self.other)
-        self.intercept_push(SESSION_TEST_REWRITE=str(self.other))
+        self.intercept_git(SESSION_TEST_REWRITE=str(self.other))
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
@@ -254,7 +256,7 @@ os.execv(git, [git, *args])
         link = self.home / "origin-link"
         link.symlink_to(self.remote)
         self.git("remote", "set-url", "origin", link.as_uri())
-        self.intercept_push(SESSION_TEST_SYMLINK=str(link), SESSION_TEST_LINK_TARGET=str(self.other))
+        self.intercept_git(SESSION_TEST_SYMLINK=str(link), SESSION_TEST_LINK_TARGET=str(self.other))
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
         self.assertEqual(self.git("rev-parse", "main", cwd=self.other).strip(), self.base)
@@ -282,7 +284,7 @@ os.execv(git, [git, *args])
                          '[push]\n\tgpgSign = if-asked\n[user]\n\tsigningkey = test-signing-key\n'
                          '[fetch]\n\tfsckObjects = true\n[transfer]\n\tfsckObjects = true\n'
                          '[fetch "fsck"]\n\tmissingEmail = error\n')
-        self.intercept_push(SESSION_TEST_VERIFY_TRANSPORT="1")
+        self.intercept_git(SESSION_TEST_VERIFY_TRANSPORT="1")
         self.session("land", cwd=self.work)
         self.assertEqual(self.tip(), self.git("rev-parse", "HEAD", cwd=self.work).strip())
 
@@ -439,6 +441,28 @@ os.execv(git, [git, *args])
                                   f"{self.base}..HEAD", cwd=self.work), "")
         self.assertIn("not on origin/main", self.session("end", cwd=self.work, success=False))
         self.assertTrue(self.work.exists())
+
+    def test_cleanup_rejects_an_alternate_index_that_hides_staged_only_changes(self):
+        self.session("start", "example")
+        makefile = self.work / "Makefile"
+        original = makefile.read_text()
+        makefile.write_text("staged local changes\n")
+        self.git("add", "Makefile", cwd=self.work)
+        makefile.write_text(original)
+        with patch.dict(self.env, {"GIT_INDEX_FILE": str(self.home / "alternate-index")}):
+            self.git("read-tree", "HEAD", cwd=self.work)
+            self.assertEqual(self.git("status", "--porcelain", cwd=self.work), "")
+            self.assertIn("GIT_INDEX_FILE", self.session("end", cwd=self.work, success=False))
+        self.assertEqual(self.git("show", ":Makefile", cwd=self.work), "staged local changes\n")
+
+    def test_cleanup_retains_ignored_file_created_during_the_move(self):
+        self.session("start", "example")
+        (self.repo / ".git/info/exclude").write_text("scratch\n")
+        self.intercept_git(SESSION_TEST_LATE_IGNORED=str(self.work / "scratch"))
+        self.session("end", cwd=self.work)
+        archive, = self.home.glob(".test repo-ended-*/worktree")
+        self.assertEqual((archive / "scratch").read_text(), "late local work")
+        self.assertFalse(self.work.exists())
 
     def test_cleanup_preserves_ignored_files(self):
         self.session("start", "example")

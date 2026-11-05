@@ -480,7 +480,16 @@ def end(root, primary):
         if git("rev-list", f"{base}..{head}"):
             raise Refusal("the session has commits that are not on origin/main")
         require_candidate(root, primary, branch, head)
-        git("worktree", "remove", str(root), cwd=primary, capture=False)
+        archive = Path(tempfile.mkdtemp(prefix=f".{primary.name}-ended-", dir=root.parent))
+        staging = archive / "moving"
+        saved = archive / "worktree"
+        print(f"Retaining checkout files in {archive}", flush=True)
+        git("worktree", "move", str(root), str(staging), cwd=primary, capture=False)
+        # Unregister the missing path. Git never recursively deletes the directory
+        # containing the files, even if a process kept writing there during the move.
+        staging.rename(saved)
+        git("worktree", "remove", str(staging), cwd=primary, capture=False)
+        (saved / ".git").unlink(missing_ok=True)
         ref = f"refs/heads/{branch}"
         if f"branch {ref}" in git("worktree", "list", "--porcelain", "-z", cwd=primary).split("\0"):
             raise Refusal("the worktree was removed but the branch is checked out elsewhere")
@@ -490,10 +499,16 @@ def end(root, primary):
         if any(key.startswith(f"branch.{branch}.") for key in
                git("config", "--local", "--name-only", "--list", cwd=primary).splitlines()):
             git("config", "--local", "--remove-section", f"branch.{branch}", cwd=primary)
-        print(f"Removed {root}. Return to {primary}.")
+        print(f"Closed {root}. Retained checkout files at {saved}.")
 
 
 def main():
+    overrides = ("GIT_DIR", "GIT_WORK_TREE", "GIT_IMPLICIT_WORK_TREE", "GIT_COMMON_DIR",
+                 "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+                 "GIT_SHALLOW_FILE", "GIT_PREFIX")
+    active = [name for name in overrides if os.environ.get(name)]
+    if active:
+        raise Refusal(f"unset Git checkout overrides before running this command: {', '.join(active)}")
     os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
     os.environ["GIT_GRAFT_FILE"] = os.devnull
     os.environ["GIT_ATTR_NOSYSTEM"] = "1"
