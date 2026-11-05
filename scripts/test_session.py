@@ -138,6 +138,8 @@ print(args[-1])
         self.session("end", cwd=self.work)
         self.assertFalse(self.work.exists())
         self.assertEqual(self.git("branch", "--list", "fix/example"), "")
+        bundle, = self.home.glob(".test repo-ended-*/session.bundle")
+        self.assertEqual(self.git("bundle", "list-heads", bundle), f"{landed} refs/heads/fix/example\n")
 
     def test_findings_and_malformed_review_stop_before_the_gate(self):
         self.start()
@@ -463,13 +465,27 @@ os.execv(git, [git, *args])
 
     def test_landing_refuses_to_skip_a_source_pre_push_hook(self):
         self.start()
-        hook = self.repo / ".git/hooks/pre-push"
-        hook.parent.mkdir(exist_ok=True)
+        hook = self.home / "hooks " / "pre-push"
+        hook.parent.mkdir()
+        self.git("config", "core.hooksPath", hook.parent)
         hook.write_text("#!/bin/sh\nexit 1\n")
         hook.chmod(0o755)
         self.assertIn("source checkout has a pre-push hook",
                       self.session("land", cwd=self.work, success=False))
         self.assertEqual(self.tip(), self.base)
+
+    def test_candidate_requires_a_regular_tracked_makefile(self):
+        self.start()
+        external = self.home / "skip-make"
+        external.write_text("check:\n\t@true\n")
+        makefile = self.work / "Makefile"
+        makefile.unlink()
+        makefile.symlink_to(external)
+        self.git("add", "Makefile", cwd=self.work)
+        self.git("commit", "-m", "Link to external Makefile", cwd=self.work)
+        self.assertIn("regular tracked Makefile", self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+        self.assertFalse(self.logs.exists())
 
     def test_landing_refuses_a_configured_hook_with_file_hooks_disabled(self):
         self.start()
@@ -603,6 +619,11 @@ os.execv(git, [git, *args])
         self.start()
         self.git("revert", "--no-edit", "HEAD", cwd=self.work)
         self.assertIn(f"{self.work}: topic.txt", self.session("overlaps", "topic.txt"))
+
+    def test_overlaps_matches_canonically_equivalent_unicode(self):
+        self.session("start", "example")
+        self.commit_file(self.work, "caf\u00e9.txt")
+        self.assertIn(f"{self.work}: caf\u00e9.txt", self.session("overlaps", "cafe\u0301.txt"))
 
     def test_candidate_rejects_case_collisions_before_checkout(self):
         blob = self.git("rev-parse", "HEAD:Makefile").strip()

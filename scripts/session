@@ -110,7 +110,8 @@ def require_supported_hooks():
     for name in names:
         if name in events:
             raise Refusal(f"the source checkout has a configured {name} hook")
-    directory = git("config", "--path", "--get", "core.hooksPath", allowed=(0, 1)).strip()
+    directory = git("config", "--null", "--path", "--get", "core.hooksPath",
+                    allowed=(0, 1)).partition("\0")[0]
     if directory and not Path(directory).is_dir():
         return
     for name in names:
@@ -420,6 +421,9 @@ def land(root, primary):
                 print(f"No commits to land; already at origin/main ({base}).")
                 return
             require_clean()
+            makefile = git("ls-tree", head, "--", "Makefile").split()
+            if not makefile or makefile[0] not in {"100644", "100755"}:
+                raise Refusal("the candidate must have a regular tracked Makefile")
             evidence = evidence_dir(root)
             print(f"Reviewing {base}..{head}", flush=True)
             with candidate_checkout(head, evidence) as (checkout, env):
@@ -484,10 +488,14 @@ def overlaps(root, paths):
         if Path(path).is_absolute() or not within(relative, root):
             raise Refusal("give paths relative to the repository root")
         wanted.append(relative.relative_to(root))
-    match_paths = [Path(str(path).casefold()) for path in wanted] if ignore_case else wanted
+    def normalize(path):
+        name = unicodedata.normalize("NFC", str(path))
+        return Path(name.casefold() if ignore_case else name)
+
+    match_paths = [normalize(path) for path in wanted]
 
     def matches_path(file):
-        file_path = Path(file.casefold() if ignore_case else file)
+        file_path = normalize(file)
         return any(within(file_path, path) or within(path, file_path) for path in match_paths)
 
     base = fetch_main()
@@ -545,6 +553,12 @@ def end(root, primary):
         archive = Path(tempfile.mkdtemp(prefix=f".{primary.name}-ended-", dir=root.parent))
         saved = archive / "worktree"
         print(f"Retaining checkout files in {archive}", flush=True)
+        ref = f"refs/heads/{branch}"
+        bundle = archive / "session.bundle"
+        git("bundle", "create", str(bundle), ref)
+        if git("bundle", "list-heads", str(bundle), ref) != f"{head} {ref}\n":
+            raise Refusal("the archived branch changed before cleanup")
+        require_candidate(root, primary, branch, head)
         common = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip())
         git("worktree", "move", str(root), str(saved), cwd=primary, capture=False)
         archived_git = archive / "git-metadata"
@@ -568,7 +582,6 @@ def end(root, primary):
             index_lock.unlink(missing_ok=True)
         (saved / ".git").unlink(missing_ok=True)
         (archive / "original-common-dir").write_text(f"{common}\n")
-        ref = f"refs/heads/{branch}"
         if f"branch {ref}" in git("worktree", "list", "--porcelain", "-z", cwd=primary).split("\0"):
             raise Refusal("the worktree was removed but the branch is checked out elsewhere")
         # Use the exact branch tip verified against fetched main, independently of

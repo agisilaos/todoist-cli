@@ -70,10 +70,10 @@ documentation before closing the chat. When cleanup is requested, run
 `scripts/session end` from the session checkout. It fetches and checks that the
 worktree has no local changes or ignored files and its commits are reachable
 from `origin/main` before unregistering the worktree and removing its branch.
-It moves the checkout files and Git metadata to a private sibling directory
-on the same volume and prints the path so files and staged edits can be
-recovered. Delete that
-directory once you no longer need it. If cleanup stops before unregistering the
+It saves a Git bundle of the session tip and moves the checkout files and Git
+metadata to a private sibling directory on the same volume. The command prints
+the recovery path. Delete that directory once you no longer need it. If cleanup
+stops before unregistering the
 worktree, run `git worktree move <archive>/worktree <original-session-path>` from
 the primary checkout. Inspect the restored files and staged changes before
 retrying. Clear Git index flags that hide edits and move or remove ignored build
