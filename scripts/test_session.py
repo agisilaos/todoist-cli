@@ -317,6 +317,30 @@ os.execv(git, [git, *args])
         self.session("land", cwd=self.work)
         self.assertEqual(self.git("show", "main:topic.txt", cwd=self.remote), "example\n")
 
+    def test_resolved_base_survives_a_later_aborted_rebase_without_a_reflog(self):
+        self.start()
+        self.make_upstream_change(push=False)
+        self.git("config", "core.logAllRefUpdates", "false")
+        reflog = self.repo / ".git/logs/refs/remotes/origin/main"
+        if reflog.exists():
+            reflog.unlink()
+        for content in ("first upstream edit\n", "second upstream edit\n"):
+            (self.other / "topic.txt").write_text(content)
+            self.git("add", "topic.txt", cwd=self.other)
+            self.git("commit", "-m", "Edit topic upstream", cwd=self.other)
+            self.git("push", "origin", "main", cwd=self.other)
+            self.assertIn("rebase failed", self.session("land", cwd=self.work, success=False))
+            if content.startswith("first"):
+                (self.work / "topic.txt").write_text("example\n")
+                self.git("add", "topic.txt", cwd=self.work)
+                self.git("-c", "core.editor=true", "rebase", "--continue", cwd=self.work)
+            else:
+                self.git("rebase", "--abort", cwd=self.work)
+        self.git("update-ref", "refs/heads/main", self.base, cwd=self.remote)
+        self.assertIn("no longer contains the recorded session base",
+                      self.session("land", cwd=self.work, success=False))
+        self.assertEqual(self.tip(), self.base)
+
     def test_landing_refuses_a_custom_merge_driver_before_rebase(self):
         self.start()
         original = self.git("rev-parse", "HEAD", cwd=self.work).strip()
@@ -388,6 +412,17 @@ os.execv(git, [git, *args])
         self.assertTrue(self.work.exists())
         self.assertEqual(self.tip(), self.base)
         self.assertFalse(self.logs.exists())
+
+    def test_cleanup_ignores_grafts_that_hide_an_unlanded_commit(self):
+        self.start()
+        head = self.git("rev-parse", "HEAD", cwd=self.work).strip()
+        graft = self.home / "grafts"
+        graft.write_text(f"{self.base} {head}\n{head}\n")
+        self.env["GIT_GRAFT_FILE"] = str(graft)
+        self.assertEqual(self.git("-c", "advice.graftFileDeprecated=false", "rev-list",
+                                  f"{self.base}..HEAD", cwd=self.work), "")
+        self.assertIn("not on origin/main", self.session("end", cwd=self.work, success=False))
+        self.assertTrue(self.work.exists())
 
     def test_cleanup_preserves_ignored_files(self):
         self.session("start", "example")

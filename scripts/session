@@ -224,6 +224,12 @@ def require_candidate(root, primary, branch, head):
         raise Refusal("the session changed during qualification; land again")
 
 
+def write_base_record(path, base):
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(f"{base}\n")
+    temporary.replace(path)
+
+
 def record_rebase_target(base):
     metadata = git_dir()
     receipt = metadata / "todoist-session-base"
@@ -234,6 +240,7 @@ def record_rebase_target(base):
             attempted = pending.read_text().strip()
             if git("merge-base", attempted, "HEAD", allowed=(0, 1)).strip() == attempted:
                 previous = attempted
+                write_base_record(receipt, previous)
         git("--no-replace-objects", "merge-base", "--is-ancestor", previous, base)
     except (OSError, subprocess.CalledProcessError):
         raise Refusal("origin/main no longer contains the recorded session base, or the base "
@@ -254,12 +261,12 @@ def record_rebase_target(base):
                       "Inspect the history before starting a fresh session.") from None
     # A completed manual resolution contains the attempted target in its history.
     # An aborted rebase keeps the last successful base.
-    pending.write_text(f"{base}\n")
+    write_base_record(pending, base)
 
 
 def finish_rebase(base):
     metadata = git_dir()
-    (metadata / "todoist-session-base").write_text(f"{base}\n")
+    write_base_record(metadata / "todoist-session-base", base)
     (metadata / "todoist-session-target").unlink()
 
 
@@ -481,6 +488,7 @@ def end(root, primary):
 
 def main():
     os.environ["GIT_NO_REPLACE_OBJECTS"] = "1"
+    os.environ["GIT_GRAFT_FILE"] = os.devnull
     os.environ["GIT_ATTR_NOSYSTEM"] = "1"
     for name in ("GIT_ATTR_SOURCE", "GIT_EXTERNAL_DIFF", "GIT_DIFF_OPTS",
                  "GIT_LITERAL_PATHSPECS", "GIT_GLOB_PATHSPECS", "GIT_NOGLOB_PATHSPECS",
@@ -508,7 +516,7 @@ def main():
         path = primary.with_name(f"{primary.name}-{args.name}")
         base = fetch_main()
         git("worktree", "add", "--no-track", "-b", branch, str(path), base, capture=False)
-        (git_dir(path) / "todoist-session-base").write_text(f"{base}\n")
+        write_base_record(git_dir(path) / "todoist-session-base", base)
         print(f"Open the chat in {path} ({branch} at {base}).")
     elif args.command == "overlaps":
         if Path.cwd().resolve() != root:
