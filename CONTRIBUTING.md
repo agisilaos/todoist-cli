@@ -16,7 +16,7 @@ Thanks for your interest in contributing.
    help with `scripts/update-help.sh` when commands or flags change.
 5. Validate the finished revision:
    ```bash
-   make check
+   make -f Makefile check
    ```
 
 ## Ready for handoff
@@ -30,7 +30,7 @@ repository files or require Todoist credentials. A cold dependency cache
 may require network access. Coverage must be at least 30% for `internal/cli` and
 80% for `internal/output`.
 
-Use a passing local `make check` **or** passing ordinary CI on the finished
+Use a passing local `make -f Makefile check` **or** passing ordinary CI on the finished
 revision. Passing CI does not require an identical local rerun. Report the tested
 commit (or identify uncommitted changes tested), results, and any pending or
 unavailable checks. Earlier evidence does not cover subsequent edits.

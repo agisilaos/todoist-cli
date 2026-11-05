@@ -320,7 +320,8 @@ def transport_config(destination):
                            "fetch.fsck.")) or key in (
             "core.sshcommand", "core.askpass", "core.gitproxy",
             "remote.origin.proxy", "remote.origin.proxyauthmethod",
-            "push.gpgsign", "user.name", "user.email", "user.signingkey",
+            "push.gpgsign", "user.name", "user.email", "user.signingkey", "user.useconfigonly",
+            "committer.name", "committer.email",
             "fetch.fsckobjects", "transfer.fsckobjects",
         ):
             transport.append((key, value if separator else None))
@@ -467,16 +468,37 @@ def land(root, primary):
         print(f"Landed {head} on origin/main. Ordinary push CI runs separately.")
 
 
-def worktree_history(tree, base):
-    head = git("rev-parse", "--verify", "--quiet", "HEAD", cwd=tree, allowed=(0, 1)).strip()
+def worktree_history(tree, base, revision="HEAD"):
+    head = git("rev-parse", "--verify", "--quiet", revision, cwd=tree, allowed=(0, 1)).strip()
     common = git("merge-base", base, head, cwd=tree, allowed=(0, 1)).strip() if head else ""
     return head, common
 
 
 def touched_paths(common, head, cwd=None):
     return set(git("log", "--format=", "--name-only", "--no-renames", "-z",
-                   "--full-history", "--diff-merges=first-parent", f"{common}..{head}",
+                   "--no-show-signature", "--full-history", "--diff-merges=first-parent",
+                   f"{common}..{head}",
                    cwd=cwd).split("\0")) - {""}
+
+
+def other_worktree_commits(tree, base):
+    revisions = {"HEAD"}
+    metadata = git_dir(tree)
+    for backend in ("rebase-merge", "rebase-apply"):
+        try:
+            original = (metadata / backend / "orig-head").read_text().strip()
+        except FileNotFoundError:
+            continue
+        if re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", original):
+            revisions.add(original)
+    paths = set()
+    for revision in revisions:
+        head, common = worktree_history(tree, base, revision)
+        if common:
+            paths.update(touched_paths(common, head, cwd=tree))
+        elif head:
+            paths.update(git("ls-tree", "-r", "--name-only", "-z", head, cwd=tree).split("\0"))
+    return paths
 
 
 def overlaps(root, paths):
@@ -504,12 +526,7 @@ def overlaps(root, paths):
         if tree == root or not tree.is_dir():
             continue
         hidden = hidden_paths(tree)
-        changed = set(hidden)
-        head, common = worktree_history(tree, base)
-        if common:
-            changed.update(touched_paths(common, head, cwd=tree))
-        elif head:
-            changed.update(git("ls-tree", "-r", "--name-only", "-z", head, cwd=tree).split("\0"))
+        changed = hidden | other_worktree_commits(tree, base)
         for args in (
             ("diff", "--cached", "--name-only", "--no-renames", "-z"),
             ("diff", "--name-only", "--no-renames", "-z"),

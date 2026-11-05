@@ -223,6 +223,9 @@ if "push" in args and any(arg.endswith(":refs/heads/main") for arg in args):
             "remote.origin.proxyAuthMethod": b"basic\\n",
             "push.gpgSign": b"if-asked\\n",
             "user.signingkey": b"test-signing-key\\n",
+            "user.useConfigOnly": b"true\\n",
+            "committer.name": b"Fixture signer\\n",
+            "committer.email": b"signer@example.invalid\\n",
         }
         for key, value in expected.items():
             kind = ["--bool"] if key.startswith("http.") else []
@@ -314,6 +317,8 @@ os.execv(git, [git, *args])
             config.write('[http]\n\tsslVerify\n[remote "origin"]\n'
                          '\tproxy = ""\n\tproxyAuthMethod = basic\n'
                          '[push]\n\tgpgSign = if-asked\n[user]\n\tsigningkey = test-signing-key\n'
+                         '\tuseConfigOnly = true\n[committer]\n\tname = Fixture signer\n'
+                         '\temail = signer@example.invalid\n'
                          '[fetch]\n\tfsckObjects = true\n[transfer]\n\tfsckObjects = true\n'
                          '[fetch "fsck"]\n\tmissingEmail = error\n')
         self.intercept_git(SESSION_TEST_VERIFY_TRANSPORT="1")
@@ -619,6 +624,18 @@ os.execv(git, [git, *args])
         self.start()
         self.git("revert", "--no-edit", "HEAD", cwd=self.work)
         self.assertIn(f"{self.work}: topic.txt", self.session("overlaps", "topic.txt"))
+
+    def test_overlaps_includes_unreplayed_commits_in_a_paused_rebase(self):
+        self.start()
+        self.commit_file(self.work, "later.txt")
+        self.make_upstream_change(push=False)
+        (self.other / "topic.txt").write_text("upstream conflict\n")
+        self.git("add", "topic.txt", cwd=self.other)
+        self.git("commit", "-m", "Conflicting topic", cwd=self.other)
+        self.git("push", "origin", "main", cwd=self.other)
+        self.git("fetch", "origin", cwd=self.work)
+        self.git("rebase", "origin/main", cwd=self.work, success=False)
+        self.assertIn(f"{self.work}: later.txt", self.session("overlaps", "later.txt"))
 
     def test_overlaps_matches_canonically_equivalent_unicode(self):
         self.session("start", "example")
